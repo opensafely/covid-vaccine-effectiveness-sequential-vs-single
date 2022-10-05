@@ -31,11 +31,11 @@ args <- commandArgs(trailingOnly = TRUE)
 
 if (length(args) == 0) {
   # use for interactive testing
-  stage <- "treated"
-  # stage <- "potential"
+  # stage <- "treated"
+  #stage <- "potential"
   # stage <- "actual"
-  # stage <- "final"
-  # cohort <- "pfizer"
+   stage <- "final"
+   cohort <- "pfizer"
   # matching_round <- as.integer("1")
 } else {
   stage <- args[[1]]
@@ -69,7 +69,7 @@ if (stage == "potential") {
 ## create output directory ----
 if (stage == "treated") {
   fs::dir_create(here("output", "pfizer", "treated"))
-  fs::dir_create(here("output", "moderna", "treated"))
+  fs::dir_create(here("output", "az", "treated"))
   fs::dir_create(here("output", "treated", "eligible"))
 } else if (stage == "potential") {
   fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "process"))
@@ -114,14 +114,7 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
     mutate(patient_id = as.integer(patient_id))
   
   data_custom_dummy <- read_feather(custom_path) 
-  
-  if (stage != "final") {
-    data_custom_dummy <- data_custom_dummy %>%
-      mutate(
-        msoa = sample(factor(c("1", "2")), size=n(), replace=TRUE) # override msoa so matching success more likely
-      )
-  }
-  
+
   if (stage == "actual") {
     # reuse previous extraction for dummy run, dummy_control_potential1.feather
     data_custom_dummy <- data_custom_dummy %>%
@@ -269,7 +262,7 @@ if (stage == "final") {
   
   data_treatedeligible_matchstatus <- 
     left_join(
-      data_treatedeligible %>% select(patient_id, vax3_date),
+      data_treatedeligible %>% select(patient_id, vax1_date),
       data_matchstatus %>% filter(treated==1L),
       by="patient_id"
     ) %>%
@@ -284,7 +277,7 @@ if (stage == "final") {
       data_treatedeligible_matchstatus %>% 
         filter(matched==1L) %>%
         mutate(
-          agree = trial_date==vax3_date
+          agree = trial_date==vax1_date
         ) %>% pull(agree) %>% all()
     )
   )
@@ -298,7 +291,17 @@ if (stage == "final") {
 
 # process data -----
 
-## patient-level info ----
+## define index data ----
+if (stage == "treated") {
+  data_extract <- data_extract %>%
+    mutate(index_date = covid_vax_disease_1_date) 
+} else if(stage == "potential"){
+  data_extract <- data_extract %>%
+    mutate(index_date = matching_round_date) 
+} else if(stage == "actual"){
+  data_extract <- data_extract %>%
+    mutate(index_date = trial_date) 
+}
 
 if (stage %in% c("treated", "potential", "actual")) {
   data_processed <- data_extract %>%
@@ -331,49 +334,44 @@ if (stage %in% c("treated", "potential")) {
   
 }
 
+
+
 ####################################################################################
 
 if (stage == "treated") {
   selection_stage <- rlang::quos(
     
-    has_expectedvax3type = vax3_type %in% c("pfizer", "moderna"),
+    has_expectedvax1type = vax1_type %in% c("pfizer", "az"),
     
-    has_vaxgap23 = vax3_date >= (vax2_date+17) | is.na(vax3_date), # at least 17 days between second and third vaccinations
+    has_vaxgap12 = vax2_date >= (vax1_date+17) | is.na(vax2_date), # at least 17 days between first and second vaccinations. this is post-baseline conditioning but is essentially just removing a small number of people with unreliable vaccination data
     
-    vax3_notbeforestartdate = case_when(
-      (vax3_type=="pfizer") & (vax3_date < study_dates$pfizer$start_date) ~ FALSE,
-      (vax3_type=="moderna") & (vax3_date < study_dates$moderna$start_date) ~ FALSE,
+    vax1_notbeforestartdate = case_when(
+      (vax1_type=="pfizer") & (vax1_date < study_dates$pfizer$start_date) ~ FALSE,
+      (vax1_type=="az") & (vax1_date < study_dates$az$start_date) ~ FALSE,
       TRUE ~ TRUE
     ),
-    vax3_beforeenddate = case_when(
-      (vax3_type=="pfizer") & (vax3_date <= study_dates$pfizer$end_date) & !is.na(vax3_date) ~ TRUE,
-      (vax3_type=="moderna") & (vax3_date <= study_dates$moderna$end_date) & !is.na(vax3_date) ~ TRUE,
+    vax1_beforeenddate = case_when(
+      (vax1_type=="pfizer") & (vax1_date <= study_dates$pfizer$end_date) & !is.na(vax1_date) ~ TRUE,
+      (vax1_type=="az") & (vax1_date <= study_dates$az$end_date) & !is.na(vax1_date) ~ TRUE,
       TRUE ~ FALSE
     ),
     
-    index_date = vax3_date,
-    
-    c0 = is_adult & vax3_date <= study_dates$studyend_date,
-    c1 = c0 & vax3_notbeforestartdate & vax3_beforeenddate & has_expectedvax3type & has_vaxgap23,
+    c0 = vax1_notbeforestartdate & vax1_beforeenddate,
+    c1 = c0 & has_expectedvax1type & has_vaxgap12,
     
   )
   
 } else if (stage %in% c("potential",  "actual")) {
   
-  # define index_date
-  if (stage == "potential") index_date <- "matching_round_date" else if (stage == "actual") index_date <- "trial_date"
-  
   selection_stage <- rlang::quos(
     
-    index_date = !! sym(index_date),
-    
-    vax3_notbeforeindexdate = case_when(
-      is.na(vax3_date) | (vax3_date > index_date) ~ TRUE,
+    vax1_notbeforeindexdate = case_when(
+      is.na(vax1_date) | (vax1_date > index_date) ~ TRUE,
       TRUE ~ FALSE
     ),
     
-    c0 = is_adult,
-    c1 = c0 & vax3_notbeforeindexdate,
+    c0 = TRUE,
+    c1 = c0 & vax1_notbeforeindexdate,
     
   )
   
@@ -386,7 +384,6 @@ data_criteria <- data_processed %>%
   transmute(
     
     patient_id,
-    is_adult = age >= 18,
     has_age = !is.na(age),
     has_sex = !is.na(sex),
     has_imd = imd_Q5 != "Unknown",
@@ -398,35 +395,20 @@ data_criteria <- data_processed %>%
     isnot_endoflife = !endoflife,
     isnot_housebound = !housebound,
     
-    vax1_afterfirstvaxdate = case_when(
-      (vax1_type=="pfizer") & (vax1_date >= study_dates$firstpfizer_date) ~ TRUE,
-      (vax1_type=="az") & (vax1_date >= study_dates$firstaz_date) ~ TRUE,
-      (vax1_type=="moderna") & (vax1_date >= study_dates$firstmoderna_date) ~ TRUE,
-      TRUE ~ FALSE
-    ),
-    vax2_beforelastvaxdate = !is.na(vax2_date) & (vax2_date <= study_dates$lastvax2_date),
-    
-    has_knownvax1 = vax1_type %in% c("pfizer", "az"),
-    has_knownvax2 = vax2_type %in% c("pfizer", "az"),
-    
-    vax12_homologous = vax1_type==vax2_type,
-    has_vaxgap12 = vax2_date >= (vax1_date+17), # at least 17 days between first two vaccinations
-    
     !!! selection_stage,
     
     no_recentcovid30 = is.na(anycovid_0_date) | ((index_date - anycovid_0_date) > 30),
     
     isnot_inhospital = is.na(admitted_unplanned_0_date) | (!is.na(discharged_unplanned_0_date) & discharged_unplanned_0_date < index_date),
     
-    c2 = c1 & vax1_afterfirstvaxdate & vax2_beforelastvaxdate & has_vaxgap12 & has_knownvax1 & has_knownvax2 & vax12_homologous,
-    c3 = c2 & isnot_hscworker,
-    c4 = c3 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
-    c5 = c4 & has_age & has_sex & has_imd & has_ethnicity & has_region,
-    c6 = c5 & no_recentcovid30,
-    c7 = c6 & isnot_inhospital,
-    c8 = c7 & TRUE, # TODO define c8 (this will be TRUE when stage!=treated)
+    c2 = c1 & isnot_hscworker,
+    c3 = c2 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
+    c4 = c3 & has_age & has_sex & has_imd & has_ethnicity & has_region,
+    c5 = c4 & no_recentcovid30,
+    c6 = c5 & isnot_inhospital,
+    c7 = c6 & TRUE, # TODO define c8 (this will be TRUE when stage!=treated)
     
-    include = c8,
+    include = c7,
     
   )
 
@@ -441,12 +423,12 @@ data_eligible <- data_criteria %>%
 # save cohort-specific datasets ----
 if (stage == "treated") {
   
-  write_rds(data_eligible %>% filter(vax3_type == "pfizer"), 
+  write_rds(data_eligible %>% filter(vax1_type == "pfizer"), 
             here("output", "pfizer", "treated", "data_treatedeligible.rds"),
             compress="gz")
   
-  write_rds(data_eligible %>% filter(vax3_type == "moderna"), 
-            here("output", "moderna", "treated", "data_treatedeligible.rds"), 
+  write_rds(data_eligible %>% filter(vax1_type == "az"), 
+            here("output", "az", "treated", "data_treatedeligible.rds"), 
             compress="gz")
   
 } else if (stage == "potential") {
@@ -477,15 +459,13 @@ if (stage == "treated") {
       pct_step = n / lag(n),
       crit = str_extract(criteria, "^c\\d+"),
       criteria = fct_case_when(
-        crit == "c0" ~ "Aged 18+ with 3rd dose on or before {study_dates$studyend_date}", 
-        crit == "c1" ~ "  at least 17 days between 2nd and 3rd dose and 3rd dose of pfizer received between {study_dates$pfizer$start_date} and {study_dates$pfizer$end_date} or 3rd dose of moderna received between {study_dates$moderna$start_date} and {study_dates$moderna$end_date}",
-        crit == "c2" ~ "  homologous primary vaccination course of pfizer or AZ and at least 17 days between doses",
-        crit == "c3" ~ "  not a HSC worker",
-        crit == "c4" ~ "  not a care/nursing home resident, end-of-life or housebound",
-        crit == "c5" ~ "  no missing demographic information",
-        crit == "c6" ~ "  no evidence of covid in 30 days before third dose",
-        crit == "c7" ~ "  not in hospital (unplanned) during booster vaccination",
-        crit == "c8" ~ "  did not received 3rd dose at unusual time given region, priority group, and 2nd dose date.", #TODO
+        crit == "c0" ~ "Aged 70+ with 1st dose between study dates", 
+        crit == "c1" ~ "  no unreliable vaccination data",
+        crit == "c2" ~ "  not a HSC worker",
+        crit == "c3" ~ "  not a care/nursing home resident, end-of-life or housebound",
+        crit == "c4" ~ "  no missing demographic information",
+        crit == "c5" ~ "  no evidence of covid in 30 days before trial date",
+        crit == "c6" ~ "  not in hospital (unplanned) on trial date",
         TRUE ~ NA_character_
       )
     ) %>%
@@ -562,7 +542,7 @@ if (stage == "actual") {
     ) %>%
     group_by(match_id) %>%
     mutate(
-      controlistreated_date = vax3_date[treated==0], # this only works because of the group_by statement above! do not remove group_by statement!
+      controlistreated_date = vax1_date[treated==0], # this only works because of the group_by statement above! do not remove group_by statement!
     ) %>%
     ungroup() %>%
     select(all_of(matchstatus_vars), everything())

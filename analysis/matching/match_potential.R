@@ -95,7 +95,7 @@ if(matching_round>1){
 data_eligible <-
   bind_rows(data_alltreated, data_control) %>%
   mutate(
-    treatment_date = if_else(treated==1L, vax3_date, as.Date(NA)),
+    treatment_date = if_else(treated==1L, vax1_date, as.Date(NA)),
   )
 
 
@@ -157,7 +157,7 @@ local({
         # select controls
         treated==0L,
         # remove anyone already vaccinated
-        (vax3_date > trial_date) | is.na(vax3_date),
+        (vax1_date > trial_date) | is.na(vax1_date),
         # select only people not already selected as a control
         patient_id %in% candidate_ids
       ) %>%
@@ -253,12 +253,12 @@ local({
       filter(!is.na(match_id)) %>% # remove unmatched people. equivalent to weight != 0
       arrange(match_id, desc(treated)) %>%
       left_join(
-        data_eligible %>% select(patient_id, treated, vax3_date),
+        data_eligible %>% select(patient_id, treated, vax1_date),
         by = c("patient_id", "treated")
       ) %>%
       group_by(match_id) %>%
       mutate(
-        controlistreated_date = vax3_date[treated==0], # this only works because of the group_by statement above! do not remove group_by statement!
+        controlistreated_date = vax1_date[treated==0], # this only works because of the group_by statement above! do not remove group_by statement!
       ) %>%
       ungroup()
 
