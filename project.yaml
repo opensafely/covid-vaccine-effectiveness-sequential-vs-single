@@ -1,0 +1,268 @@
+version: '3.0'
+
+expectations:
+
+  population_size: 100000
+
+actions:
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## DO NOT EDIT project.yaml DIRECTLY 
+  ## This file is created by create-project.R 
+  ## Edit and run create-project.R to update the project.yaml 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ##   
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Preliminaries 
+  ## # # # # # # # # # # # # # # # # # # # 
+
+  design:
+    run: r:latest analysis/design.R
+    outputs:
+      moderately_sensitive:
+        lib: lib/design/study-dates.json
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Extract and process treated data 
+  ## # # # # # # # # # # # # # # # # # # # 
+
+  extract_treated:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_treated
+      --output-file output/treated/extract/input_treated.feather
+    needs:
+    - design
+    outputs:
+      highly_sensitive:
+        extract: output/treated/extract/input_treated.feather
+
+  process_treated:
+    run: r:latest analysis/process_data.R treated
+    needs:
+    - extract_treated
+    outputs:
+      highly_sensitive:
+        eligible: output/treated/eligible/*.rds
+        pfizer: output/pfizer/treated/*.rds
+        moderna: output/moderna/treated/*.rds
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Pfizer cohort 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Extract and match 
+
+  extract_controlpotential_pfizer_1:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/pfizer/matchround1/extract/input_controlpotential.feather
+      --param cohort=pfizer --param matching_round=1 --param index_date=2021-09-16
+    needs:
+    - design
+    outputs:
+      highly_sensitive:
+        cohort: output/pfizer/matchround1/extract/input_controlpotential.feather
+
+  process_controlpotential_pfizer_1:
+    run: r:latest analysis/process_data.R potential pfizer 1
+    needs:
+    - extract_controlpotential_pfizer_1
+    outputs:
+      highly_sensitive:
+        rds: output/pfizer/matchround1/process/*.rds
+
+  match_potential_pfizer_1:
+    run: r:latest analysis/matching/match_potential.R pfizer 1
+    needs:
+    - process_treated
+    - process_controlpotential_pfizer_1
+    outputs:
+      highly_sensitive:
+        rds: output/pfizer/matchround1/potential/*.rds
+        csv: output/pfizer/matchround1/potential/*.csv.gz
+
+  extract_controlactual_pfizer_1:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/pfizer/matchround1/extract/input_controlactual.feather
+      --param cohort=pfizer --param matching_round=1
+    needs:
+    - design
+    - match_potential_pfizer_1
+    outputs:
+      highly_sensitive:
+        cohort: output/pfizer/matchround1/extract/input_controlactual.feather
+
+  process_controlactual_pfizer_1:
+    run: r:latest analysis/process_data.R actual pfizer 1
+    needs:
+    - process_treated
+    - match_potential_pfizer_1
+    - extract_controlpotential_pfizer_1
+    - process_controlpotential_pfizer_1
+    - extract_controlactual_pfizer_1
+    outputs:
+      highly_sensitive:
+        rds: output/pfizer/matchround1/actual/*.rds
+        csv: output/pfizer/matchround1/actual/*.csv.gz
+
+  extract_controlpotential_pfizer_2:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/pfizer/matchround2/extract/input_controlpotential.feather
+      --param cohort=pfizer --param matching_round=2 --param index_date=2021-09-30
+    needs:
+    - design
+    - process_controlactual_pfizer_1
+    outputs:
+      highly_sensitive:
+        cohort: output/pfizer/matchround2/extract/input_controlpotential.feather
+
+  process_controlpotential_pfizer_2:
+    run: r:latest analysis/process_data.R potential pfizer 2
+    needs:
+    - extract_controlpotential_pfizer_2
+    outputs:
+      highly_sensitive:
+        rds: output/pfizer/matchround2/process/*.rds
+
+  match_potential_pfizer_2:
+    run: r:latest analysis/matching/match_potential.R pfizer 2
+    needs:
+    - process_treated
+    - process_controlpotential_pfizer_2
+    - process_controlactual_pfizer_1
+    outputs:
+      highly_sensitive:
+        rds: output/pfizer/matchround2/potential/*.rds
+        csv: output/pfizer/matchround2/potential/*.csv.gz
+
+  extract_controlactual_pfizer_2:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/pfizer/matchround2/extract/input_controlactual.feather
+      --param cohort=pfizer --param matching_round=2
+    needs:
+    - design
+    - match_potential_pfizer_2
+    outputs:
+      highly_sensitive:
+        cohort: output/pfizer/matchround2/extract/input_controlactual.feather
+
+  process_controlactual_pfizer_2:
+    run: r:latest analysis/process_data.R actual pfizer 2
+    needs:
+    - process_treated
+    - match_potential_pfizer_2
+    - extract_controlpotential_pfizer_2
+    - process_controlpotential_pfizer_2
+    - extract_controlactual_pfizer_2
+    - process_controlactual_pfizer_1
+    outputs:
+      highly_sensitive:
+        rds: output/pfizer/matchround2/actual/*.rds
+        csv: output/pfizer/matchround2/actual/*.csv.gz
+
+  extract_controlfinal_pfizer:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
+      --output-file output/pfizer/extract/input_controlfinal.feather --param cohort=pfizer
+      --param n_matching_rounds=2
+    needs:
+    - design
+    - process_controlactual_pfizer_2
+    outputs:
+      highly_sensitive:
+        extract: output/pfizer/extract/input_controlfinal.feather
+
+  dummydata_controlfinal_pfizer:
+    run: r:latest analysis/dummy/dummydata_controlfinal.R pfizer
+    needs:
+    - process_controlactual_pfizer_1
+    - process_controlactual_pfizer_2
+    outputs:
+      highly_sensitive:
+        dummydata_controlfinal: output/pfizer/dummydata/dummy_control_final.feather
+
+  process_controlfinal_pfizer:
+    run: r:latest analysis/process_data.R final pfizer
+    needs:
+    - process_controlactual_pfizer_1
+    - process_controlactual_pfizer_2
+    - extract_controlfinal_pfizer
+    - process_treated
+    - dummydata_controlfinal_pfizer
+    outputs:
+      highly_sensitive:
+        extract: output/pfizer/match/*.rds
+
+  table1_pfizer:
+    run: r:latest analysis/matching/table1.R pfizer
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        csv: output/pfizer/table1/*.csv
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Model 
+
+  km_pfizer_all_postest:
+    run: r:latest analysis/model/km.R pfizer all postest
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/postest/*.rds
+        png: output/pfizer/models/km/all/postest/*.png
+
+  km_pfizer_all_emergency:
+    run: r:latest analysis/model/km.R pfizer all emergency
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/emergency/*.rds
+        png: output/pfizer/models/km/all/emergency/*.png
+
+  km_pfizer_all_covidemergency:
+    run: r:latest analysis/model/km.R pfizer all covidemergency
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/covidemergency/*.rds
+        png: output/pfizer/models/km/all/covidemergency/*.png
+
+  km_pfizer_all_covidadmitted:
+    run: r:latest analysis/model/km.R pfizer all covidadmitted
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/covidadmitted/*.rds
+        png: output/pfizer/models/km/all/covidadmitted/*.png
+
+  km_pfizer_all_covidcritcare:
+    run: r:latest analysis/model/km.R pfizer all covidcritcare
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/covidcritcare/*.rds
+        png: output/pfizer/models/km/all/covidcritcare/*.png
+
+  km_pfizer_all_coviddeath:
+    run: r:latest analysis/model/km.R pfizer all coviddeath
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/coviddeath/*.rds
+        png: output/pfizer/models/km/all/coviddeath/*.png
+
+  km_pfizer_all_noncoviddeath:
+    run: r:latest analysis/model/km.R pfizer all noncoviddeath
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/noncoviddeath/*.rds
+        png: output/pfizer/models/km/all/noncoviddeath/*.png
+
+  ## #### End #### 
+

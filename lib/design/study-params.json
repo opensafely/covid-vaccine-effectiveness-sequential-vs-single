@@ -1,0 +1,12 @@
+{
+  "over12": {
+    "minage": 12,
+    "maxage": 15,
+    "treatment": "pfizerA"
+  },
+  "under12": {
+    "minage": 5,
+    "maxage": 11,
+    "treatment": "pfizerC"
+  }
+}
