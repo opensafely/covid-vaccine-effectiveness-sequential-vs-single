@@ -356,7 +356,13 @@ if (stage == "treated") {
       TRUE ~ FALSE
     ),
     
-    c0 = vax1_notbeforestartdate & vax1_beforeenddate,
+    vax1_notbeforeageeligible = case_when(
+      jcvi_ageband %in% c("80+") & vax1_date < study_dates$over80s$start_date ~ FALSE,
+      jcvi_ageband %in% c("70-74", "75-79") & vax1_date < study_dates$in70s$start_date ~ FALSE,
+      TRUE ~ TRUE # ignore agebands under 70 years old as these are not being studied here
+    ),
+    
+    c0 = vax1_notbeforestartdate & vax1_beforeenddate & vax1_notbeforeageeligible,
     c1 = c0 & has_expectedvax1type & has_vaxgap12,
     
   )
@@ -370,8 +376,14 @@ if (stage == "treated") {
       TRUE ~ FALSE
     ),
     
+    vax1_notbeforeageeligible = case_when(
+      ageband2 %in% c("80+") & vax1_date < study_dates$over80s$start_date ~ FALSE,
+      ageband2 %in% c("70-79") & vax1_date < study_dates$in70s$start_date ~ FALSE,
+      TRUE ~ TRUE # ignore agebands under 70 years old as these are not being studied here
+    ),
+    
     c0 = TRUE,
-    c1 = c0 & vax1_notbeforeindexdate,
+    c1 = c0 & vax1_notbeforeindexdate & vax1_notbeforeageeligible,
     
   )
   

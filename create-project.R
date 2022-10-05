@@ -344,7 +344,7 @@ actions_list <- splice(
     highly_sensitive = lst(
       eligible = "output/treated/eligible/*.rds",
       pfizer = "output/pfizer/treated/*.rds",
-      moderna = "output/moderna/treated/*.rds"
+      az = "output/az/treated/*.rds"
     ),
   ),
 
@@ -370,50 +370,51 @@ actions_list <- splice(
   action_km("pfizer", "all", "covidcritcare"),
   action_km("pfizer", "all", "coviddeath"),
   action_km("pfizer", "all", "noncoviddeath"),
-  # 
-  # action_km("pfizer", "prior_covid_infection", "postest"),
-  # action_km("pfizer", "prior_covid_infection", "emergency"),
-  # action_km("pfizer", "prior_covid_infection", "covidemergency"),
-  # action_km("pfizer", "prior_covid_infection", "covidadmitted"),
-  # action_km("pfizer", "prior_covid_infection", "covidcritcare"),
-  # action_km("pfizer", "prior_covid_infection", "coviddeath"),
-  # action_km("pfizer", "prior_covid_infection", "noncoviddeath"),
-  # 
-  # 
+  
+  action_km("pfizer", "ageband2", "postest"),
+  action_km("pfizer", "ageband2", "emergency"),
+  action_km("pfizer", "ageband2", "covidemergency"),
+  action_km("pfizer", "ageband2", "covidadmitted"),
+  action_km("pfizer", "ageband2", "covidcritcare"),
+  action_km("pfizer", "ageband2", "coviddeath"),
+  action_km("pfizer", "ageband2", "noncoviddeath"),
+  
+  
   # action_km_combine("pfizer"),
   
+  comment("# # # # # # # # # # # # # # # # # # #",
+          "AZ cohort",
+          "# # # # # # # # # # # # # # # # # # #"),
   
-  # comment("# # # # # # # # # # # # # # # # # # #", 
-  #         "Under 12s cohort", 
-  #         "# # # # # # # # # # # # # # # # # # #"),
+  comment("# # # # # # # # # # # # # # # # # # #",
+          "Extract and match"),
+  
+  action_extract_and_match("az", n_matching_rounds),
+  
+  action_table1("az"),
+  
+  comment("# # # # # # # # # # # # # # # # # # #",
+          "Model"),
+  
+  action_km("az", "all", "postest"),
+  action_km("az", "all", "emergency"),
+  action_km("az", "all", "covidemergency"),
+  action_km("az", "all", "covidadmitted"),
+  action_km("az", "all", "covidcritcare"),
+  action_km("az", "all", "coviddeath"),
+  action_km("az", "all", "noncoviddeath"),
+  
+  action_km("az", "ageband2", "postest"),
+  action_km("az", "ageband2", "emergency"),
+  action_km("az", "ageband2", "covidemergency"),
+  action_km("az", "ageband2", "covidadmitted"),
+  action_km("az", "ageband2", "covidcritcare"),
+  action_km("az", "ageband2", "coviddeath"),
+  action_km("az", "ageband2", "noncoviddeath"),
   # 
-  # comment("# # # # # # # # # # # # # # # # # # #", 
-  #         "Extract and match"),
   # 
-  # action_extract_and_match("under12", n_matching_rounds),
-  # 
-  # action_table1("under12"),
-  # 
-  # comment("# # # # # # # # # # # # # # # # # # #", 
-  #         "Model"),
-  # 
-  # action_km("under12", "all", "postest"),
-  # action_km("under12", "all", "emergency"),
-  # action_km("under12", "all", "covidemergency"),
-  # action_km("under12", "all", "covidadmitted"),
-  # action_km("under12", "all", "covidcritcare"),
-  # action_km("under12", "all", "coviddeath"),
-  # action_km("under12", "all", "noncoviddeath"),
-  # 
-  # action_km("under12", "prior_covid_infection", "postest"),
-  # action_km("under12", "prior_covid_infection", "emergency"),
-  # action_km("under12", "prior_covid_infection", "covidemergency"),
-  # action_km("under12", "prior_covid_infection", "covidadmitted"),
-  # action_km("under12", "prior_covid_infection", "covidcritcare"),
-  # action_km("under12", "prior_covid_infection", "coviddeath"),
-  # action_km("under12", "prior_covid_infection", "noncoviddeath"),
-  # 
-  # action_km_combine("under12"),
+  # action_km_combine("az"),
+  
   # 
   # comment("# # # # # # # # # # # # # # # # # # #", 
   #         "Move files for release", 

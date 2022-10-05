@@ -35,6 +35,14 @@ study_dates <- lst(
     # followupend_date = "2022-07-10" # end of follow-up
   ),
   
+  over80s = lst(
+    start_date = "2020-12-08"
+  ),
+  
+  in70s = lst(
+    start_date = "2021-01-05"
+  ),
+  
   global = lst(
     
     index_date = "2020-12-08",
@@ -116,6 +124,10 @@ recoder <-
     ),
     outcome = set_names(events_lookup$event, events_lookup$event_descr),
     all = c(` ` = "all"),
+    ageband2 = c(
+      `aged 80+` = "80+",
+      `aged 70-79` = "70-79",
+    ),
     prior_covid_infection = c(
       `No prior SARS-CoV-2 infection` = "FALSE",
       `Prior SARS-CoV-2 infection` = "TRUE"
@@ -155,6 +167,3 @@ caliper_variables <- c(
   NULL
 )
 matching_variables <- c(exact_variables, names(caliper_variables))
-
-# cut-off for rolling 7 day average, that determines recruitment period
-recruitment_period_cutoff <- 50

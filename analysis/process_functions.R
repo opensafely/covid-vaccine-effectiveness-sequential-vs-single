@@ -85,9 +85,16 @@ process_demo <- function(.data) {
   .data %>%
     mutate(
       ageband = cut(
-        age,
+        age31aug2020,
         breaks=c(-Inf, 18, 40, 50, 60, 70, 80, 90, Inf),
         labels=c("under 18", "18-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+"),
+        right=FALSE
+      ),
+      
+      ageband2 = cut(
+        age31aug2020,
+        breaks=c(-Inf, 70, 80, Inf),
+        labels=c("under 70", "70-79", "80+"),
         right=FALSE
       ),
       
