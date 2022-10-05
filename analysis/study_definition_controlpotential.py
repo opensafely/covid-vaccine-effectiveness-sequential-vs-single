@@ -63,11 +63,9 @@ study = StudyDefinition(
     """
     registered
     AND
-    age >= 18
+    age31aug2020 >= 70
     AND
     NOT has_died
-    AND 
-    covid_vax_disease_2_date
     """,
     
     **inclusion_variables,    

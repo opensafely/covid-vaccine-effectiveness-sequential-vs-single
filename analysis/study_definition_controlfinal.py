@@ -21,9 +21,6 @@ n_matching_rounds = params["n_matching_rounds"]
 with open("./lib/design/study-dates.json") as f:
   study_dates = json.load(f)
 
-# change these in design.R if necessary
-index_date = study_dates["index_date"]
-
 
 ############################################################
 ## outcome variables

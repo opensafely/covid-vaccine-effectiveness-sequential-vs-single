@@ -1,9 +1,9 @@
 # sim list vax ----
 sim_list_vax <- lst(
   
-  first_vax_type = bn_node(~rcat(n=..n, c("pfizer","az","moderna",""), c(0.49,0.4,0.1,0.01)), keep=FALSE),
+  first_vax_type = bn_node(~rcat(n=..n, c("pfizer","az",""), c(0.49,0.5,0.01)), keep=FALSE),
   covid_vax_pfizer_1_day = bn_node(
-    ~as.integer(runif(n=..n, firstpfizer_day, firstpfizer_day+60)),
+    ~as.integer(runif(n=..n, pfizerstart_day, pfizerstart_day+60)),
     missing_rate = ~1-(first_vax_type=="pfizer")
   ),
   covid_vax_pfizer_2_day = bn_node(
@@ -22,7 +22,7 @@ sim_list_vax <- lst(
     missing_rate = ~0.99
   ),
   covid_vax_az_1_day = bn_node(
-    ~as.integer(runif(n=..n, firstaz_day, firstaz_day+60)),
+    ~as.integer(runif(n=..n, azstart_day, azstart_day+60)),
     missing_rate = ~1-(first_vax_type=="az")
   ),
   covid_vax_az_2_day = bn_node(
@@ -40,31 +40,11 @@ sim_list_vax <- lst(
     needs = c("covid_vax_az_3_day"),
     missing_rate = ~0.99
   ),
-  covid_vax_moderna_1_day = bn_node(
-    ~as.integer(runif(n=..n, firstmoderna_day, firstmoderna_day+60)),
-    missing_rate = ~1-(first_vax_type=="moderna")
-  ),
-  covid_vax_moderna_2_day = bn_node(
-    ~as.integer(runif(n=..n, covid_vax_moderna_1_day+30, covid_vax_moderna_1_day+60)),
-    needs = c("covid_vax_moderna_1_day"),
-    missing_rate = ~0.01
-  ),
-  covid_vax_moderna_3_day = bn_node(
-    ~as.integer(runif(n=..n, max(covid_vax_moderna_2_day+15, modernastart_day), max(covid_vax_moderna_2_day,modernastart_day)+100)),
-    needs = c("covid_vax_moderna_2_day"),
-    missing_rate = ~0.5
-  ),
-  covid_vax_moderna_4_day = bn_node(
-    ~as.integer(runif(n=..n, covid_vax_moderna_3_day+120, covid_vax_moderna_3_day+200)),
-    needs = c("covid_vax_moderna_3_day"),
-    missing_rate = ~0.99
-  ),
   
 )
 
 # sim list jcvi ----
 sim_list_jcvi <- lst(
-  age_aug2021 = bn_node(~age),
   
   bmi = bn_node(
     ~rfactor(n=..n, levels = c("Not obese", "Obese I (30-34.9)", "Obese II (35-39.9)", "Obese III (40+)"), p = c(0.5, 0.2, 0.2, 0.1)),
@@ -105,7 +85,7 @@ sim_list_jcvi <- lst(
 
 sim_list_demographic <- lst(
   
-  has_follow_up_previous_6weeks = bn_node(
+  has_follow_up_previous_year = bn_node(
     ~rbernoulli(n=..n, p=0.999)
   ),
   
@@ -116,6 +96,8 @@ sim_list_demographic <- lst(
   age = bn_node(
     ~as.integer(rnorm(n=..n, mean=60, sd=15))
   ), 
+  
+  age31aug2020 = bn_node(~age),
   
   sex = bn_node(
     ~rfactor(n=..n, levels = c("F", "M"), p = c(0.51, 0.49)),
@@ -196,7 +178,7 @@ sim_list_demographic <- lst(
 # sim list demographic ----
 sim_list_demographic <- lst(
   
-  has_follow_up_previous_6weeks = bn_node(
+  has_follow_up_previous_year = bn_node(
     ~rbernoulli(n=..n, p=0.999)
   ),
   
@@ -207,6 +189,8 @@ sim_list_demographic <- lst(
   age = bn_node(
     ~as.integer(rnorm(n=..n, mean=60, sd=15))
   ), 
+  
+  age31aug2020 = bn_node(~age),
   
   sex = bn_node(
     ~rfactor(n=..n, levels = c("F", "M"), p = c(0.51, 0.49)),

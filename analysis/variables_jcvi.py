@@ -6,12 +6,6 @@ def generate_jcvi_variables(index_date):
 
   jcvi_variables = dict(
 
-    # age for jcvi group definitions
-    # should this be 2020 or 2021?
-    # maybe wrong in the old repo? https://github.com/opensafely/booster-effectiveness/blob/2b38698e4d9d7d9ce62522e4e8937cb3c85e92c6/analysis/study_definition.py#L329
-    age_aug2021=patients.age_as_of( 
-      "2021-08-31",
-    ),
 
     # BMI category
     # https://github.com/opensafely/risk-factors-research/issues/51

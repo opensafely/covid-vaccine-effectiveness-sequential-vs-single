@@ -55,12 +55,10 @@ study = StudyDefinition(
     """
     registered
     AND
-    # age >= 18 # implicitly defined in prematched
-    # AND
+    age31aug2020 >= 70
+    AND
     NOT has_died
-    AND 
-    # covid_vax_disease_2_date # implicitly defined in prematched
-    # AND
+    AND
     prematched
     """,
     

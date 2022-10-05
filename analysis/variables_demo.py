@@ -8,9 +8,13 @@ def generate_demo_variables(index_date):
 
   demo_variables = dict(
 
-  has_follow_up_previous_6weeks=patients.registered_with_one_practice_between(
-    start_date=f"{index_date} - 42 days",
+  has_follow_up_previous_year=patients.registered_with_one_practice_between(
+    start_date=f"{index_date} - 1 year",
     end_date=f"{index_date} - 1 day",
+  ),
+
+  age31aug2020=patients.age_as_of( 
+    "2020-08-31",
   ),
 
   age=patients.age_as_of( 
@@ -152,6 +156,9 @@ def generate_demo_variables(index_date):
       "category": {"ratios": {1: 0.125, 2: 0.125, 3: 0.125, 4: 0.125, 5: 0.125, 6: 0.125, 7: 0.125, 8: 0.125}},
     },
   ),
+  
+  
+  
   
   )
   return demo_variables

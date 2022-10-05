@@ -31,14 +31,7 @@ def generate_vax_variables(index_date, n):
     product_name_matches="COVID-19 Vac AstraZeneca (ChAdOx1 S recomb) 5x10000000000 viral particles/0.5ml dose sol for inj MDV"
   ),
   
-  # moderna
-  **vaccination_date_X(
-    name = "covid_vax_moderna",
-    index_date = index_date,
-    n = n,
-    product_name_matches="COVID-19 mRNA Vaccine Spikevax (nucleoside modified) 0.1mg/0.5mL dose disp for inj MDV (Moderna)"
-  ),
-  
+
   # any covid vaccine
   **vaccination_date_X(
     name = "covid_vax_disease",

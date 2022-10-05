@@ -7,9 +7,8 @@ library('glue')
 
 source(here("lib", "functions", "utility.R"))
 
-# remotes::install_github("https://github.com/wjchulme/dd4d")
+#remotes::install_github("https://github.com/wjchulme/dd4d")
 library('dd4d')
-source('/Users/eh1415/Documents/dd4d/R/bn_simulate.R')
 
 source(here("analysis", "design.R"))
 
@@ -24,26 +23,17 @@ study_dates <- jsonlite::read_json(
 
 # create dummy data for variables defined before baseline ----
 pfizerstart_date <- as.Date(study_dates$pfizer$start_date)
-modernastart_date <- as.Date(study_dates$moderna$start_date)
+azstart_date <- as.Date(study_dates$az$start_date)
 
-firstpfizer_date <- as.Date(study_dates$firstpfizer_date)
-firstaz_date <- as.Date(study_dates$firstaz_date)
-firstmoderna_date <- as.Date(study_dates$firstmoderna_date)
-
-index_date <- as.Date(study_dates$index_date)
+index_date <- as.Date(study_dates$global$index_date)
 
 index_day <- 0L
 pfizerstart_day <- as.integer(pfizerstart_date - index_date)
-modernastart_day <- as.integer(modernastart_date - index_date)
-
-firstpfizer_day <- as.integer(firstpfizer_date - index_date)
-firstaz_day <- as.integer(firstaz_date - index_date)
-firstmoderna_day <- as.integer(firstmoderna_date - index_date)
-
+azstart_day <- as.integer(azstart_date - index_date)
 
 known_variables <- c(
-  "index_date", "pfizerstart_date", "modernastart_date", "firstpfizer_date", "firstaz_date", "firstmoderna_date",
-  "index_day", "pfizerstart_day", "modernastart_day", "firstpfizer_day", "firstaz_day", "firstmoderna_day"
+  "index_date", "pfizerstart_date", "azstart_date",
+  "index_day", "pfizerstart_day", "azstart_day"
 )
 
 sim_list <- splice(
@@ -86,8 +76,8 @@ dummydata_processed <- dummydata  %>%
   left_join(dummydata_vax, by = "patient_id") %>%
   # convert logical to integer as study defs output 0/1 not TRUE/FALSE
   # mutate(across(where(is.logical), ~ as.integer(.))) %>%
-  # re-index outcomes on cavid_vax_disease_3_day
-  mutate(across(all_of(names(sim_list_outcome)), ~ covid_vax_disease_3_day + .)) %>%
+  # re-index outcomes on cavid_vax_disease_1_day
+  mutate(across(all_of(names(sim_list_outcome)), ~ covid_vax_pfizer_1_day + .)) %>%
   # convert integer days to dates since index date and rename vars
   mutate(across(ends_with("_day"), ~ as.Date(as.character(index_date + .)))) %>%
   rename_with(~ str_replace(., "_day", "_date"), ends_with("_day"))
