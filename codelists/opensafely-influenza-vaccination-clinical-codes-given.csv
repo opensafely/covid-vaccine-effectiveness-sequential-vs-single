@@ -1,0 +1,36 @@
+,CTV3ID,CTV3PreferredTermDesc,CTV3Source,Category
+0,XaPwi,1st pandemic influenza vacc give by other healthcare providr,CTV3Map_Code_And_Term,g
+1,XaPwj,2nd pandemic influenza vacc give by other healthcare providr,CTV3Map_Code_And_Term,g
+2,XaPyT,Influenza vaccination given by other healthcare provider,CTV3Map_Code_And_Term,g
+3,XaQhk,CELVAPAN - first influenza A (H1N1v) 2009 vaccination given,CTV3Map_Code_And_Term,g
+4,XaQhl,CELVAPAN - second influenza A (H1N1v) 2009 vaccination given,CTV3Map_Code_And_Term,g
+5,XaQhm,PANDEMRIX - first influenza A (H1N1v) 2009 vaccination given,CTV3Map_Code_And_Term,g
+6,XaQhn,PANDEMRIX - second influenza A (H1N1v) 2009 vaccination give,CTV3Map_Code_And_Term,g
+7,XaQho,CELVAPAN - 1st flu A (H1N1v) 2009 vacc by othr hlth provider,CTV3Map_Code_And_Term,g
+8,XaQhp,CELVAPAN - 2nd flu A (H1N1v) 2009 vacc by othr hlth provider,CTV3Map_Code_And_Term,g
+9,XaQhq,PANDEMRIX - 1st flu A (H1N1v) 2009 vac by othr hlth provider,CTV3Map_Code_And_Term,g
+10,XaQhr,PANDEMRIX - 2nd flu A (H1N1v) 2009 vac by othr hlth provider,CTV3Map_Code_And_Term,g
+11,XaZ0e,Seasonal influenza vaccin given by other healthcare provider,CTV3Map_Code_And_Term,g
+12,XaZfY,Seasonal influenza vaccination given by pharmacist,CTV3Map_Code_And_Term,g
+13,Xaa9G,Administration of intranasal influenza vaccination,CTV3Map_Code_And_Term,g
+14,XaaED,Administration of first intranasal influenza vaccination,CTV3Map_Code_And_Term,g
+15,XaaEF,Administration of second intranasal influenza vaccination,CTV3Map_Code_And_Term,g
+16,XaaZp,Seasonal influenza vaccination given while hospital inpt,CTV3Map_Code_And_Term,g
+17,Xaac1,Administration of first intranasal pandemic influenza vacc,CTV3Map_Code_And_Term,g
+18,Xaac2,Administration of second intranasal pandemic influenza vacc,CTV3Map_Code_And_Term,g
+19,Xaac3,Administration of first intranasal seasonal influenza vacc,CTV3Map_Code_And_Term,g
+20,Xaac4,Administration of second intranasal seasonal influenza vacc,CTV3Map_Code_And_Term,g
+21,Xaac5,First intranasal pndmc influenza vcc gvn othr hlthcare prvdr,CTV3Map_Code_And_Term,g
+22,Xaac6,Scnd intrnsl pndmc flu vacc gvn by other healthcare provider,CTV3_Children,g
+23,Xaac7,First intranasal seasonal flu vacc gvn by othr hlthcare prov,CTV3Map_Code_And_Term,g
+24,Xaac8,Secnd intranasal seasonal flu vacc gvn by othr hlthcare prov,CTV3Map_Code_And_Term,g
+25,XabvT,2nd intramuscular seasonal influenza vacc given by other HCP,CTV3Map_Code_And_Term,g
+26,Xac5J,1st intramuscular seasonal influenza vacc given by other HCP,CTV3Map_Code_And_Term,g
+27,Xad9j,Administration of first inactivated seasonal influenza vacc,CTV3Map_Code_And_Term,g
+28,Xad9k,Administration of second inactivated seasonal influenza vacc,CTV3Map_Code_And_Term,g
+29,Xaeet,First intranasal seasonal influenza vacc given by pharmacist,CTV3Map_Code_And_Term,g
+30,Xaeeu,Second intranasal seasonal influenza vacc givn by pharmacist,CTV3Map_Code_And_Term,g
+31,Xaeev,First inactivated seasonal influenza vacc gvn by pharmacist,CTV3Map_Code_And_Term,g
+32,Xaeew,Second inactivated seasonal influenza vacc gvn by pharmacist,CTV3Map_Code_And_Term,g
+33,Y0c3f,First influenza A (H1N1v) 2009 vaccination given,CTV3_Children,g
+34,Y0c40,Second influenza A (H1N1v) 2009 vaccination given,CTV3_Children,g

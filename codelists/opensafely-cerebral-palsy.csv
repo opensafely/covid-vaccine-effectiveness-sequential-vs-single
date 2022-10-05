@@ -1,0 +1,57 @@
+code,term
+F137.,(Sympt tors dyston)(athet cereb pals)(cong athetos)(Vogt's)
+F1370,(Athetoid cerebral palsy) or (Vogt's dis: [ophth][neurol])
+F1371,Athetosis: [double] or [congenital]
+F23..,Congenital cerebral palsy (& spastic)
+F230.,Congenital diplegia (& paraplegia)
+F2300,Congenital paraplegia
+F230z,Congenital diplegia NOS
+F231.,Infantile hemiplegia
+F232.,Cerebral palsy &/or congenital quadriplegia
+F233.,(Congenital monoplegia) or (congenital spastic foot)
+F234.,Infantile hemiplegia NOS
+F23y.,Other congenital cerebral palsy
+F23y0,Ataxic infantile cerebral palsy
+F23y1,Hypotonic cerebral palsy
+F23yz,Other infantile cerebral palsy NOS
+F23z.,Congenital cerebral palsy NOS
+Fyu9.,[X]Cerebral palsy and other paralytic syndromes
+Fyu90,[X]Other infantile cerebral palsy
+G669.,"Cerebral palsy, not congenital or infantile, acute"
+X00Em,Infantile cerebral palsy
+X00En,Spastic cerebral palsy
+X00Eo,Cerebral palsy with spastic tetraparesis
+X00Ep,Paraplegia - congenital
+X00Eq,Cerebral palsy with spastic/ataxic diplegia
+X00Er,Monoplegic cerebral palsy affecting upper limb
+X00Es,Monoplegic cerebral palsy affecting lower limb
+X00Eu,Dyskinetic cerebral palsy
+X00Ew,Dystonic/rigid cerebral palsy
+X00Ez,Congenital pseudobulbar palsy
+XE15M,Double athetosis
+XE15V,Congenital monoplegia
+XE181,Cerebral palsy (&/or infantile) &/or infantile hemiplegia
+XE2Q7,Athetoid cerebral palsy
+XE2Q8,Cerebral palsy
+XE2Q9,Cerebral palsy with spastic diplegia
+XE2se,Cerebral palsy with spastic tetraplegia
+XM1Pu,Congenital cerebral palsy
+XM1Pv,Congenital spastic cerebral palsy
+XM1Pw,Congenital quadriplegia
+XM1Px,Congenital diplegia
+Xa0lI,Congenital non-progressive ataxia
+Xa0lM,Ataxic cerebral palsy
+XaB4P,Congenital athetosis
+XaBE2,"Cerebral palsy, not congenital or infantile, acute"
+XaNWb,Worster-Drought syndrome
+XaYfK,Spastic hemiplegic cerebral palsy
+XaYgp,Spastic quadriplegic cerebral palsy
+XaaVJ,Gross Motor Function Classification System for CP level I
+XaaVK,Gross Motor Function Classification System for CP level II
+XaaWD,Gross Motor Function Classification System for CP level III
+XaaWE,Gross Motor Function Classification System for CP level IV
+XaaWF,Gross Motor Function Classification System for CP level V
+XaadE,Choreoathetoid cerebral palsy
+Xab3R,Bilateral spastic cerebral palsy
+Y6151,Congenital hemiplegia
+Y7227,Infantile cerebral palsy NOS

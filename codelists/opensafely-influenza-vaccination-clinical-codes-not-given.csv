@@ -1,0 +1,22 @@
+,CTV3ID,CTV3PreferredTermDesc,CTV3Source,Category
+50,XaIBI,Influenza vaccination declined,CTV3Map_Code_And_Term,x
+51,XaIOT,Influenza vaccination contraindicated,CTV3Map_Code_And_Term,x
+52,XaJ5n,Influenza vaccination not indicated,CTV3Map_Code_And_Term,x
+53,XaL1V,Did not attend flu vaccination appointment,CTV3Map_Code_And_Term,x
+54,XaPw7,Pandemic influenza vaccination declined,CTV3Map_Code_And_Term,x
+55,XaPwe,Pandemic influenza vaccination contraindicated,CTV3Map_Code_And_Term,x
+56,XaPwk,Pandemic influenza vaccination not indicated,CTV3Map_Code_And_Term,x
+59,XaX4R,Influenza A virus subtype H1N1 vaccination declined,CTV3Map_Code_And_Term,x
+60,XaZ0i,Seasonal influenza vaccination declined,CTV3Map_Code_And_Term,x
+61,XaZ0j,Seasonal influenza vaccination contraindicated,CTV3Map_Code_And_Term,x
+62,XaZ0k,Seasonal influenza vaccination not indicated,CTV3Map_Code_And_Term,x
+63,XaaDp,First intranasal influenza vaccination declined,CTV3Map_Code_And_Term,x
+64,XaaDq,Second intranasal influenza vaccination declined,CTV3Map_Code_And_Term,x
+65,XaaWK,DNA second intranasal seasonal influenza vaccination,CTV3_Children,x
+66,XaaWM,DNA first intranasal seasonal influenza vaccination,CTV3Map_Code_And_Term,x
+67,XaadS,First intranasal seasonal influenza vaccination declined,CTV3Map_Code_And_Term,x
+68,XaadT,First intranasal pandemic influenza vaccination declined,CTV3Map_Code_And_Term,x
+69,XaadU,Second intranasal seasonal influenza vaccination declined,CTV3Map_Code_And_Term,x
+70,XaadV,Second intranasal pandemic influenza vaccination declined,CTV3Map_Code_And_Term,x
+71,XaadX,DNA first intranasal pandemic influenza vaccination,CTV3Map_Code_And_Term,x
+72,XaadZ,DNA second intranasal pandemic influenza vaccination,CTV3_Children,x
