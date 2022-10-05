@@ -55,8 +55,6 @@ study_dates <- lst(
     firstmoderna_date = "2021-04-13", # first moderna vaccination in national roll-out
     firstpossiblevax_date = "2020-06-01", # used to catch "real" vaccination dates (eg not 1900-01-01)
   ),
-  
-  test= "2020-02-02"
 )
 
 
@@ -126,7 +124,7 @@ recoder <-
     all = c(` ` = "all"),
     ageband2 = c(
       `aged 80+` = "80+",
-      `aged 70-79` = "70-79",
+      `aged 70-79` = "70-79"
     ),
     prior_covid_infection = c(
       `No prior SARS-CoV-2 infection` = "FALSE",
