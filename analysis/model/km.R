@@ -65,12 +65,14 @@ data_matched <- read_rds(ghere("output", cohort, "match", "data_matched.rds"))
 data_matched <- 
   data_matched %>%
   mutate(all="all") %>%
+  group_by(patient_id, match_id, matching_round, treated) %>% 
+  mutate(new_id = cur_group_id()) %>% 
   select(
     # select only variables needed for models to save space
-    patient_id, treated, trial_date, match_id, 
+    patient_id, treated, trial_date, match_id, new_id,
     controlistreated_date,
-    vax3_date,
-    death_date, dereg_date, coviddeath_date, noncoviddeath_date, vax4_date,
+    vax1_date,
+    death_date, dereg_date, coviddeath_date, noncoviddeath_date, vax2_date,
     all_of(c(glue("{outcome}_date"), subgroup))
   ) %>%
   
@@ -82,9 +84,9 @@ data_matched <-
     # follow-up time is up to and including censor date
     censor_date = pmin(
       dereg_date,
-      vax4_date-1, # -1 because we assume vax occurs at the start of the day
+      #vax4_date-1, # -1 because we assume vax occurs at the start of the day
       death_date,
-      study_dates$studyend_date,
+      study_dates[["global"]]$studyend_date,
       trial_date + maxfup,
       na.rm=TRUE
     ),
@@ -101,7 +103,7 @@ data_matched <-
 outcomes_per_treated <- table(outcome=data_matched$ind_outcome, treated=data_matched$treated)
 
 table(
-  cut(data_matched$tte_outcome, c(-Inf, 0, 1, Inf), right=FALSE, labels= c("<0", "0", ">0"))
+  cut(data_matched$tte_outcome, c(-Inf, 0, 1, Inf), right=FALSE, labels= c("<0", "0", ">0")), useNA="ifany"
 )
 # should be c(0, 0, nrow(data_matched))
 
@@ -406,11 +408,89 @@ kmcontrasts <- function(data, cuts=NULL){
 }
 
 
-contrasts_rounded_daily <- kmcontrasts(data_surv_rounded)
-contrasts_rounded_cuts <- kmcontrasts(data_surv_rounded, postbaselinecuts)
-contrasts_rounded_overall <- kmcontrasts(data_surv_rounded, c(0,maxfup))
+contrasts_km_rounded_daily <- kmcontrasts(data_surv_rounded)
+contrasts_km_rounded_cuts <- kmcontrasts(data_surv_rounded, postbaselinecuts)
+contrasts_km_rounded_overall <- kmcontrasts(data_surv_rounded, c(0,maxfup))
 
 
-write_rds(contrasts_rounded_daily, fs::path(output_dir, "contrasts_daily_rounded.rds"))
-write_rds(contrasts_rounded_cuts, fs::path(output_dir, "contrasts_cuts_rounded.rds"))
-write_rds(contrasts_rounded_overall, fs::path(output_dir, "contrasts_overall_rounded.rds"))
+write_rds(contrasts_km_rounded_daily, fs::path(output_dir, "contrasts_km_daily_rounded.rds"))
+write_rds(contrasts_km_rounded_cuts, fs::path(output_dir, "contrasts_km_cuts_rounded.rds"))
+write_rds(contrasts_km_rounded_overall, fs::path(output_dir, "contrasts_km_overall_rounded.rds"))
+
+
+## cox models ----
+
+coxcontrast <- function(data, cuts=NULL){
+  
+  # if(is.null(cuts)){cuts <- unique(c(0,data$time))}
+  if(is.null(cuts)){stop("Specify cuts.")}
+  
+  data <- data %>% 
+    # create variable for cuts[1] for tstart in tmerge
+    mutate(time0 = cuts[1])
+  
+  fup_split <-
+    data %>%
+    select(new_id, treated) %>%
+    uncount(weights = length(cuts)-1, .id="period_id") %>%
+    mutate(
+      fup_time = cuts[period_id],
+      fup_period = paste0(cuts[period_id], "-", cuts[period_id+1]-1)
+    ) %>%
+    droplevels() %>%
+    select(
+      new_id, period_id, fup_time, fup_period
+    )
+  
+  data_split <-
+    tmerge(
+      data1 = data,
+      data2 = data,
+      id = new_id,
+      tstart = time0,
+      tstop = tte_outcome,
+      ind_outcome = event(if_else(ind_outcome, tte_outcome, NA_real_))
+    ) %>%
+    # add post-treatment periods
+    tmerge(
+      data1 = .,
+      data2 = fup_split,
+      id = new_id,
+      period_id = tdc(fup_time, period_id)
+    ) %>%
+    mutate(
+      period_start = cuts[period_id],
+      period_end = cuts[period_id+1],
+    )
+  
+  data_cox <-
+    data_split %>%
+    group_by(!!subgroup_sym, period_start, period_end) %>%
+    nest() %>%
+    mutate(
+      cox_obj = map(data, ~{
+        coxph(Surv(tstart, tstop, ind_outcome) ~ treated, data = .x, y=FALSE, robust=TRUE, id=new_id, na.action="na.fail")
+      }),
+      cox_obj_tidy = map(cox_obj, ~broom::tidy(.x)),
+    ) %>%
+    select(!!subgroup_sym, period_start, period_end, cox_obj_tidy) %>%
+    unnest(cox_obj_tidy) %>%
+    transmute(
+      !!subgroup_sym,
+      period_start,
+      period_end,
+      coxhazr = exp(estimate),
+      coxhr.se = robust.se,
+      coxhr.ll = exp(estimate + qnorm(0.025)*robust.se),
+      coxhr.ul = exp(estimate + qnorm(0.975)*robust.se),
+    )
+  data_cox
+  
+}
+
+# no rounding necessary as HRs are a safe statistic
+contrasts_cox_cuts <- coxcontrast(data_matched, c(0,postbaselinecuts))
+contrasts_cox_overall <- coxcontrast(data_matched, c(0,maxfup))
+
+write_rds(contrasts_cox_cuts, fs::path(output_dir, "contrasts_cox_cuts.rds"))
+write_rds(contrasts_cox_overall, fs::path(output_dir, "contrasts_cox_overall.rds"))
