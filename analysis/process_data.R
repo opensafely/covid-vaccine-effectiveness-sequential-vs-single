@@ -540,6 +540,37 @@ if (stage == "actual") {
   #   ) %>%
   #   arrange(matched, match_id, treated) 
   
+  caliper_check <- function(distance){
+    function(x,y){abs(x-y) <= distance}
+  }
+  
+  if(length(caliper_variables) >0 ){
+    rematch_caliper <-
+      fuzzyjoin::fuzzy_inner_join(
+        x=data_treated %>% select(match_id, trial_date, all_of(exact_variables)) %>% right_join(rematch_exact, by=c("match_id", "trial_date")),
+        y=data_control %>% select(match_id, trial_date, all_of(exact_variables)) %>% right_join(rematch_exact, by=c("match_id", "trial_date")),
+        by = unname(caliper_variables),
+        #match_fun = list(caliper_check(1), caliper_check(2), ...) #add functions to check caliper matches here
+      )
+    # fuzzy_join returns `variable.x` and `variable.y` columns, not just `variable` because they might be different values.
+    # but we know match_id and trial_date are exactly matched, so only need to pick these out to define the legitimate matches
+    rematch <-
+      rematch_caliper %>%
+      select(match_id=match_id.x, trial_date=trial_date.x) %>%
+      mutate(matched=1L)
+  } else{
+    
+    rematch <-
+      inner_join(
+        x=data_treated %>% select(match_id, trial_date, all_of(exact_variables)),
+        y=data_control %>% select(match_id, trial_date, all_of(exact_variables)),
+        by = c("match_id", "trial_date", exact_variables)
+      ) %>%
+      select(match_id, trial_date) %>%
+      mutate(matched=1L)
+    
+  }
+  
   
   ###
   matchstatus_vars <- c("patient_id", "match_id", "trial_date", "matching_round", "treated", "controlistreated_date")
