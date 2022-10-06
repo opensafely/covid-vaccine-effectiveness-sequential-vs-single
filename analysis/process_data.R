@@ -93,6 +93,9 @@ if (stage == "actual") {
 # check variables are as they should be
 if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   
+  ## set seed so results on dummy data are reproducible ---
+  set.seed(10)
+  
   # ideally in future this will check column existence and types from metadata,
   # rather than from a cohort-extractor-generated dummy data
   
