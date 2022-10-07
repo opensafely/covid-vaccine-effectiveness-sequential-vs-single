@@ -33,10 +33,10 @@ if (length(args) == 0) {
   # use for interactive testing
   # stage <- "treated"
   #stage <- "potential"
-  # stage <- "actual"
-   stage <- "final"
-   cohort <- "pfizer"
-  # matching_round <- as.integer("1")
+  stage <- "actual"
+  # stage <- "final"
+  cohort <- "pfizer"
+  matching_round <- as.integer("1")
 } else {
   stage <- args[[1]]
   
@@ -93,6 +93,9 @@ if (stage == "actual") {
 # check variables are as they should be
 if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   
+  ## set seed so results on dummy data are reproducible ---
+  set.seed(10)
+  
   # ideally in future this will check column existence and types from metadata,
   # rather than from a cohort-extractor-generated dummy data
   
@@ -114,7 +117,7 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
     mutate(patient_id = as.integer(patient_id))
   
   data_custom_dummy <- read_feather(custom_path) 
-
+  
   if (stage == "actual") {
     # reuse previous extraction for dummy run, dummy_control_potential1.feather
     data_custom_dummy <- data_custom_dummy %>%
@@ -392,44 +395,44 @@ if (stage == "treated") {
 # Define selection criteria ----
 if (stage %in% c("treated", "potential", "actual")) {
   
-data_criteria <- data_processed %>%
-  transmute(
-    
-    patient_id,
-    has_age = !is.na(age),
-    has_sex = !is.na(sex),
-    has_imd = imd_Q5 != "Unknown",
-    has_ethnicity = !is.na(ethnicity_combined),
-    has_region = !is.na(region),
-    #has_msoa = !is.na(msoa),
-    isnot_hscworker = !hscworker,
-    isnot_carehomeresident = !care_home_combined,
-    isnot_endoflife = !endoflife,
-    isnot_housebound = !housebound,
-    
-    !!! selection_stage,
-    
-    no_recentcovid30 = is.na(anycovid_0_date) | ((index_date - anycovid_0_date) > 30),
-    
-    isnot_inhospital = is.na(admitted_unplanned_0_date) | (!is.na(discharged_unplanned_0_date) & discharged_unplanned_0_date < index_date),
-    
-    c2 = c1 & isnot_hscworker,
-    c3 = c2 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
-    c4 = c3 & has_age & has_sex & has_imd & has_ethnicity & has_region,
-    c5 = c4 & no_recentcovid30,
-    c6 = c5 & isnot_inhospital,
-    c7 = c6 & TRUE, # TODO define c8 (this will be TRUE when stage!=treated)
-    
-    include = c7,
-    
-  )
-
-data_eligible <- data_criteria %>%
-  filter(include) %>%
-  select(patient_id) %>%
-  left_join(data_processed, by="patient_id") %>%
-  droplevels()
-
+  data_criteria <- data_processed %>%
+    transmute(
+      
+      patient_id,
+      has_age = !is.na(age),
+      has_sex = !is.na(sex),
+      has_imd = imd_Q5 != "Unknown",
+      has_ethnicity = !is.na(ethnicity_combined),
+      has_region = !is.na(region),
+      #has_msoa = !is.na(msoa),
+      isnot_hscworker = !hscworker,
+      isnot_carehomeresident = !care_home_combined,
+      isnot_endoflife = !endoflife,
+      isnot_housebound = !housebound,
+      
+      !!! selection_stage,
+      
+      no_recentcovid30 = is.na(anycovid_0_date) | ((index_date - anycovid_0_date) > 30),
+      
+      isnot_inhospital = is.na(admitted_unplanned_0_date) | (!is.na(discharged_unplanned_0_date) & discharged_unplanned_0_date < index_date),
+      
+      c2 = c1 & isnot_hscworker,
+      c3 = c2 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
+      c4 = c3 & has_age & has_sex & has_imd & has_ethnicity & has_region,
+      c5 = c4 & no_recentcovid30,
+      c6 = c5 & isnot_inhospital,
+      c7 = c6 & TRUE, # TODO define c8 (this will be TRUE when stage!=treated)
+      
+      include = c7,
+      
+    )
+  
+  data_eligible <- data_criteria %>%
+    filter(include) %>%
+    select(patient_id) %>%
+    left_join(data_processed, by="patient_id") %>%
+    droplevels()
+  
 }
 
 # save cohort-specific datasets ----
@@ -509,54 +512,57 @@ if (stage == "actual") {
   matching_candidates_missing <- map(matching_candidates, ~any(is.na(.x)))
   sort(names(matching_candidates_missing[unlist(matching_candidates_missing)]))
   
-  # run matching algorithm ----
-  obj_matchit <-
-    MatchIt::matchit(
-      formula = treated ~ 1,
-      data = matching_candidates,
-      method = "nearest", distance = "glm", # these two options don't really do anything because we only want exact + caliper matching
-      replace = FALSE,
-      estimand = "ATT",
-      exact = c("match_id", "trial_date", exact_variables),
-      caliper = caliper_variables, std.caliper=FALSE,
-      m.order = "data", # data is sorted on (effectively random) patient ID
-      #verbose = TRUE,
-      ratio = 1L # irritatingly you can't set this for "exact" method, so have to filter later
-    )
+  # rematch ----
+  rematch <-
+    # first join on exact variables + match_id + trial_date
+    inner_join(
+      x=data_treated %>% select(match_id, trial_date, all_of(c(names(caliper_variables), exact_variables))),
+      y=data_control %>% select(match_id, trial_date, all_of(c(names(caliper_variables), exact_variables))),
+      by = c("match_id", "trial_date", exact_variables)
+    ) 
   
   
-  data_matchstatus <-
-    tibble(
-      patient_id = matching_candidates$patient_id,
-      matched = !is.na(obj_matchit$subclass)*1L,
-      #thread_id = data_thread$thread_id,
-      match_id = as.integer(as.character(obj_matchit$subclass)),
-      treated = obj_matchit$treat,
-      #weight = obj_matchit$weights,
-      trial_time = matching_candidates$trial_time,
-      trial_date = matching_candidates$trial_date,
-      matching_round = matching_round,
-      # controlistreated_date = matching_candidates$controlistreated_date
+  if(length(caliper_variables) >0 ){
+    # check caliper_variables are still within caliper
+    rematch <- rematch %>%
+      bind_cols(
+        map_dfr(
+          set_names(names(caliper_variables), names(caliper_variables)),
+          ~ abs(rematch[[str_c(.x, ".x")]] - rematch[[str_c(.x, ".y")]]) <= caliper_variables[.x]
+        )
+      ) %>%
+      # dplyr::if_all not in opensafely version of dplyr so use filter_at instead
+      # filter(if_all(
+      #   all_of(names(caliper_variables))
+      # )) 
+      filter_at(
+        all_of(names(caliper_variables)),
+        all_vars(.)
+      )
+    
+    
+  } 
+  
+  rematch <- rematch %>%
+    select(match_id, trial_date) %>%
+    mutate(matched=1)
+  
+  data_successful_match <-
+    matching_candidates %>%
+    inner_join(rematch, by=c("match_id", "trial_date", "matched")) %>%
+    mutate(
+      matching_round = matching_round
     ) %>%
-    arrange(matched, match_id, treated) 
+    arrange(trial_date, match_id, treated)
   
   
   ###
+  
   matchstatus_vars <- c("patient_id", "match_id", "trial_date", "matching_round", "treated", "controlistreated_date")
   
   data_successful_matchstatus <- 
-    data_matchstatus %>% 
-    filter(matched) %>%
-    left_join(
-      # now joining all variables from the processed data as they are required for adjustments in the cox model
-      matching_candidates %>% select(-all_of(c("trial_time", "trial_date", "match_id", "matched", "control", "controlistreated_date"))),
-      by = c("patient_id", "treated")
-    ) %>%
-    group_by(match_id) %>%
-    mutate(
-      controlistreated_date = vax1_date[treated==0], # this only works because of the group_by statement above! do not remove group_by statement!
-    ) %>%
-    ungroup() %>%
+    data_successful_match %>% 
+    # keep all variables from the processed data as they are required for adjustments in the cox model
     select(all_of(matchstatus_vars), everything())
   
   ## size of dataset
