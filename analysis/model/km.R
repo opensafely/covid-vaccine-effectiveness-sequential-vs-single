@@ -127,8 +127,7 @@ if (nrow(check_outcomes)>0) {
     filter(value==min_date) %>%
     group_by(name) %>%
     count() 
-}
-  
+}  
 
 
 ## redaction threshold ----
