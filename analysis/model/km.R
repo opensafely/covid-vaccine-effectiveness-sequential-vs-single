@@ -113,20 +113,23 @@ table(
 # check if it's outcomes or censor events causing zero or negative event times
 check_outcomes <- data_matched %>%
   filter(tte_outcome <= 0) %>%
-  select(patient_id, treated, trial_date, outcome_date, matchcensor_date) %>%
+  select(patient_id, treated, trial_date, outcome_date, matchcensor_date, tte_outcome) %>%
   mutate(trial_date = trial_date-1) %>%
   pivot_longer(
     cols = ends_with("date"),
     values_drop_na = TRUE
   ) 
+
 if (nrow(check_outcomes)>0) {
+  
   check_outcomes %>%
     group_by(patient_id) %>%
     mutate(min_date=min(value)) %>%
     ungroup() %>%
     filter(value==min_date) %>%
     group_by(name) %>%
-    count() 
+    summarise(n = n(), tte_outcome = min(tte_outcome)) %>%
+    print(n=3)
   
   stop("tte_outcome <= 0 for some samples")
   
