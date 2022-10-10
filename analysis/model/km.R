@@ -127,6 +127,9 @@ if (nrow(check_outcomes)>0) {
     filter(value==min_date) %>%
     group_by(name) %>%
     count() 
+  
+  stop("tte_outcome <= 0 for some samples")
+  
 }  
 
 
