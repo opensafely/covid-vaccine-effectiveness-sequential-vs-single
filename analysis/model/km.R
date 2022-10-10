@@ -67,6 +67,7 @@ data_matched <-
   mutate(all="all") %>%
   group_by(patient_id, match_id, matching_round, treated) %>% 
   mutate(new_id = cur_group_id()) %>% 
+  ungroup() %>%
   select(
     # select only variables needed for models to save space
     patient_id, treated, trial_date, match_id, new_id,
@@ -103,9 +104,29 @@ data_matched <-
 outcomes_per_treated <- table(outcome=data_matched$ind_outcome, treated=data_matched$treated)
 
 table(
-  cut(data_matched$tte_outcome, c(-Inf, 0, 1, Inf), right=FALSE, labels= c("<0", "0", ">0")), useNA="ifany"
+  data_matched$treated,
+  cut(data_matched$tte_outcome, c(-Inf, 0, 1, Inf), right=FALSE, labels= c("<0", "0", ">0")), 
+  useNA="ifany"
 )
-# should be c(0, 0, nrow(data_matched))
+# should be c(0, 0, nrow(data_matched)) in each row
+
+# check if it's outcomes or censor events causing zero or negative event times
+data_matched %>%
+  filter(tte_outcome <= 0) %>%
+  select(patient_id, treated, trial_date, outcome_date, matchcensor_date) %>%
+  mutate(trial_date = trial_date-1) %>%
+  pivot_longer(
+    cols = ends_with("date"),
+    values_drop_na = TRUE
+  ) %>%
+  group_by(patient_id) %>%
+  mutate(min_date=min(value)) %>%
+  ungroup() %>%
+  filter(value==min_date) %>%
+  group_by(name) %>%
+  count() 
+  
+
 
 ## redaction threshold ----
 
