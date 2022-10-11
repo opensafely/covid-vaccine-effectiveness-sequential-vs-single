@@ -346,6 +346,9 @@ actions_list <- splice(
       pfizer = "output/pfizer/treated/*.rds",
       az = "output/az/treated/*.rds"
     ),
+    moderately_sensitive = lst(
+      eligiblecsv = "output/treated/eligible/*.csv",
+    )
   ),
 
   

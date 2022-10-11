@@ -44,6 +44,8 @@ actions:
         eligible: output/treated/eligible/*.rds
         pfizer: output/pfizer/treated/*.rds
         az: output/az/treated/*.rds
+      moderately_sensitive:
+        eligiblecsv: output/treated/eligible/*.csv
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Pfizer cohort 

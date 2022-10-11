@@ -493,6 +493,7 @@ if (stage == "treated") {
     ) %>%
     mutate(across(criteria, factor, labels = sapply(levels(.$criteria), glue)))
   
+  write_csv(data_flowchart, here("output", "treated", "eligible", "flowchart_treatedeligible.csv")) # once we've identified the issue this will be rounded or redacted
   write_rds(data_flowchart, here("output", "treated", "eligible", "flowchart_treatedeligible.rds"))
   
 }
