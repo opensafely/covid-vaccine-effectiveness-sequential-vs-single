@@ -31,12 +31,12 @@ args <- commandArgs(trailingOnly = TRUE)
 
 if (length(args) == 0) {
   # use for interactive testing
-  # stage <- "treated"
+  stage <- "treated"
   #stage <- "potential"
-  stage <- "actual"
+  # stage <- "actual"
   # stage <- "final"
-  cohort <- "pfizer"
-  matching_round <- as.integer("1")
+  # cohort <- "pfizer"
+  # matching_round <- as.integer("1")
 } else {
   stage <- args[[1]]
   
@@ -396,6 +396,10 @@ if (stage == "treated") {
 if (stage %in% c("treated", "potential", "actual")) {
   
   data_criteria <- data_processed %>%
+    left_join(
+      data_extract %>% select(patient_id, matches("covid_vax_disease_\\d_date")),
+      by = "patient_id"
+      ) %>%
     transmute(
       
       patient_id,
@@ -410,6 +414,8 @@ if (stage %in% c("treated", "potential", "actual")) {
       isnot_endoflife = !endoflife,
       isnot_housebound = !housebound,
       
+      covid_vax_disease_1_date_matches_vax1_date = covid_vax_disease_1_date == vax1_date,
+      
       !!! selection_stage,
       
       no_recentcovid30 = is.na(anycovid_0_date) | ((index_date - anycovid_0_date) > 30),
@@ -421,7 +427,7 @@ if (stage %in% c("treated", "potential", "actual")) {
       c4 = c3 & has_age & has_sex & has_imd & has_ethnicity & has_region,
       c5 = c4 & no_recentcovid30,
       c6 = c5 & isnot_inhospital,
-      c7 = c6 & TRUE, # TODO define c8 (this will be TRUE when stage!=treated)
+      c7 = c6 & covid_vax_disease_1_date_matches_vax1_date, 
       
       include = c7,
       
@@ -481,6 +487,7 @@ if (stage == "treated") {
         crit == "c4" ~ "  no missing demographic information",
         crit == "c5" ~ "  no evidence of covid in 30 days before trial date",
         crit == "c6" ~ "  not in hospital (unplanned) on trial date",
+        crit == "c7" ~ "  covid_vax_disease_1_date and vax1_date do not match", # add this criteria to c1 if confirmed that this is the issue
         TRUE ~ NA_character_
       )
     ) %>%
