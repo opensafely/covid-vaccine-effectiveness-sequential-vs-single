@@ -333,7 +333,11 @@ if (stage %in% c("treated", "potential")) {
     select(patient_id, matches("^vax\\d"))
   
   data_processed <- data_processed %>%
-    left_join(data_vax_wide, by = "patient_id")
+    left_join(data_vax_wide, by = "patient_id") %>%
+    # the following line is needed for applying the eligibility criteria: covid_vax_disease_1_date_matches_vax1_date
+    # it has already been checked that this is true in the process_potential stage, 
+    # but `covid_vax_disease_1_date` is added to avoid having to add extra logic statements for the case when stage="actual"
+    mutate(covid_vax_disease_1_date = vax1_date)
   
 }
 
