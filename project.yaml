@@ -46,6 +46,7 @@ actions:
         az: output/az/treated/*.rds
       moderately_sensitive:
         eligiblecsv: output/treated/eligible/*.csv
+        vax1_dates: output/treated/eligible/*.png
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Pfizer cohort 

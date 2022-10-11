@@ -348,6 +348,7 @@ actions_list <- splice(
     ),
     moderately_sensitive = lst(
       eligiblecsv = "output/treated/eligible/*.csv",
+      vax1_dates = "output/treated/eligible/*.png",
     )
   ),
 

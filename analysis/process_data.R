@@ -333,7 +333,11 @@ if (stage %in% c("treated", "potential")) {
     select(patient_id, matches("^vax\\d"))
   
   data_processed <- data_processed %>%
-    left_join(data_vax_wide, by = "patient_id")
+    left_join(data_vax_wide, by = "patient_id") %>%
+    # the following line is needed for applying the eligibility criteria: covid_vax_disease_1_date_matches_vax1_date
+    # it has already been checked that this is true in the process_potential stage, 
+    # but `covid_vax_disease_1_date` is added to avoid having to add extra logic statements for the case when stage="actual"
+    mutate(covid_vax_disease_1_date = vax1_date)
   
 }
 
@@ -366,7 +370,7 @@ if (stage == "treated") {
     ),
     
     c0 = vax1_notbeforestartdate & vax1_beforeenddate & vax1_notbeforeageeligible,
-    c1 = c0 & has_expectedvax1type & has_vaxgap12,
+    c1 = c0 & has_expectedvax1type & has_vaxgap12  & covid_vax_disease_1_date_matches_vax1_date,
     
   )
   
@@ -386,7 +390,7 @@ if (stage == "treated") {
     ),
     
     c0 = TRUE,
-    c1 = c0 & vax1_notbeforeindexdate & vax1_notbeforeageeligible,
+    c1 = c0 & vax1_notbeforeindexdate & vax1_notbeforeageeligible & covid_vax_disease_1_date_matches_vax1_date,
     
   )
   
@@ -427,9 +431,8 @@ if (stage %in% c("treated", "potential", "actual")) {
       c4 = c3 & has_age & has_sex & has_imd & has_ethnicity & has_region,
       c5 = c4 & no_recentcovid30,
       c6 = c5 & isnot_inhospital,
-      c7 = c6 & covid_vax_disease_1_date_matches_vax1_date, 
       
-      include = c7,
+      include = c6,
       
     )
   
@@ -487,14 +490,35 @@ if (stage == "treated") {
         crit == "c4" ~ "  no missing demographic information",
         crit == "c5" ~ "  no evidence of covid in 30 days before trial date",
         crit == "c6" ~ "  not in hospital (unplanned) on trial date",
-        crit == "c7" ~ "  covid_vax_disease_1_date and vax1_date do not match", # add this criteria to c1 if confirmed that this is the issue
         TRUE ~ NA_character_
       )
     ) %>%
     mutate(across(criteria, factor, labels = sapply(levels(.$criteria), glue)))
   
-  write_csv(data_flowchart, here("output", "treated", "eligible", "flowchart_treatedeligible.csv")) # once we've identified the issue this will be rounded or redacted
   write_rds(data_flowchart, here("output", "treated", "eligible", "flowchart_treatedeligible.rds"))
+  
+  data_flowchart %>%
+    transmute(
+      criteria, crit, 
+      n = ceiling_any(n, to=7),
+      n_exclude = lag(n) - n,
+      pct_exclude = n_exclude/lag(n),
+      pct_all = n / first(n),
+      pct_step = n / lag(n),
+    ) %>%
+    write_csv(here("output", "treated", "eligible", "flowchart_treatedeligible_rounded.csv")) 
+  
+  # distribution of vax1_date by jcvi_ageband
+  vax1_date_plot <- data_eligible %>%
+    select(patient_id, vax1_date, vax1_type, jcvi_ageband) %>%
+    ggplot(aes(x = vax1_date, colour = vax1_type)) +
+    geom_freqpoly(binwidth=1) +
+    facet_grid(jcvi_ageband~., scales = "free_y")
+  ggsave(
+    filename = here("output", "treated", "eligible", "vax1_dates.png"),
+    plot = vax1_date_plot,
+    width=20, height=15, units="cm"
+  )
   
 }
 
