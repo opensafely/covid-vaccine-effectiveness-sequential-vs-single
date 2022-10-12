@@ -74,8 +74,10 @@ if (stage == "treated") {
   fs::dir_create(here("output", "treated", "process"))
 } else if (stage == "potential") {
   fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "process"))
+  fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "extract", "potential"))
   fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "potential"))
 } else if (stage == "actual") {
+  fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "extract", "actual"))
   fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "actual"))
 } else if (stage == "final") {
   fs::dir_create(ghere("output", cohort, "match"))
@@ -315,7 +317,7 @@ if (stage == "treated") {
 } else if(stage == "potential"){
   
   # summarise extracted data
-  my_skim(data_extract, path = ghere("output", cohort, "matchround{matching_round}", "extract", "input_controlpotential_skim.txt"))
+  my_skim(data_extract, path = ghere("output", cohort, "matchround{matching_round}", "extract", "potential", "input_controlpotential_skim.txt"))
   
   data_extract <- data_extract %>%
     mutate(index_date = matching_round_date) 
@@ -323,7 +325,7 @@ if (stage == "treated") {
 } else if(stage == "actual"){
   
   # summarise extracted data
-  my_skim(data_extract, path = ghere("output", cohort, "matchround{matching_round}", "extract", "input_controlactual_skim.txt"))
+  my_skim(data_extract, path = ghere("output", cohort, "matchround{matching_round}", "extract", "actual", "input_controlactual_skim.txt"))
   
   data_extract <- data_extract %>%
     mutate(index_date = trial_date) 

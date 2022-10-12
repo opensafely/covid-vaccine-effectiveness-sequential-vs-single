@@ -47,9 +47,9 @@ actions:
       moderately_sensitive:
         eligiblecsv: output/treated/eligible/*.csv
         vax1_dates: output/treated/eligible/*.png
-        input_treated_skim: output/treated/extract/*skim.txt
-        data_processed_skim: output/treated/process/*skim.txt
-        data_eligible_skim: output/treated/eligible/*skim.txt
+        input_treated_skim: output/treated/extract/*.txt
+        data_processed_skim: output/treated/process/*.txt
+        data_eligible_skim: output/treated/eligible/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Pfizer cohort 
@@ -75,9 +75,9 @@ actions:
       highly_sensitive:
         rds: output/pfizer/matchround1/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/pfizer/matchround1/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/pfizer/matchround1/potential/*skim.txt
-        data_controlpotential_skim: output/pfizer/matchround1/process/*skim.txt
+        input_controlpotential_skim: output/pfizer/matchround1/extract/potential/*.txt
+        data_processed_skim: output/pfizer/matchround1/potential/*.txt
+        data_controlpotential_skim: output/pfizer/matchround1/process/*.txt
 
   match_potential_pfizer_1:
     run: r:latest analysis/matching/match_potential.R pfizer 1
@@ -113,8 +113,8 @@ actions:
         rds: output/pfizer/matchround1/actual/*.rds
         csv: output/pfizer/matchround1/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/pfizer/matchround1/extract/input_controlactual_skim.txt
-        data_actual_skim: output/pfizer/matchround1/actual/*skim.txt
+        input_controlactual_skim: output/pfizer/matchround1/extract/actual/*.txt
+        data_actual_skim: output/pfizer/matchround1/actual/*.txt
 
   extract_controlpotential_pfizer_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -135,9 +135,9 @@ actions:
       highly_sensitive:
         rds: output/pfizer/matchround2/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/pfizer/matchround2/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/pfizer/matchround2/potential/*skim.txt
-        data_controlpotential_skim: output/pfizer/matchround2/process/*skim.txt
+        input_controlpotential_skim: output/pfizer/matchround2/extract/potential/*.txt
+        data_processed_skim: output/pfizer/matchround2/potential/*.txt
+        data_controlpotential_skim: output/pfizer/matchround2/process/*.txt
 
   match_potential_pfizer_2:
     run: r:latest analysis/matching/match_potential.R pfizer 2
@@ -175,8 +175,8 @@ actions:
         rds: output/pfizer/matchround2/actual/*.rds
         csv: output/pfizer/matchround2/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/pfizer/matchround2/extract/input_controlactual_skim.txt
-        data_actual_skim: output/pfizer/matchround2/actual/*skim.txt
+        input_controlactual_skim: output/pfizer/matchround2/extract/actual/*.txt
+        data_actual_skim: output/pfizer/matchround2/actual/*.txt
 
   extract_controlpotential_pfizer_3:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -197,9 +197,9 @@ actions:
       highly_sensitive:
         rds: output/pfizer/matchround3/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/pfizer/matchround3/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/pfizer/matchround3/potential/*skim.txt
-        data_controlpotential_skim: output/pfizer/matchround3/process/*skim.txt
+        input_controlpotential_skim: output/pfizer/matchround3/extract/potential/*.txt
+        data_processed_skim: output/pfizer/matchround3/potential/*.txt
+        data_controlpotential_skim: output/pfizer/matchround3/process/*.txt
 
   match_potential_pfizer_3:
     run: r:latest analysis/matching/match_potential.R pfizer 3
@@ -237,8 +237,8 @@ actions:
         rds: output/pfizer/matchround3/actual/*.rds
         csv: output/pfizer/matchround3/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/pfizer/matchround3/extract/input_controlactual_skim.txt
-        data_actual_skim: output/pfizer/matchround3/actual/*skim.txt
+        input_controlactual_skim: output/pfizer/matchround3/extract/actual/*.txt
+        data_actual_skim: output/pfizer/matchround3/actual/*.txt
 
   extract_controlpotential_pfizer_4:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -259,9 +259,9 @@ actions:
       highly_sensitive:
         rds: output/pfizer/matchround4/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/pfizer/matchround4/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/pfizer/matchround4/potential/*skim.txt
-        data_controlpotential_skim: output/pfizer/matchround4/process/*skim.txt
+        input_controlpotential_skim: output/pfizer/matchround4/extract/potential/*.txt
+        data_processed_skim: output/pfizer/matchround4/potential/*.txt
+        data_controlpotential_skim: output/pfizer/matchround4/process/*.txt
 
   match_potential_pfizer_4:
     run: r:latest analysis/matching/match_potential.R pfizer 4
@@ -299,8 +299,8 @@ actions:
         rds: output/pfizer/matchround4/actual/*.rds
         csv: output/pfizer/matchround4/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/pfizer/matchround4/extract/input_controlactual_skim.txt
-        data_actual_skim: output/pfizer/matchround4/actual/*skim.txt
+        input_controlactual_skim: output/pfizer/matchround4/extract/actual/*.txt
+        data_actual_skim: output/pfizer/matchround4/actual/*.txt
 
   extract_controlfinal_pfizer:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
@@ -338,8 +338,8 @@ actions:
       highly_sensitive:
         extract: output/pfizer/match/*.rds
       moderately_sensitive:
-        input_controlfinal_skim: output/pfizer/extract/*skim.txt
-        data_matched_skim: output/pfizer/match/*skim.txt
+        input_controlfinal_skim: output/pfizer/extract/*.txt
+        data_matched_skim: output/pfizer/match/*.txt
 
   table1_pfizer:
     run: r:latest analysis/matching/table1.R pfizer
@@ -502,9 +502,9 @@ actions:
       highly_sensitive:
         rds: output/az/matchround1/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/az/matchround1/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/az/matchround1/potential/*skim.txt
-        data_controlpotential_skim: output/az/matchround1/process/*skim.txt
+        input_controlpotential_skim: output/az/matchround1/extract/potential/*.txt
+        data_processed_skim: output/az/matchround1/potential/*.txt
+        data_controlpotential_skim: output/az/matchround1/process/*.txt
 
   match_potential_az_1:
     run: r:latest analysis/matching/match_potential.R az 1
@@ -540,8 +540,8 @@ actions:
         rds: output/az/matchround1/actual/*.rds
         csv: output/az/matchround1/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/az/matchround1/extract/input_controlactual_skim.txt
-        data_actual_skim: output/az/matchround1/actual/*skim.txt
+        input_controlactual_skim: output/az/matchround1/extract/actual/*.txt
+        data_actual_skim: output/az/matchround1/actual/*.txt
 
   extract_controlpotential_az_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -562,9 +562,9 @@ actions:
       highly_sensitive:
         rds: output/az/matchround2/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/az/matchround2/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/az/matchround2/potential/*skim.txt
-        data_controlpotential_skim: output/az/matchround2/process/*skim.txt
+        input_controlpotential_skim: output/az/matchround2/extract/potential/*.txt
+        data_processed_skim: output/az/matchround2/potential/*.txt
+        data_controlpotential_skim: output/az/matchround2/process/*.txt
 
   match_potential_az_2:
     run: r:latest analysis/matching/match_potential.R az 2
@@ -602,8 +602,8 @@ actions:
         rds: output/az/matchround2/actual/*.rds
         csv: output/az/matchround2/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/az/matchround2/extract/input_controlactual_skim.txt
-        data_actual_skim: output/az/matchround2/actual/*skim.txt
+        input_controlactual_skim: output/az/matchround2/extract/actual/*.txt
+        data_actual_skim: output/az/matchround2/actual/*.txt
 
   extract_controlpotential_az_3:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -624,9 +624,9 @@ actions:
       highly_sensitive:
         rds: output/az/matchround3/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/az/matchround3/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/az/matchround3/potential/*skim.txt
-        data_controlpotential_skim: output/az/matchround3/process/*skim.txt
+        input_controlpotential_skim: output/az/matchround3/extract/potential/*.txt
+        data_processed_skim: output/az/matchround3/potential/*.txt
+        data_controlpotential_skim: output/az/matchround3/process/*.txt
 
   match_potential_az_3:
     run: r:latest analysis/matching/match_potential.R az 3
@@ -664,8 +664,8 @@ actions:
         rds: output/az/matchround3/actual/*.rds
         csv: output/az/matchround3/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/az/matchround3/extract/input_controlactual_skim.txt
-        data_actual_skim: output/az/matchround3/actual/*skim.txt
+        input_controlactual_skim: output/az/matchround3/extract/actual/*.txt
+        data_actual_skim: output/az/matchround3/actual/*.txt
 
   extract_controlpotential_az_4:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -686,9 +686,9 @@ actions:
       highly_sensitive:
         rds: output/az/matchround4/process/*.rds
       moderately_sensitive:
-        input_controlpotential_skim: output/az/matchround4/extract/input_controlpotential_skim.txt
-        data_processed_skim: output/az/matchround4/potential/*skim.txt
-        data_controlpotential_skim: output/az/matchround4/process/*skim.txt
+        input_controlpotential_skim: output/az/matchround4/extract/potential/*.txt
+        data_processed_skim: output/az/matchround4/potential/*.txt
+        data_controlpotential_skim: output/az/matchround4/process/*.txt
 
   match_potential_az_4:
     run: r:latest analysis/matching/match_potential.R az 4
@@ -726,8 +726,8 @@ actions:
         rds: output/az/matchround4/actual/*.rds
         csv: output/az/matchround4/actual/*.csv.gz
       moderately_sensitive:
-        input_controlactual_skim: output/az/matchround4/extract/input_controlactual_skim.txt
-        data_actual_skim: output/az/matchround4/actual/*skim.txt
+        input_controlactual_skim: output/az/matchround4/extract/actual/*.txt
+        data_actual_skim: output/az/matchround4/actual/*.txt
 
   extract_controlfinal_az:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
@@ -765,8 +765,8 @@ actions:
       highly_sensitive:
         extract: output/az/match/*.rds
       moderately_sensitive:
-        input_controlfinal_skim: output/az/extract/*skim.txt
-        data_matched_skim: output/az/match/*skim.txt
+        input_controlfinal_skim: output/az/extract/*.txt
+        data_matched_skim: output/az/match/*.txt
 
   table1_az:
     run: r:latest analysis/matching/table1.R az

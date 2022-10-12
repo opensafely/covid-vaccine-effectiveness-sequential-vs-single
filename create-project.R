@@ -101,9 +101,9 @@ action_1matchround <- function(cohort, matching_round){
         rds = glue("output/{cohort}/matchround{matching_round}/process/*.rds")
       ),
       moderately_sensitive = lst(
-        input_controlpotential_skim = glue("output/{cohort}/matchround{matching_round}/extract/input_controlpotential_skim.txt"),
-        data_processed_skim = glue("output/{cohort}/matchround{matching_round}/potential/*skim.txt"),
-        data_controlpotential_skim = glue("output/{cohort}/matchround{matching_round}/process/*skim.txt")
+        input_controlpotential_skim = glue("output/{cohort}/matchround{matching_round}/extract/potential/*.txt"),
+        data_processed_skim = glue("output/{cohort}/matchround{matching_round}/potential/*.txt"),
+        data_controlpotential_skim = glue("output/{cohort}/matchround{matching_round}/process/*.txt")
       )
     ),
     
@@ -158,8 +158,8 @@ action_1matchround <- function(cohort, matching_round){
         csv = glue("output/{cohort}/matchround{matching_round}/actual/*.csv.gz"),
       ),
       moderately_sensitive = lst(
-        input_controlactual_skim = glue("output/{cohort}/matchround{matching_round}/extract/input_controlactual_skim.txt"),
-        data_actual_skim = glue("output/{cohort}/matchround{matching_round}/actual/*skim.txt"),
+        input_controlactual_skim = glue("output/{cohort}/matchround{matching_round}/extract/actual/*.txt"),
+        data_actual_skim = glue("output/{cohort}/matchround{matching_round}/actual/*.txt"),
       )
     )
 
@@ -227,8 +227,8 @@ action_extract_and_match <- function(cohort, n_matching_rounds){
         extract = glue("output/{cohort}/match/*.rds")
       ),
       moderately_sensitive = lst(
-        input_controlfinal_skim = glue("output/{cohort}/extract/*skim.txt"),
-        data_matched_skim = glue("output/{cohort}/match/*skim.txt")
+        input_controlfinal_skim = glue("output/{cohort}/extract/*.txt"),
+        data_matched_skim = glue("output/{cohort}/match/*.txt")
       )
     )
   )
@@ -362,9 +362,9 @@ actions_list <- splice(
     moderately_sensitive = lst(
       eligiblecsv = "output/treated/eligible/*.csv",
       vax1_dates = "output/treated/eligible/*.png",
-      input_treated_skim = "output/treated/extract/*skim.txt",
-      data_processed_skim = "output/treated/process/*skim.txt",
-      data_eligible_skim = "output/treated/eligible/*skim.txt"
+      input_treated_skim = "output/treated/extract/*.txt",
+      data_processed_skim = "output/treated/process/*.txt",
+      data_eligible_skim = "output/treated/eligible/*.txt"
     )
   ),
 
