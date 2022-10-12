@@ -31,12 +31,12 @@ args <- commandArgs(trailingOnly = TRUE)
 
 if (length(args) == 0) {
   # use for interactive testing
-  stage <- "treated"
+  # stage <- "treated"
   #stage <- "potential"
-  # stage <- "actual"
+  stage <- "actual"
   # stage <- "final"
-  # cohort <- "pfizer"
-  # matching_round <- as.integer("1")
+  cohort <- "pfizer"
+  matching_round <- as.integer("3")
 } else {
   stage <- args[[1]]
   
@@ -71,9 +71,13 @@ if (stage == "treated") {
   fs::dir_create(here("output", "pfizer", "treated"))
   fs::dir_create(here("output", "az", "treated"))
   fs::dir_create(here("output", "treated", "eligible"))
+  fs::dir_create(here("output", "treated", "process"))
 } else if (stage == "potential") {
   fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "process"))
+  fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "extract", "potential"))
+  fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "potential"))
 } else if (stage == "actual") {
+  fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "extract", "actual"))
   fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "actual"))
 } else if (stage == "final") {
   fs::dir_create(ghere("output", cohort, "match"))
@@ -209,8 +213,12 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   
 }
 
+
 # process the final dataset ----
 if (stage == "final") {
+  
+  # summarise extracted data
+  my_skim(data_extract, path = ghere("output", cohort, "extract", "input_control{stage}_skim.txt"))
   
   data_matchstatus <- read_rds(ghere("output", cohort, "matchround{n_matching_rounds}", "actual", "data_matchstatus_allrounds.rds"))
   
@@ -261,6 +269,9 @@ if (stage == "final") {
   
   write_rds(data_matched, here("output", cohort, "match", "data_matched.rds"), compress="gz")
   
+  # summarise matched data
+  my_skim(data_matched, path = here("output", cohort, "match", "data_matched_skim.txt"))
+  
   # matching status of all treated, eligible people ----
   
   data_treatedeligible_matchstatus <- 
@@ -296,14 +307,29 @@ if (stage == "final") {
 
 ## define index data ----
 if (stage == "treated") {
+  
+  # summarise extracted data
+  my_skim(data_extract, path = here("output", "treated", "extract", "input_treated_skim.txt"))
+  
   data_extract <- data_extract %>%
     mutate(index_date = covid_vax_disease_1_date) 
+  
 } else if(stage == "potential"){
+  
+  # summarise extracted data
+  my_skim(data_extract, path = ghere("output", cohort, "matchround{matching_round}", "extract", "potential", "input_controlpotential_skim.txt"))
+  
   data_extract <- data_extract %>%
     mutate(index_date = matching_round_date) 
+  
 } else if(stage == "actual"){
+  
+  # summarise extracted data
+  my_skim(data_extract, path = ghere("output", cohort, "matchround{matching_round}", "extract", "actual", "input_controlactual_skim.txt"))
+  
   data_extract <- data_extract %>%
     mutate(index_date = trial_date) 
+  
 }
 
 if (stage %in% c("treated", "potential", "actual")) {
@@ -341,7 +367,15 @@ if (stage %in% c("treated", "potential")) {
   
 }
 
-
+# summarise processed data
+if (stage %in% c("treated", "potential", "actual")) {
+  if (stage == "treated") {
+    skim_path <- here("output", "treated", "process", "data_processed_skim.txt")
+  } else {
+    skim_path <- ghere("output", cohort, "matchround{matching_round}", stage, "data_processed_skim.txt")
+  }
+  my_skim(data_processed, path = skim_path)
+}
 
 ####################################################################################
 
@@ -447,6 +481,8 @@ if (stage %in% c("treated", "potential", "actual")) {
 # save cohort-specific datasets ----
 if (stage == "treated") {
   
+  my_skim(data_eligible, path = here("output", "treated", "eligible", "data_eligible_skim.txt"))
+  
   write_rds(data_eligible %>% filter(vax1_type == "pfizer"), 
             here("output", "pfizer", "treated", "data_treatedeligible.rds"),
             compress="gz")
@@ -456,6 +492,8 @@ if (stage == "treated") {
             compress="gz")
   
 } else if (stage == "potential") {
+  
+  my_skim(data_eligible, path = ghere("output", cohort, "matchround{matching_round}", "process", "data_controlpotential_skim.txt"))
   
   write_rds(data_eligible, 
             ghere("output", cohort, "matchround{matching_round}", "process", "data_controlpotential.rds"),
@@ -649,7 +687,7 @@ if (stage == "actual") {
     summarise(n=n()) %>% group_by(treated) %>% summarise(ndups = sum(n>1)) %>%
     print()
   
-  
+  my_skim(data_eligible, path = ghere("output", cohort, "matchround{matching_round}", "actual", "data_successful_matchedcontrols_skim.txt"))
   write_rds(data_successful_matchstatus %>% filter(treated==0L), ghere("output", cohort, "matchround{matching_round}", "actual", "data_successful_matchedcontrols.rds"), compress="gz")
   
   ## size of dataset
