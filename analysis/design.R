@@ -85,7 +85,7 @@ events_lookup <- tribble(
   "noncovidadmitted", "noncovidadmitted_date", "Non-COVID-19 hospitalisation",
   "covidadmittedproxy1", "covidadmittedproxy1_date", "COVID-19 hospitalisation (A&E proxy)",
   "covidadmittedproxy2", "covidadmittedproxy2_date", "COVID-19 hospitalisation (A&E proxy v2)",
-  "covidcc", "covidcc_date", "COVID-19 critical care",
+  "covidcritcare", "covidcc_date", "COVID-19 critical care",
   "coviddeath", "coviddeath_date", "COVID-19 death",
   "noncoviddeath", "noncoviddeath_date", "Non-COVID-19 death",
   "death", "death_date", "Any death",
@@ -110,15 +110,15 @@ recoder <-
   lst(
     subgroups = c(
       `Main` = "all",
-      `Prior SARS-CoV-2 infection` = "prior_covid_infection"
+      `Age band` = "ageband2"
     ),
     status = c(
       `Unmatched`= "unmatched",
       `Matched` = "matched"
     ),
     treated = c(
-      `Two doses` = "0",
-      `Three doses` = "1"
+      `Unvaccinated` = "0",
+      `Vaccinated` = "1"
     ),
     outcome = set_names(events_lookup$event, events_lookup$event_descr),
     all = c(` ` = "all"),
