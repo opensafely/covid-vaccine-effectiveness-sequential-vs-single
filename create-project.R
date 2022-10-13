@@ -268,7 +268,7 @@ action_km_combine <- function(
       as.list(
         glue_data(
           .x=expand_grid(
-            subgroup=c("all", "prior_covid_infection"),
+            subgroup=c("all", "ageband2"),
             outcome=c("postest", "emergency", "covidemergency", "covidadmitted", "covidcritcare", "coviddeath", "noncoviddeath"),
           ),
           "km_{cohort}_{subgroup}_{outcome}"
@@ -400,7 +400,7 @@ actions_list <- splice(
   action_km("pfizer", "ageband2", "noncoviddeath"),
 
   
-  # action_km_combine("pfizer"),
+  action_km_combine("pfizer"),
   
   comment("# # # # # # # # # # # # # # # # # # #",
           "AZ cohort",
@@ -433,7 +433,7 @@ actions_list <- splice(
   action_km("az", "ageband2", "noncoviddeath"),
 
 
-  # action_km_combine("az"),
+  action_km_combine("az"),
   
   # 
   # comment("# # # # # # # # # # # # # # # # # # #", 

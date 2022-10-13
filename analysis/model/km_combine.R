@@ -27,7 +27,7 @@ args <- commandArgs(trailingOnly=TRUE)
 
 if(length(args)==0){
   # use for interactive testing
-  cohort <- "over12"
+  cohort <- "pfizer"
 } else {
   cohort <- args[[1]]
 }
@@ -51,6 +51,8 @@ metaparams <-
     #subgroup_level_descr = map(as.character(subgroup), ~names(recoder[[.x]])),
   )
 
+
+# combine km estimates ----
 km_estimates <- metaparams %>%
   mutate(
     data = pmap(list(cohort, subgroup, outcome), function(cohort, subgroup, outcome) {
@@ -70,11 +72,11 @@ km_estimates <- metaparams %>%
 write_csv(km_estimates, fs::path(output_dir, "km_estimates_rounded.csv"))
 
 
-contrasts_daily <- metaparams %>%
+contrasts_km_daily <- metaparams %>%
   mutate(
     data = pmap(list(cohort, subgroup, outcome), function(cohort, subgroup, outcome){
       subgroup <- as.character(subgroup)
-      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_daily_rounded.rds"))
+      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_km_daily_rounded.rds"))
       dat %>%
         add_column(
           subgroup_level = as.character(.[[subgroup]]),
@@ -87,14 +89,14 @@ contrasts_daily <- metaparams %>%
   ) %>%
   unnest(data)
 
-write_csv(contrasts_daily, fs::path(output_dir, "contrasts_daily_rounded.csv"))
+write_csv(contrasts_km_daily, fs::path(output_dir, "contrasts_km_daily_rounded.csv"))
 
 
-contrasts_cuts <- metaparams %>%
+contrasts_km_cuts <- metaparams %>%
   mutate(
     data = pmap(list(cohort, subgroup, outcome), function(cohort, subgroup, outcome){
       subgroup <- as.character(subgroup)
-      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_cuts_rounded.rds"))
+      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_km_cuts_rounded.rds"))
       dat %>%
         add_column(
           subgroup_level = as.character(.[[subgroup]]),
@@ -107,14 +109,14 @@ contrasts_cuts <- metaparams %>%
   ) %>%
   unnest(data)
 
-write_csv(contrasts_cuts, fs::path(output_dir, "contrasts_cuts_rounded.csv"))
+write_csv(contrasts_km_cuts, fs::path(output_dir, "contrasts_km_cuts_rounded.csv"))
 
 
-contrasts_overall <- metaparams %>%
+contrasts_km_overall <- metaparams %>%
   mutate(
     data = pmap(list(cohort, subgroup, outcome), function(cohort, subgroup, outcome){
       subgroup <- as.character(subgroup)
-      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_overall_rounded.rds"))
+      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_km_overall_rounded.rds"))
       dat %>%
         add_column(
           subgroup_level = as.character(.[[subgroup]]),
@@ -127,8 +129,47 @@ contrasts_overall <- metaparams %>%
   ) %>%
   unnest(data)
 
-write_csv(contrasts_overall, fs::path(output_dir, "contrasts_overall_rounded.csv"))
+write_csv(contrasts_km_overall, fs::path(output_dir, "contrasts_km_overall_rounded.csv"))
 
+# combine cox estimates ----
+contrasts_cox_cuts <- metaparams %>%
+  mutate(
+    data = pmap(list(cohort, subgroup, outcome), function(cohort, subgroup, outcome){
+      subgroup <- as.character(subgroup)
+      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_cox_cuts.rds"))
+      dat %>%
+        add_column(
+          subgroup_level = as.character(.[[subgroup]]),
+          subgroup_level_descr = fct_recoderelevel(.[[subgroup]], recoder[[subgroup]]),
+          .before=1
+        ) %>%
+        select(-all_of(subgroup))
+    }
+    )
+  ) %>%
+  unnest(data)
+
+write_csv(contrasts_cox_cuts, fs::path(output_dir, "contrasts_cox_cuts.csv"))
+
+
+contrasts_cox_overall <- metaparams %>%
+  mutate(
+    data = pmap(list(cohort, subgroup, outcome), function(cohort, subgroup, outcome){
+      subgroup <- as.character(subgroup)
+      dat <- read_rds(here("output", cohort, "models", "km", subgroup, outcome, "contrasts_cox_overall.rds"))
+      dat %>%
+        add_column(
+          subgroup_level = as.character(.[[subgroup]]),
+          subgroup_level_descr = fct_recoderelevel(.[[subgroup]], recoder[[subgroup]]),
+          .before=1
+        ) %>%
+        select(-all_of(subgroup))
+    }
+    )
+  ) %>%
+  unnest(data)
+
+write_csv(contrasts_cox_overall, fs::path(output_dir, "contrasts_cox_overall.csv"))
 
 ## move km plots to single folder ----
 fs::dir_create(here("output", cohort, "models", "km", "combined"))
@@ -147,12 +188,12 @@ metaparams %>%
   ) %>%
   {walk2(.$plotdir, .$plotnewdir, ~fs::file_copy(.x, .y, overwrite = TRUE))}
 
-## plot overall estimates for inspection ----
+## plot overall km estimates for inspection ----
 
 plot_estimates <- function(estimate, estimate.ll, estimate.ul, name){
 
   plot_temp <-
-    contrasts_overall %>%
+    contrasts_km_overall %>%
     group_by(outcome_descr) %>%
     mutate(
       outcome_descr = fct_relabel(outcome_descr, str_wrap, width=10),

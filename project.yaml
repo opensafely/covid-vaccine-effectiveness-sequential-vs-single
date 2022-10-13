@@ -478,6 +478,28 @@ actions:
         rds: output/pfizer/models/km/ageband2/noncoviddeath/*.rds
         png: output/pfizer/models/km/ageband2/noncoviddeath/*.png
 
+  combine_km_pfizer:
+    run: r:latest analysis/model/km_combine.R pfizer
+    needs:
+    - km_pfizer_all_postest
+    - km_pfizer_all_emergency
+    - km_pfizer_all_covidemergency
+    - km_pfizer_all_covidadmitted
+    - km_pfizer_all_covidcritcare
+    - km_pfizer_all_coviddeath
+    - km_pfizer_all_noncoviddeath
+    - km_pfizer_ageband2_postest
+    - km_pfizer_ageband2_emergency
+    - km_pfizer_ageband2_covidemergency
+    - km_pfizer_ageband2_covidadmitted
+    - km_pfizer_ageband2_covidcritcare
+    - km_pfizer_ageband2_coviddeath
+    - km_pfizer_ageband2_noncoviddeath
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/combined/*.csv
+        png: output/pfizer/models/km/combined/*.png
+
   ## # # # # # # # # # # # # # # # # # # # 
   ## AZ cohort 
   ## # # # # # # # # # # # # # # # # # # # 
@@ -904,6 +926,28 @@ actions:
       moderately_sensitive:
         rds: output/az/models/km/ageband2/noncoviddeath/*.rds
         png: output/az/models/km/ageband2/noncoviddeath/*.png
+
+  combine_km_az:
+    run: r:latest analysis/model/km_combine.R az
+    needs:
+    - km_az_all_postest
+    - km_az_all_emergency
+    - km_az_all_covidemergency
+    - km_az_all_covidadmitted
+    - km_az_all_covidcritcare
+    - km_az_all_coviddeath
+    - km_az_all_noncoviddeath
+    - km_az_ageband2_postest
+    - km_az_ageband2_emergency
+    - km_az_ageband2_covidemergency
+    - km_az_ageband2_covidadmitted
+    - km_az_ageband2_covidcritcare
+    - km_az_ageband2_coviddeath
+    - km_az_ageband2_noncoviddeath
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/km/combined/*.csv
+        png: output/az/models/km/combined/*.png
 
   ## #### End #### 
 
