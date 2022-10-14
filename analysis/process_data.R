@@ -269,8 +269,15 @@ if (stage == "final") {
   
   write_rds(data_matched, here("output", cohort, "match", "data_matched.rds"), compress="gz")
   
-  # summarise matched data
-  my_skim(data_matched, path = here("output", cohort, "match", "data_matched_skim.txt"))
+  # summarise matched data by treatment group
+  data_matched %>% filter(treated==0) %>%
+    my_skim(
+      path = here("output", cohort, "match", "data_matched_control_skim.txt")
+    )
+  data_matched %>% filter(treated==1) %>%
+    my_skim(
+      path = here("output", cohort, "match", "data_matched_treated_skim.txt")
+    )
   
   # matching status of all treated, eligible people ----
   
@@ -481,11 +488,15 @@ if (stage %in% c("treated", "potential", "actual")) {
 # save cohort-specific datasets ----
 if (stage == "treated") {
   
-  my_skim(data_eligible, path = here("output", "treated", "eligible", "data_eligible_skim.txt"))
+  data_eligible %>% filter(vax1_type == "pfizer") %>%
+    my_skim(path = here("output", "treated", "eligible", "data_eligible_pfizer_skim.txt"))
   
   write_rds(data_eligible %>% filter(vax1_type == "pfizer"), 
             here("output", "pfizer", "treated", "data_treatedeligible.rds"),
             compress="gz")
+  
+  data_eligible %>% filter(vax1_type == "az") %>%
+    my_skim(path = here("output", "treated", "eligible", "data_eligible_az_skim.txt"))
   
   write_rds(data_eligible %>% filter(vax1_type == "az"), 
             here("output", "az", "treated", "data_treatedeligible.rds"), 
