@@ -279,7 +279,7 @@ process_outcome <- function(.data) {
       
       cause_of_death = fct_case_when(
         !is.na(coviddeath_date) ~ "covid-related",
-        is.na(death_date) ~ "not covid-related",
+        !is.na(death_date) ~ "not covid-related",
         TRUE ~ NA_character_
       ),
       
