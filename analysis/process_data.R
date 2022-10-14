@@ -459,7 +459,7 @@ if (stage %in% c("treated", "potential", "actual")) {
       isnot_endoflife = !endoflife,
       isnot_housebound = !housebound,
       
-      covid_vax_disease_1_date_matches_vax1_date = covid_vax_disease_1_date == vax1_date,
+      covid_vax_disease_1_date_matches_vax1_date = (covid_vax_disease_1_date == vax1_date) | (is.na(covid_vax_disease_1_date) & is.na(vax1_date)),
       
       !!! selection_stage,
       
