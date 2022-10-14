@@ -438,7 +438,7 @@ kmcontrasts <- function(data, cuts=NULL){
 
 
 contrasts_km_rounded_daily <- kmcontrasts(data_surv_rounded)
-contrasts_km_rounded_cuts <- kmcontrasts(data_surv_rounded, postbaselinecuts)
+contrasts_km_rounded_cuts <- kmcontrasts(data_surv_rounded, c(0,postbaselinecuts))
 contrasts_km_rounded_overall <- kmcontrasts(data_surv_rounded, c(0,maxfup))
 
 
