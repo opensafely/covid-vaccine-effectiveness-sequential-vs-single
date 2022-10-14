@@ -35,7 +35,7 @@ fct_recoderelevel <- function(x, lookup){
 my_skim <- function(
   .data, # dataset to be summarised
   path,
-  id_var = "patient_id" # name of id column (set to NULL if no id column)
+  id_suffix = "_id" # (set to NULL if no id columns)
 ) {
   
   # specify summary function for each class
@@ -44,8 +44,8 @@ my_skim <- function(
     ),
     # numeric applied to numeric and integer
     numeric = skimr::sfl(
-      mean = mean,
-      sd = sd,
+      mean = ~ mean(.x, na.rm=TRUE),
+      sd = ~ sd(.x, na.rm=TRUE),
       min = ~ min(.x, na.rm=TRUE),
       p10 = ~ quantile(.x, p=0.1, na.rm=TRUE, type=1),
       p25 = ~ quantile(.x, p=0.25, na.rm=TRUE, type=1),
@@ -78,26 +78,38 @@ my_skim <- function(
   # summarise factors as the printing is not very nice or flexible in skim
   summarise_factor <- function(var) {
     
-    .data %>%
+    out <- .data %>%
       group_by(across(all_of(var))) %>%
       count() %>%
       ungroup() %>%
       mutate(across(n, ~roundmid_any(.x, to = 7))) %>%
       mutate(percent = round(100*n/sum(n),2)) %>%
-      knitr::kable(format = "pipe") %>% 
+      arrange(!! sym(var)) 
+    
+    total <- nrow(out)
+    
+    out %>%
+      slice(1:min(total, 10)) %>% 
+      knitr::kable(
+        format = "pipe",
+        caption = glue::glue("{min(total, 10)} of {total} factor levels printed")
+        ) %>% 
       print()
     
   }
   
   vars <- .data %>% 
-    select(-all_of(id_var)) %>% 
+    select(-ends_with(id_suffix)) %>% 
     select(where(~ is.factor(.x) | is.character(.x))) %>%
     names()
   
   options(width = 120)
   capture.output(
     {
-      print(my_skim_fun(.data, -all_of(id_var)))
+      cat("The following id variables are removed from this summary:\n")
+      print(.data %>% select(ends_with(id_suffix)) %>% names())
+      cat("\n")
+      print(my_skim_fun(.data, -ends_with(id_suffix)))
       cat("\n")
       cat("--- counts for factor and character variables ---")
       for (v in vars) {
