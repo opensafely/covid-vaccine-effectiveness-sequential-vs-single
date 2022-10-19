@@ -249,7 +249,7 @@ effect_plot <-
     )
   )+
   scale_x_continuous(
-    breaks = postbaselinecuts,
+    breaks = c(0,postbaselinecuts),
     expand = expansion(mult=c(0), add=c(0,7)), limits=c(0,NA)
   )+
   scale_colour_brewer(type="qual", palette="Set2", guide=guide_legend(ncol=1))+
