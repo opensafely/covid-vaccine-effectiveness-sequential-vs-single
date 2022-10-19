@@ -390,6 +390,7 @@ actions_list <- splice(
   action_km("pfizer", "all", "covidcritcare"),
   action_km("pfizer", "all", "coviddeath"),
   action_km("pfizer", "all", "noncoviddeath"),
+  action_km("pfizer", "all", "death"),
 
   action_km("pfizer", "ageband2", "postest"),
   action_km("pfizer", "ageband2", "emergency"),
@@ -398,6 +399,7 @@ actions_list <- splice(
   action_km("pfizer", "ageband2", "covidcritcare"),
   action_km("pfizer", "ageband2", "coviddeath"),
   action_km("pfizer", "ageband2", "noncoviddeath"),
+  action_km("pfizer", "ageband2", "death"),
 
   
   action_km_combine("pfizer"),
@@ -423,6 +425,7 @@ actions_list <- splice(
   action_km("az", "all", "covidcritcare"),
   action_km("az", "all", "coviddeath"),
   action_km("az", "all", "noncoviddeath"),
+  action_km("az", "all", "death"),
 
   action_km("az", "ageband2", "postest"),
   action_km("az", "ageband2", "emergency"),
@@ -431,6 +434,7 @@ actions_list <- splice(
   action_km("az", "ageband2", "covidcritcare"),
   action_km("az", "ageband2", "coviddeath"),
   action_km("az", "ageband2", "noncoviddeath"),
+  action_km("az", "ageband2", "death"),
 
 
   action_km_combine("az"),
