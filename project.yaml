@@ -415,6 +415,15 @@ actions:
         rds: output/pfizer/models/km/all/noncoviddeath/*.rds
         png: output/pfizer/models/km/all/noncoviddeath/*.png
 
+  km_pfizer_all_death:
+    run: r:latest analysis/model/km.R pfizer all death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/all/death/*.rds
+        png: output/pfizer/models/km/all/death/*.png
+
   km_pfizer_ageband2_postest:
     run: r:latest analysis/model/km.R pfizer ageband2 postest
     needs:
@@ -477,6 +486,15 @@ actions:
       moderately_sensitive:
         rds: output/pfizer/models/km/ageband2/noncoviddeath/*.rds
         png: output/pfizer/models/km/ageband2/noncoviddeath/*.png
+
+  km_pfizer_ageband2_death:
+    run: r:latest analysis/model/km.R pfizer ageband2 death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/km/ageband2/death/*.rds
+        png: output/pfizer/models/km/ageband2/death/*.png
 
   combine_km_pfizer:
     run: r:latest analysis/model/km_combine.R pfizer
@@ -864,6 +882,15 @@ actions:
         rds: output/az/models/km/all/noncoviddeath/*.rds
         png: output/az/models/km/all/noncoviddeath/*.png
 
+  km_az_all_death:
+    run: r:latest analysis/model/km.R az all death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/km/all/death/*.rds
+        png: output/az/models/km/all/death/*.png
+
   km_az_ageband2_postest:
     run: r:latest analysis/model/km.R az ageband2 postest
     needs:
@@ -926,6 +953,15 @@ actions:
       moderately_sensitive:
         rds: output/az/models/km/ageband2/noncoviddeath/*.rds
         png: output/az/models/km/ageband2/noncoviddeath/*.png
+
+  km_az_ageband2_death:
+    run: r:latest analysis/model/km.R az ageband2 death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/km/ageband2/death/*.rds
+        png: output/az/models/km/ageband2/death/*.png
 
   combine_km_az:
     run: r:latest analysis/model/km_combine.R az

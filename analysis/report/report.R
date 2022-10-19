@@ -170,7 +170,7 @@ msm_cox_cuts <- read_csv(fs::path(output_dir_os, "msm", "msmvstcox_estimates_tim
       cohort == "over80s" ~ "aged 80+",
       cohort == "in70s" ~ "aged 70-79",
     ),
-    period_start = as.integer(str_extract(term, "^\\d+")),
+    period_start = as.integer(str_extract(term, "^\\d+"))-1,
     period_end = as.integer(str_extract(term, "\\d+$")),
   ) %>%
   mutate(
