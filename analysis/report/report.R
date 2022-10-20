@@ -89,7 +89,7 @@ brands <- tibble(brand=c("pfizer", "az")) %>% group_by(brand)
 
 st_cox_cuts <- brands %>%
   mutate(
-    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "models", "km", "combined", "contrasts_cox_cuts.csv")))
+    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "contrasts_cox_cuts.csv")))
   ) %>% 
   unnest(dat) %>%
   mutate(
@@ -100,7 +100,7 @@ st_cox_cuts <- brands %>%
 
 st_cox_overall <- brands %>%
   mutate(
-    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "models", "km", "combined", "contrasts_cox_overall.csv")))
+    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "contrasts_cox_overall.csv")))
   ) %>% 
   unnest(dat) %>%
   mutate(
