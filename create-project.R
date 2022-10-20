@@ -269,7 +269,7 @@ action_km_combine <- function(
         glue_data(
           .x=expand_grid(
             subgroup=c("all", "ageband2"),
-            outcome=c("postest", "emergency", "covidemergency", "covidadmitted", "covidcritcare", "coviddeath", "noncoviddeath"),
+            outcome=c("postest", "emergency", "covidemergency", "covidadmitted", "covidcritcare", "coviddeath", "noncoviddeath", "death"),
           ),
           "km_{cohort}_{subgroup}_{outcome}"
         )

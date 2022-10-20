@@ -506,6 +506,7 @@ actions:
     - km_pfizer_all_covidcritcare
     - km_pfizer_all_coviddeath
     - km_pfizer_all_noncoviddeath
+    - km_pfizer_all_death
     - km_pfizer_ageband2_postest
     - km_pfizer_ageband2_emergency
     - km_pfizer_ageband2_covidemergency
@@ -513,6 +514,7 @@ actions:
     - km_pfizer_ageband2_covidcritcare
     - km_pfizer_ageband2_coviddeath
     - km_pfizer_ageband2_noncoviddeath
+    - km_pfizer_ageband2_death
     outputs:
       moderately_sensitive:
         rds: output/pfizer/models/km/combined/*.csv
@@ -973,6 +975,7 @@ actions:
     - km_az_all_covidcritcare
     - km_az_all_coviddeath
     - km_az_all_noncoviddeath
+    - km_az_all_death
     - km_az_ageband2_postest
     - km_az_ageband2_emergency
     - km_az_ageband2_covidemergency
@@ -980,6 +983,7 @@ actions:
     - km_az_ageband2_covidcritcare
     - km_az_ageband2_coviddeath
     - km_az_ageband2_noncoviddeath
+    - km_az_ageband2_death
     outputs:
       moderately_sensitive:
         rds: output/az/models/km/combined/*.csv
