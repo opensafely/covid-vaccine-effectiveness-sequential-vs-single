@@ -67,7 +67,17 @@ data_matched <-
   mutate(all="all") %>%
   group_by(patient_id, match_id, matching_round, treated) %>% 
   mutate(new_id = cur_group_id()) %>% 
+  group_by(new_id) %>%
+  mutate(
+    nopriorcovid = (
+      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[glue("brand")]][["start_date"]]) &
+      (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[glue("brand")]][["start_date"]]) &
+      (is.na(covidadmitted_0_date) | covidadmitted_0_date > study_dates[[glue("brand")]][["start_date"]])
+    ),
+    nopriorcovid_pair = all(nopriorcovid),
+  ) %>%
   ungroup() %>%
+  filter(nopriorcovid_pair) %>%
   select(
     # select only variables needed for models to save space
     patient_id, treated, trial_date, match_id, new_id,
