@@ -30,6 +30,7 @@ fs::dir_create(output_dir_rmd)
 
 brands <- tibble(brand=c("pfizer", "az")) %>% group_by(brand)
 
+# wrap outcome descriptions over two lines for nicer plots
 new_names <- sapply(
   names(recoder$outcome),
   function(x)
@@ -342,6 +343,7 @@ data_coverage <- brands %>%
 xmin <- min(data_coverage$vax1_date )
 xmax <- max(data_coverage$vax1_date )+1
 
+# daily numbers
 plot_coverage_n <-
   data_coverage %>%
   ggplot()+
@@ -409,6 +411,7 @@ ggsave(
   width=15, height=20, units="cm"
 )  
 
+# cumulative numbers
 plot_coverage_cumuln <-
   data_coverage %>%
   ggplot()+
