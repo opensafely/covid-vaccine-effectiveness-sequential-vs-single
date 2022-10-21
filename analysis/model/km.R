@@ -69,10 +69,10 @@ data_matched <-
   mutate(new_id = cur_group_id()) %>% 
   group_by(new_id) %>%
   mutate(
-    prior_covid_infection_pair = any(prior_covid_infection) | (!any(timesince_covid_cat_pair=="Never")),
+    covid_prior_to_start_pair = any((anycovid_0_date < study_dates[[glue("brand")]][["start_date"]]) & !is.na(anycovid_0_date)),
   ) %>%
   ungroup() %>%
-  filter(!prior_covid_infection_pair) %>%
+  filter(!covid_prior_to_start_pair) %>%
   select(
     # select only variables needed for models to save space
     patient_id, treated, trial_date, match_id, new_id,
