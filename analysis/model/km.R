@@ -69,7 +69,7 @@ data_matched <-
   mutate(new_id = cur_group_id()) %>% 
   group_by(new_id) %>%
   mutate(
-    covid_prior_to_start_pair = any((anycovid_0_date < study_dates[[glue("brand")]][["start_date"]]) & !is.na(anycovid_0_date)),
+    covid_prior_to_start_pair = !all((anycovid_0_date > study_dates[[glue("brand")]][["start_date"]]) | is.na(anycovid_0_date)),
   ) %>%
   ungroup() %>%
   filter(!covid_prior_to_start_pair) %>%
