@@ -191,8 +191,10 @@ msm_cox_cuts <- read_csv(fs::path(output_dir_os, "msm", "msmvstcox_estimates_tim
 msm_cox_cuts_MA <- 
   msm_cox_cuts %>%
   filter(subgroup=="ageband2") %>%
+  ## the following two lines can be removed if sequential trials results are updated to match the time periods
   mutate(across(period_start, ~if_else(.x==21L,14L,as.integer(.x)))) %>%
   mutate(across(period_end, ~if_else(.x==21L,28L,as.integer(.x)))) %>%
+  ##
   group_by(brand, outcome_descr, outcome, period_start, period_end) %>%
   mutate(
     loghr = log(or),
@@ -211,29 +213,6 @@ msm_cox_cuts_MA <-
   ) %>%
   ungroup()
 
-# # meta-analyse the mismatched time periods
-# msm_cox_cuts_MA_14_28 <- msm_cox_cuts_MA %>%
-#   filter(period_start %in% c(14,21)) %>%
-#   group_by(brand, outcome_descr, outcome) %>%
-#   # mutate(
-#   #   loghr = log(or),
-#   #   period_end = if_else(is.na(period_end), 63L, period_end),
-#   # ) %>%
-#   summarise(
-#     # NOTE: coxhr.se is the standard error of the log hazard ratio, not the hazard ratio
-#     loghr = weighted.mean(loghr, loghr.se^-2),
-#     hr = exp(loghr),
-#     loghr.se = sqrt(1/sum(loghr.se^-2)),
-#     statistic = loghr/loghr.se,
-#     p.value = pchisq(statistic^2, df=1, lower.tail=FALSE),
-#     conf.low = exp(loghr + qnorm(0.025)*loghr.se),
-#     conf.high = exp(loghr + qnorm(0.975)*loghr.se),
-#     approach="msm",
-#   ) %>%
-#   ungroup() %>%
-#   mutate(period_start = 14, period_end=28)
-# 
-# msm_cox_cuts_MA <- bind_rows(msm_cox_cuts_MA, msm_cox_cuts_MA_14_28)
 
 ## combine and plot ----
 
@@ -252,7 +231,7 @@ cox_cuts_MA <-
   ungroup() %>%
   mutate(across(brand, factor, levels = c("az", "pfizer"), labels = c("ChAdOx1", "BNT162b2")))
 
-# table of hazard ratios
+## table of hazard ratios ----
 doc <- officer::read_docx() 
 
 ftab <- cox_cuts_MA %>%
@@ -260,7 +239,7 @@ ftab <- cox_cuts_MA %>%
     approach,
     Brand = brand, 
     Outcome = str_replace(as.character(outcome_descr), "\\n", " "),
-    `Days since first dose` = if_else(period_end>35, glue("{period_start}+*"), glue("{period_start}-{period_end-1}")),
+    `Days since first dose` = if_else(period_end>35, glue("{period_start+1}+*"), glue("{period_start+1}-{period_end}")),
     value = glue("{format(round(hr,3),nsmall=3)} ({format(round(conf.low,3),nsmall=3)}, {format(round(conf.high,3),nsmall=3)})")
     ) %>%
   pivot_wider(
@@ -276,9 +255,9 @@ doc <- doc %>%
   flextable::body_add_flextable(value = ftab, split = FALSE) %>%
   print(target = file.path(output_dir_os, glue::glue("hr_table.docx")))
 # add footnote manually:
-# final period is 35-63 days for marginal structural model and 35-70 days for sequential trial
+# *final period is 36-xx days for marginal structural model and 35-70 days for sequential trial??
 
-
+## effect plot ----
 formatpercent100 <- function(x,accuracy){
   formatx <- scales::label_percent(accuracy)(x)
   
@@ -349,10 +328,7 @@ ggsave(
   width=20, height=15, units="cm"
 )
 
-
-
-
-# plot coverage 
+## coverage plots ----
 
 data_coverage <- brands %>%
   mutate(
