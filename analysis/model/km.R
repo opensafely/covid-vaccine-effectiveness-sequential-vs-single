@@ -72,7 +72,7 @@ data_matched <-
     nopriorcovid = (
       (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
       (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-      (is.na(covidadmitted_0_date) | covidadmitted_0_date > study_dates[[cohort]][["start_date"]])
+      (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
     ),
     nopriorcovid_pair = all(nopriorcovid),
   ) %>%
