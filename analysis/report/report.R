@@ -192,10 +192,6 @@ msm_cox_cuts <- read_csv(fs::path(output_dir_os, "msm", "msmvstcox_estimates_tim
 msm_cox_cuts_MA <- 
   msm_cox_cuts %>%
   filter(subgroup=="ageband2") %>%
-  ## the following two lines can be removed if sequential trials results are updated to match the time periods
-  mutate(across(period_start, ~if_else(.x==21L,14L,as.integer(.x)))) %>%
-  mutate(across(period_end, ~if_else(.x==21L,28L,as.integer(.x)))) %>%
-  ##
   group_by(brand, outcome_descr, outcome, period_start, period_end) %>%
   mutate(
     loghr = log(or),
