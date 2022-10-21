@@ -30,6 +30,15 @@ fs::dir_create(output_dir_rmd)
 
 brands <- tibble(brand=c("pfizer", "az")) %>% group_by(brand)
 
+# wrap outcome descriptions over two lines for nicer plots
+new_names <- sapply(
+  names(recoder$outcome),
+  function(x)
+    if_else(nchar(x) > 10, str_replace(x, " ", "\\\n"), x)
+)
+
+names(recoder$outcome) <- new_names
+
 ## KM estimates and contrasts are commented out, as not used for now
 
 # km_estimates <- brands %>%
@@ -89,7 +98,7 @@ brands <- tibble(brand=c("pfizer", "az")) %>% group_by(brand)
 
 st_cox_cuts <- brands %>%
   mutate(
-    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "models", "km", "combined", "contrasts_cox_cuts.csv")))
+    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "contrasts_cox_cuts.csv")))
   ) %>% 
   unnest(dat) %>%
   mutate(
@@ -100,7 +109,7 @@ st_cox_cuts <- brands %>%
 
 st_cox_overall <- brands %>%
   mutate(
-    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "models", "km", "combined", "contrasts_cox_overall.csv")))
+    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "contrasts_cox_overall.csv")))
   ) %>% 
   unnest(dat) %>%
   mutate(
@@ -189,7 +198,7 @@ msm_cox_cuts_MA <-
     period_end = if_else(is.na(period_end), 63L, period_end),
   ) %>%
   summarise(
-    # NOTE: coxhr.se is the standard error of the log hazard ratio, not the hazard ratio
+    # NOTE: std.error is the standard error of the log hazard ratio, not the hazard ratio
     loghr = weighted.mean(loghr, std.error^-2),
     hr = exp(loghr),
     loghr.se = sqrt(1/sum(std.error^-2)),
@@ -198,8 +207,8 @@ msm_cox_cuts_MA <-
     conf.low = exp(loghr + qnorm(0.025)*loghr.se),
     conf.high = exp(loghr + qnorm(0.975)*loghr.se),
     approach="msm",
-  )
-
+  ) %>%
+  ungroup()
 
 
 ## combine and plot ----
@@ -214,11 +223,38 @@ cox_cuts_MA <-
   ) %>%
   mutate(
     midpoint = (period_end+period_start)/2,
-  )
+  ) %>%
+  mutate(across(approach, factor, levels = c("msm", "st"), labels = c("Marginal structural model", "Sequential trial"))) %>%
+  ungroup() %>%
+  mutate(across(brand, factor, levels = c("az", "pfizer"), labels = c("ChAdOx1", "BNT162b2")))
 
+## table of hazard ratios ----
+doc <- officer::read_docx() 
 
+ftab <- cox_cuts_MA %>%
+  transmute(
+    approach,
+    Brand = brand, 
+    Outcome = str_replace(as.character(outcome_descr), "\\n", " "),
+    `Days since first dose` = if_else(period_end>35, glue("{period_start+1}+*"), glue("{period_start+1}-{period_end}")),
+    value = glue("{format(round(hr,3),nsmall=3)} ({format(round(conf.low,3),nsmall=3)}, {format(round(conf.high,3),nsmall=3)})")
+    ) %>%
+  pivot_wider(
+    names_from = approach,
+    values_from = value
+  ) %>%
+  flextable::flextable() %>%
+  flextable::merge_v(j=1:2, part = "body") %>%
+  flextable::fontsize(size = 8, part = "all") %>%
+  flextable::theme_booktabs() 
 
+doc <- doc %>%
+  flextable::body_add_flextable(value = ftab, split = FALSE) %>%
+  print(target = file.path(output_dir_os, glue::glue("hr_table.docx")))
+# add footnote manually:
+# *final period is 36-xx days for marginal structural model and 35-70 days for sequential trial??
 
+## effect plot ----
 formatpercent100 <- function(x,accuracy){
   formatx <- scales::label_percent(accuracy)(x)
   
@@ -252,7 +288,7 @@ effect_plot <-
     breaks = c(0,postbaselinecuts),
     expand = expansion(mult=c(0), add=c(0,7)), limits=c(0,NA)
   )+
-  scale_colour_brewer(type="qual", palette="Set2", guide=guide_legend(ncol=1))+
+  scale_colour_brewer(type="qual", palette="Set2", guide=guide_legend(ncol=2))+
   coord_cartesian() +
   labs(
     y="Hazard ratio, versus no vaccination",
@@ -276,9 +312,163 @@ effect_plot <-
     plot.caption.position = "plot",
     plot.caption = element_text(hjust = 0, face= "italic"),
     
+    axis.title.y.right = element_text(margin = margin(t=0,r=0,b=0,l=10)),
+    axis.title.x = element_text(margin = margin(t=10,r=0,b=0,l=0)),
+    
     legend.position = "bottom"
   )
 
 effect_plot
+ggsave(
+  file.path(output_dir_os, "ve-plot.png"),
+  effect_plot,
+  width=20, height=15, units="cm"
+)
 
+## coverage plots ----
 
+data_coverage <- brands %>%
+  mutate(
+    dat = map(brand, ~read_csv(fs::path(output_dir_os, "st", brand, "coverage.csv")))
+  ) %>% 
+  unnest(dat) %>%
+  ungroup() %>%
+  mutate(across(brand, factor)) %>%
+  mutate(across(status, factor, levels = c("unmatched", "matched")))
+
+xmin <- min(data_coverage$vax1_date )
+xmax <- max(data_coverage$vax1_date )+1
+
+# daily numbers
+plot_coverage_n <-
+  data_coverage %>%
+  ggplot()+
+  geom_col(
+    aes(
+      x=vax1_date+0.5,
+      y=n,
+      group=paste0(brand,status),
+      fill=brand,
+      alpha=fct_rev(status),
+      colour=NULL
+    ),
+    position=position_stack(reverse=TRUE),
+    #alpha=0.8,
+    width=1
+  )+
+  #geom_rect(xmin=xmin, xmax= xmax+1, ymin=-6, ymax=6, fill="grey", colour="transparent")+
+  geom_hline(yintercept = 0, colour="black")+
+  facet_grid(rows = "brand")+
+  scale_x_date(
+    breaks = unique(lubridate::ceiling_date(data_coverage$vax1_date, "1 month")),
+    limits = c(xmin-1, NA),
+    labels = scales::label_date("%d/%m"),
+    expand = expansion(add=1),
+  )+
+  scale_y_continuous(
+    #labels = ~scales::label_number(accuracy = 1, big.mark=",")(abs(.x)),
+    expand = expansion(c(0, NA))
+  )+
+  scale_fill_brewer(type="qual", palette="Set2")+
+  scale_colour_brewer(type="qual", palette="Set2")+
+  scale_alpha_discrete(range= c(0.8,0.4))+
+  labs(
+    x="Date",
+    y="Count",
+    colour=NULL,
+    fill=NULL,
+    alpha=NULL
+  ) +
+  theme_bw()+
+  theme(
+    
+    panel.border = element_blank(),
+    
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    
+    panel.spacing = unit(1, "lines"),
+    
+    axis.title.y = element_text(margin = margin(t=0,r=10,b=0,l=0)),
+    axis.title.x = element_text(margin = margin(t=10,r=0,b=0,l=0)),
+    
+    axis.line.x.bottom = element_line(),
+    axis.text.x.top=element_text(hjust=0),
+    strip.text.y.right = element_text(angle = 0),
+    axis.ticks.x=element_line(),
+    legend.position = "bottom"
+  )
+
+ggsave(
+  filename=file.path(output_dir_os, "coverage_n.png"),
+  plot_coverage_n,
+  width=15, height=20, units="cm"
+)  
+
+# cumulative numbers
+plot_coverage_cumuln <-
+  data_coverage %>%
+  ggplot()+
+  geom_col(
+    aes(
+      x=vax1_date+0.5,
+      y=cumuln,
+      group=paste0(brand,status),
+      fill=brand,
+      alpha=fct_rev(status),
+      colour=NULL
+    ),
+    position=position_stack(reverse=TRUE),
+    width=1
+  )+
+  geom_rect(xmin=xmin, xmax= xmax+1, ymin=-6, ymax=6, fill="grey", colour="transparent")+
+  facet_grid(rows = "brand")+
+  scale_x_date(
+    breaks = unique(lubridate::ceiling_date(data_coverage$vax1_date, "1 month")),
+    limits = c(xmin-1, NA),
+    labels = scales::label_date("%d/%m"),
+    expand = expansion(add=1),
+  )+
+  scale_y_continuous(
+    #labels = ~scales::label_number(accuracy = 1, big.mark=",")(abs(.)),
+    expand = expansion(c(0, NA))
+  )+
+  scale_fill_brewer(type="qual", palette="Set2")+
+  scale_colour_brewer(type="qual", palette="Set2")+
+  scale_alpha_discrete(range= c(0.8,0.4))+
+  labs(
+    x="Date",
+    y="Cumulative count",
+    colour=NULL,
+    fill=NULL,
+    alpha=NULL
+  ) +
+  theme_bw()+
+  theme(
+    
+    panel.border = element_blank(),
+    
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    
+    panel.spacing = unit(1, "lines"),
+    
+    axis.title.y = element_text(margin = margin(t=0,r=10,b=0,l=0)),
+    axis.title.x = element_text(margin = margin(t=10,r=0,b=0,l=0)),
+    
+    axis.line.x.bottom = element_line(),
+    axis.text.x.top=element_text(hjust=0),
+    strip.text.y.right = element_text(angle = 0),
+    axis.ticks.x=element_line(),
+    legend.position = "bottom"
+  )
+
+ggsave(
+  filename=file.path(output_dir_os, "coverage_cumuln.png"),
+  plot_coverage_cumuln,
+  width=15, height=20, units="cm"
+)  
