@@ -84,7 +84,7 @@ data_matched <-
     controlistreated_date,
     vax1_date,
     death_date, dereg_date, coviddeath_date, noncoviddeath_date, vax2_date,
-    all_of(c(glue("{outcome}_date"), subgroup))
+    all_of(c(glue("{outcome}_date"), subgroup, adjustment_variables))
   ) %>%
   
   mutate(
@@ -502,26 +502,55 @@ coxcontrast <- function(data, cuts=NULL){
       period_end = cuts[period_id+1],
     )
   
+  
+  if(length(cuts)>2){
+    treatment_term <- "treated:strata(period_id)"
+  } else if(length(cuts==2)){
+    treatment_term <- "treated"
+  } else
+    stop("cuts must be >1")
+
+  adjustment_formula <- as.formula(
+    eval(
+      paste(
+        "Surv(tstart, tstop, ind_outcome) ~", treatment_term, "+",
+        paste0(adjustment_variables, collapse=" + ")
+      )
+    )
+  )
+    
   data_cox <-
     data_split %>%
-    group_by(!!subgroup_sym, period_start, period_end) %>%
+    group_by(!!subgroup_sym) %>%
     nest() %>%
     mutate(
       cox_obj = map(data, ~{
-        coxph(Surv(tstart, tstop, ind_outcome) ~ treated, data = .x, y=FALSE, robust=TRUE, id=new_id, na.action="na.fail")
+        coxph(
+          adjustment_formula, 
+          data = .x, y=FALSE, robust=TRUE, id=new_id, na.action="na.fail"
+        )
       }),
       cox_obj_tidy = map(cox_obj, ~broom::tidy(.x)),
     ) %>%
-    select(!!subgroup_sym, period_start, period_end, cox_obj_tidy) %>%
+    select(!!subgroup_sym, cox_obj_tidy) %>%
     unnest(cox_obj_tidy) %>%
+    # select only treatment terms (not interested in confounder effects)
+    filter(str_detect(term, "^treated")) %>%
+    mutate(
+      # re-define period id as this doesn't fall out nicely from `broom::tidy`
+      # it does fall out nicely from `broom.helpers::tidy_plus_plus`, but it's not compatible with the way the formula is specified due to scoping issues
+      period_id = if(length(cuts)>2) {as.integer(str_match(term, "period_id=(\\d+)$")[,2])} else {1L}
+    ) %>%
     transmute(
-      !!subgroup_sym,
-      period_start,
-      period_end,
-      coxhazr = exp(estimate),
-      coxhr.se = robust.se,
-      coxhr.ll = exp(estimate + qnorm(0.025)*robust.se),
-      coxhr.ul = exp(estimate + qnorm(0.975)*robust.se),
+       !!subgroup_sym,
+       period_id,
+       period_start = cuts[period_id],
+       period_end = cuts[period_id+1],
+       fup_period = paste0(cuts[period_id], "-", cuts[period_id+1]),
+       coxhazr = exp(estimate),
+       coxhr.se = robust.se,
+       coxhr.ll = exp(estimate + qnorm(0.025)*robust.se),
+       coxhr.ul = exp(estimate + qnorm(0.975)*robust.se),
     )
   data_cox
   
