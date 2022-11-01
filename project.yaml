@@ -344,6 +344,7 @@ actions:
   table1_pfizer:
     run: r:latest analysis/matching/table1.R pfizer
     needs:
+    - process_treated
     - process_controlfinal_pfizer
     outputs:
       moderately_sensitive:
@@ -813,6 +814,7 @@ actions:
   table1_az:
     run: r:latest analysis/matching/table1.R az
     needs:
+    - process_treated
     - process_controlfinal_az
     outputs:
       moderately_sensitive:
