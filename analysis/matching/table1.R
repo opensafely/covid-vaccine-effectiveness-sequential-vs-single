@@ -53,6 +53,59 @@ data_matched <- read_rds(ghere("output", cohort, "match", "data_matched.rds"))
 data_treatedeligible_matchstatus <- read_rds(here("output", cohort, "match", "data_treatedeligible_matchstatus.rds"))
 
 
+## apply additional exclusion criteria ----
+## see https://github.com/opensafely/covid-vaccine-effectiveness-seqtrial/pull/10/files#diff-e05cc930e240857c06e4ea714fcabf609e0782ab827e11524be6f9af186dc80c
+
+
+# define additional criteria in the treated, elgible population
+data_treatedeligible_exclusion <- 
+  read_rds(ghere("output", cohort, "treated", "data_treatedeligible.rds")) %>%
+  transmute(
+    patient_id, 
+    treatedeligible_nopriorcovid = (
+      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+        (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+        (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    ),
+  )
+
+# define additional criteria in the treated, matched population, ie, also removing matches where the control doesn't meet the criteria
+data_treatedmatched_exclusion <- 
+  data_matched %>%
+  group_by(patient_id, match_id, matching_round, treated) %>% 
+  mutate(new_id = cur_group_id()) %>% 
+  group_by(new_id) %>%
+  transmute(
+    patient_id, 
+    treated,
+    nopriorcovid = (
+      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+        (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+        (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    ),
+    nopriorcovid_pair = all(nopriorcovid),
+  ) %>%
+  ungroup() %>%
+  filter(treated==1L)
+
+# combine criteria
+data_exclusion <- data_treatedeligible_exclusion %>%
+  left_join(data_treatedmatched_exclusion, by="patient_id") %>%
+  transmute(
+    patient_id,
+    include_eligible = treatedeligible_nopriorcovid,
+    include_matched = (treatedeligible_nopriorcovid & nopriorcovid_pair)
+  )
+
+# redefine matching success in the matchstatus dataset
+data_treatedeligible_matchstatus <- 
+  data_treatedeligible_matchstatus %>%
+  left_join(data_exclusion, by="patient_id") %>%
+  # remove all eligible treated people originally eligible but no longer eligible due to new criteria
+  filter(include_eligible) %>%
+  # remove all matched, treated people who are no longer matched because of new inclusion criteria
+  mutate(matched = (matched & include_matched)*1L)
+
 # matching coverage on each day of recruitment period ----
 
 
