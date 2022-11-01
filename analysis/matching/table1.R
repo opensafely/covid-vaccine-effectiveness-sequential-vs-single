@@ -72,9 +72,10 @@ data_treatedeligible_exclusion <-
 # define additional criteria in the treated, matched population, ie, also removing matches where the control doesn't meet the criteria
 data_treatedmatched_exclusion <- 
   data_matched %>%
-  group_by(patient_id, match_id, matching_round, treated) %>% 
-  mutate(new_id = cur_group_id()) %>% 
-  group_by(new_id) %>%
+  group_by(match_id, trial_date, matching_round) %>% 
+  mutate(uniquematch_id = cur_group_id()) %>% 
+  ungroup() %>%
+  group_by(uniquematch_id) %>%
   transmute(
     patient_id, 
     treated,
@@ -86,6 +87,7 @@ data_treatedmatched_exclusion <-
     nopriorcovid_pair = all(nopriorcovid),
   ) %>%
   ungroup() %>%
+  select(-uniquematch_id) %>%
   filter(treated==1L)
 
 # combine criteria
