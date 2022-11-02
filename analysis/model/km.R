@@ -64,10 +64,10 @@ data_matched <- read_rds(ghere("output", cohort, "match", "data_matched.rds"))
 ## import baseline data, restrict to matched individuals and derive time-to-event variables
 data_matched <- 
   data_matched %>%
-  mutate(all="all") %>%
-  group_by(patient_id, match_id, matching_round, treated) %>% 
-  mutate(new_id = cur_group_id()) %>% 
-  group_by(new_id) %>%
+  group_by(match_id, trial_date, matching_round) %>% 
+  mutate(uniquematch_id = cur_group_id()) %>% 
+  ungroup() %>%
+  group_by(uniquematch_id) %>%
   mutate(
     nopriorcovid = (
       (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
@@ -78,6 +78,11 @@ data_matched <-
   ) %>%
   ungroup() %>%
   filter(nopriorcovid_pair) %>%
+  select(-uniquematch_id) %>%
+  mutate(all="all") %>%
+  group_by(patient_id, match_id, matching_round, treated) %>% 
+  mutate(new_id = cur_group_id()) %>% 
+  ungroup() %>%
   select(
     # select only variables needed for models to save space
     patient_id, treated, trial_date, match_id, new_id,

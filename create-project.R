@@ -288,6 +288,7 @@ action_table1 <- function(cohort){
     run = glue("r:latest analysis/matching/table1.R"),
     arguments = c(cohort),
     needs = namelesslst(
+      "process_treated",
       glue("process_controlfinal_{cohort}"),
     ),
     moderately_sensitive= lst(
