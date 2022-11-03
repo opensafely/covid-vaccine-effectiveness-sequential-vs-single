@@ -103,7 +103,7 @@ data_matched <-
       #vax4_date-1, # -1 because we assume vax occurs at the start of the day
       death_date,
       study_dates[["global"]]$studyend_date,
-      trial_date + maxfup,
+      trial_date -1 + maxfup,
       na.rm=TRUE
     ),
     
@@ -111,7 +111,6 @@ data_matched <-
 
     tte_outcome = tte(trial_date - 1, outcome_date, matchcensor_date, na.censor=FALSE), # -1 because we assume vax occurs at the start of the day, and so outcomes occurring on the same day as treatment are assumed "1 day" long
     ind_outcome = censor_indicator(outcome_date, matchcensor_date),
-    
     
   )
 
