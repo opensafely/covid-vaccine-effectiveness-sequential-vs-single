@@ -48,7 +48,7 @@ fs::dir_create(output_dir)
 
 ## Import data and derive some variables ----
 
-data_matched <- read_rds(ghere("output", cohort, "match", "data_matched.rds")) 
+data_matched0 <- read_rds(ghere("output", cohort, "match", "data_matched.rds")) 
 
 data_treatedeligible_matchstatus <- read_rds(here("output", cohort, "match", "data_treatedeligible_matchstatus.rds"))
 
@@ -70,13 +70,13 @@ data_treatedeligible_exclusion <-
   )
 
 # define additional criteria in the treated, matched population, ie, also removing matches where the control doesn't meet the criteria
-data_treatedmatched_exclusion <- 
-  data_matched %>%
+data_matched_preexclusion <- 
+  data_matched0 %>%
   group_by(match_id, trial_date, matching_round) %>% 
   mutate(uniquematch_id = cur_group_id()) %>% 
   ungroup() %>%
   group_by(uniquematch_id) %>%
-  transmute(
+  mutate(
     patient_id, 
     treated,
     nopriorcovid = (
@@ -86,9 +86,12 @@ data_treatedmatched_exclusion <-
     ),
     nopriorcovid_pair = all(nopriorcovid),
   ) %>%
-  ungroup() %>%
-  select(-uniquematch_id) %>%
-  filter(treated==1L)
+  ungroup() 
+
+data_treatedmatched_exclusion <- 
+  data_matched_preexclusion %>%
+  select(patient_id, treated, nopriorcovid, nopriorcovid_pair) %>%
+  filter(treated==1L) 
 
 # combine criteria
 data_exclusion <- data_treatedeligible_exclusion %>%
@@ -107,6 +110,12 @@ data_treatedeligible_matchstatus <-
   filter(include_eligible) %>%
   # remove all matched, treated people who are no longer matched because of new inclusion criteria
   mutate(matched = (matched & include_matched)*1L)
+
+
+data_matched <- data_matched_preexclusion %>%
+  filter(nopriorcovid_pair) %>%
+  select(-uniquematch_id, -nopriorcovid_pair)
+
 
 # matching coverage on each day of recruitment period ----
 
@@ -171,7 +180,6 @@ library('gtsummary')
 var_labels <- list(
   N  ~ "Total N",
   treated ~ "Status",
-  age ~ "Age",
   jcvi_ageband ~ "JCVI ageband",
   sex ~ "Sex",
   #ethnicity_combined ~ "Ethnicity",
