@@ -342,6 +342,13 @@ xmax <- max(data_coverage$vax1_date )+1
 # daily numbers
 plot_coverage_n <-
   data_coverage %>%
+  mutate(
+    brand = case_when(
+      brand == "pfizer" ~ "BNT162b2",
+      brand == "az" ~ "ChAdOx1",
+      TRUE ~ NA_character_
+    ),
+  ) %>%
   ggplot()+
   geom_col(
     aes(
