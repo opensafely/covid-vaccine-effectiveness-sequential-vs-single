@@ -275,7 +275,7 @@ write_csv(raw_stats_redacted, fs::path(output_dir, "table1.csv"))
 source(here("lib", "functions", "survival.R"))
 
 
-fuptable <- function(data) {
+fuptable <- function(data, ...) {
   
   
   data %>%
@@ -299,6 +299,7 @@ fuptable <- function(data) {
       ind_covidadmitted = censor_indicator(covidadmitted_date, matchcensor_date),
       ind_death = censor_indicator(death_date, matchcensor_date),
     ) %>%
+    group_by( ... ) %>%
     summarise(
       N = roundmid_any(n(), 6),
       
@@ -329,15 +330,25 @@ fuptable <- function(data) {
 }
 
 
-fup_table <- data_matched %>% fuptable() %>% add_column(treated_group="all", .before=1)
-fup_table0 <- data_matched %>% filter(treated==0) %>% fuptable() %>% add_column(treated_group="unvaccinated", .before=1)
-fup_table1 <- data_matched %>% filter(treated==1) %>% fuptable() %>% add_column(treated_group="vaccinated", .before=1)
+fup_table_all <- data_matched %>% fuptable()
+fup_table_treated <- data_matched %>% fuptable(treated)
+fup_table_ageband2 <- data_matched %>% fuptable(ageband2)
+fup_table_treated_ageband2 <- data_matched %>% fuptable(treated, ageband2)
+
 
 fup_table <- 
-bind_rows(
-  fup_table,
-  fup_table0,
-  fup_table1
-)
+  bind_rows(
+    fup_table_all,
+    fup_table_treated,
+    fup_table_ageband2,
+    fup_table_treated_ageband2
+  ) %>%
+  mutate(
+    treated = coalesce(as.character(treated), "all"),
+    ageband2 = coalesce(ageband2, "all"),
+  ) %>%
+  select(
+    treated, ageband2, everything()
+  )
 
 write_csv(fup_table, fs::path(output_dir, "fup.csv"))
