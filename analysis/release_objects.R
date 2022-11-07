@@ -31,6 +31,7 @@ for(cohort in c("over12", "under12")){
 
   fs::file_copy(here("output", cohort, "table1", "coverage.csv"), fs::path(output_dir, glue("{cohort}_coverage.csv")), overwrite = TRUE)
   fs::file_copy(here("output", cohort, "table1", "table1.csv"), fs::path(output_dir, glue("{cohort}_table1.csv")), overwrite = TRUE)
+  fs::file_copy(here("output", cohort, "table1", "fup.csv"), fs::path(output_dir, glue("{cohort}_fup.csv")), overwrite = TRUE)
   # fs::file_copy(here("output", cohort, "table1", "flowchart.csv"), fs::path(output_dir, glue("{cohort}_flowchart.csv")), overwrite = TRUE)
 
   ## KM ----

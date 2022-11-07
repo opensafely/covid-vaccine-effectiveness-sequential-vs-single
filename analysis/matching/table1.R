@@ -270,3 +270,74 @@ write_csv(raw_stats_redacted, fs::path(output_dir, "table1.csv"))
 #     )
 #   )
 
+## follow-up / outcomes table
+
+source(here("lib", "functions", "survival.R"))
+
+
+fuptable <- function(data) {
+  
+  
+  data %>%
+    mutate(
+          # follow-up time is up to and including censor date
+      censor_date = pmin(
+        dereg_date,
+        #vax4_date-1, # -1 because we assume vax occurs at the start of the day
+        death_date,
+        study_dates[["global"]]$studyend_date,
+        trial_date -1 + maxfup,
+        na.rm=TRUE
+      ),
+      matchcensor_date = pmin(censor_date, controlistreated_date -1, na.rm=TRUE), # new censor date based on whether control gets treated or not
+      
+      tte_postest = tte(trial_date - 1, postest_date, matchcensor_date, na.censor=FALSE),
+      tte_covidadmitted = tte(trial_date - 1, covidadmitted_date, matchcensor_date, na.censor=FALSE),
+      tte_death = tte(trial_date - 1, death_date, matchcensor_date, na.censor=FALSE),
+      
+      ind_postest = censor_indicator(postest_date, matchcensor_date),
+      ind_covidadmitted = censor_indicator(covidadmitted_date, matchcensor_date),
+      ind_death = censor_indicator(death_date, matchcensor_date),
+    ) %>%
+    summarise(
+      N = roundmid_any(n(), 6),
+      
+      events_postest = roundmid_any(sum(ind_postest),6),
+      events_covidadmitted = roundmid_any(sum(ind_covidadmitted),6),
+      events_death = roundmid_any(sum(ind_death),6),
+      
+      fup_sum_postest = roundmid_any(sum(tte_postest),6),
+      fup_sum_covidadmitted = roundmid_any(sum(tte_covidadmitted),6),
+      fup_sum_death = roundmid_any(sum(tte_death),6),
+      
+      fup_mean_postest = fup_sum_postest/N,
+      fup_mean_covidadmitted = fup_sum_covidadmitted/N,
+      fup_mean_death = fup_sum_death/N,
+      
+      fup_median_postest = median(tte_postest),
+      fup_median_covidadmitted = median(tte_covidadmitted),
+      fup_median_death = median(tte_death),
+      
+      fup_q1_postest = quantile(tte_postest, 0.25),
+      fup_q1_covidadmitted = quantile(tte_covidadmitted, 0.25),
+      fup_q1_death = quantile(tte_death, 0.25),
+      
+      fup_q3_postest = quantile(tte_postest, 0.75),
+      fup_q3_covidadmitted = quantile(tte_covidadmitted, 0.75),
+      fup_q3_death = quantile(tte_death, 0.75),
+    )
+}
+
+
+fup_table <- data_matched %>% fuptable() %>% add_column(treated_group="all", .before=1)
+fup_table0 <- data_matched %>% filter(treated==0) %>% fuptable() %>% add_column(treated_group="unvaccinated", .before=1)
+fup_table1 <- data_matched %>% filter(treated==1) %>% fuptable() %>% add_column(treated_group="vaccinated", .before=1)
+
+fup_table <- 
+bind_rows(
+  fup_table,
+  fup_table0,
+  fup_table1
+)
+
+write_csv(fup_table, fs::path(output_dir, "fup.csv"))
