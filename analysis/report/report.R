@@ -373,7 +373,7 @@ plot_coverage_n <-
     expand = expansion(add=1),
   )+
   scale_y_continuous(
-    #labels = ~scales::label_number(accuracy = 1, big.mark=",")(abs(.x)),
+    labels = ~scales::label_number(accuracy = 1, big.mark=",")(abs(.x)),
     expand = expansion(c(0, NA))
   )+
   scale_fill_brewer(type="qual", palette="Set2")+
@@ -417,6 +417,13 @@ ggsave(
 # cumulative numbers
 plot_coverage_cumuln <-
   data_coverage %>%
+  mutate(
+    brand = case_when(
+      brand == "pfizer" ~ "BNT162b2",
+      brand == "az" ~ "ChAdOx1",
+      TRUE ~ NA_character_
+    ),
+  ) %>%
   ggplot()+
   geom_col(
     aes(
@@ -439,11 +446,13 @@ plot_coverage_cumuln <-
     expand = expansion(add=1),
   )+
   scale_y_continuous(
-    #labels = ~scales::label_number(accuracy = 1, big.mark=",")(abs(.)),
+    labels = ~scales::label_number(accuracy = 1, big.mark=",")(abs(.)),
     expand = expansion(c(0, NA))
   )+
-  scale_fill_brewer(type="qual", palette="Set2")+
-  scale_colour_brewer(type="qual", palette="Set2")+
+  #scale_fill_brewer(type="qual", palette="Set2")+
+  #scale_colour_brewer(type="qual", palette="Set2")+
+  scale_fill_manual(values = brewer_pal(type="qual", palette="Set2")(3)[c(3,1)])+
+  scale_colour_manual(values = brewer_pal(type="qual", palette="Set2")(3)[c(3,1)])+
   scale_alpha_discrete(range= c(0.8,0.4))+
   labs(
     x="Date",
@@ -469,7 +478,8 @@ plot_coverage_cumuln <-
     
     axis.line.x.bottom = element_line(),
     axis.text.x.top=element_text(hjust=0),
-    strip.text.y.right = element_text(angle = 0),
+    #strip.text.y.right = element_text(angle = 0),
+    strip.text.y.right = element_blank(),
     axis.ticks.x=element_line(),
     legend.position = "bottom"
   )
