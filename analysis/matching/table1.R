@@ -62,11 +62,12 @@ data_treatedeligible_exclusion <-
   read_rds(ghere("output", cohort, "treated", "data_treatedeligible.rds")) %>%
   transmute(
     patient_id, 
-    treatedeligible_nopriorcovid = (
-      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
-    ),
+    # treatedeligible_nopriorcovid = (
+    #   (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    # ),
+    treatedeligible_nopriorcovid = !prior_covid_infection
   )
 
 # define additional criteria in the treated, matched population, ie, also removing matches where the control doesn't meet the criteria
@@ -79,18 +80,19 @@ data_matched_preexclusion <-
   mutate(
     patient_id, 
     treated,
-    nopriorcovid = (
-      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
-    ),
-    nopriorcovid_pair = all(nopriorcovid),
+    # nopriorcovid = (
+    #   (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    # ),
+    # nopriorcovid_pair = all(nopriorcovid),
+    nopriorcovid_pair = !any(prior_covid_infection),
   ) %>%
   ungroup() 
 
 data_treatedmatched_exclusion <- 
   data_matched_preexclusion %>%
-  select(patient_id, treated, nopriorcovid, nopriorcovid_pair) %>%
+  select(patient_id, treated, nopriorcovid_pair) %>%
   filter(treated==1L) 
 
 # combine criteria
@@ -182,14 +184,29 @@ var_labels <- list(
   treated ~ "Status",
   jcvi_ageband ~ "JCVI ageband",
   sex ~ "Sex",
-  #ethnicity_combined ~ "Ethnicity",
+  ethnicity_combined ~ "Ethnicity",
   imd_Q5 ~ "Deprivation",
   region ~ "Region",
   
   cev_cv ~ "Clinically vulnerable",
   
+  sev_obesity ~ "Body Mass Index > 40 kg/m^2",
+  chronic_heart_disease ~ "Chronic heart disease",
+  chronic_kidney_disease ~ "Chronic kidney disease",
+  diabetes ~ "Diabetes",
+  chronic_liver_disease ~ "Chronic liver disease",
+  chronic_resp_disease ~ "Chronic respiratory disease",
+  asthma ~ "Asthma",
+  chronic_neuro_disease ~ "Chronic neurological disease",
+  
+  multimorb ~ "Morbidity count",
+  immunosuppressed ~ "Immunosuppressed",
+  asplenia ~ "Asplenia or poor spleen function",
+  learndis ~ "Learning disabilities",
+  sev_mental ~ "Serious mental illness"
+  
   #prior_tests_cat ~ "Number of SARS-CoV-2 tests",
-  prior_covid_infection ~ "Prior documented SARS-CoV-2 infection"
+  #prior_covid_infection ~ "Prior documented SARS-CoV-2 infection"
 ) %>%
 set_names(., map_chr(., all.vars))
 
@@ -291,10 +308,10 @@ fuptable <- function(data, ...) {
           # follow-up time is up to and including censor date
       censor_date = pmin(
         dereg_date,
-        #vax4_date-1, # -1 because we assume vax occurs at the start of the day
+        vax2_date-1, # -1 because we assume vax occurs at the start of the day
         death_date,
         study_dates[["global"]]$studyend_date,
-        trial_date -1 + maxfup,
+        #trial_date -1 + maxfup,
         na.rm=TRUE
       ),
       matchcensor_date = pmin(censor_date, controlistreated_date -1, na.rm=TRUE), # new censor date based on whether control gets treated or not

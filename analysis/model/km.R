@@ -60,7 +60,6 @@ fs::dir_create(output_dir)
 
 data_matched <- read_rds(ghere("output", cohort, "match", "data_matched.rds"))
 
-
 ## import baseline data, restrict to matched individuals and derive time-to-event variables
 data_matched <- 
   data_matched %>%
@@ -69,12 +68,13 @@ data_matched <-
   ungroup() %>%
   group_by(uniquematch_id) %>%
   mutate(
-    nopriorcovid = (
-      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
-      (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-      (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
-    ),
-    nopriorcovid_pair = all(nopriorcovid),
+    # nopriorcovid = (
+    #   (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+    #   (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+    #   (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    # ),
+    # nopriorcovid_pair = all(nopriorcovid),
+    nopriorcovid_pair = !any(prior_covid_infection),
   ) %>%
   ungroup() %>%
   filter(nopriorcovid_pair) %>%
@@ -100,10 +100,9 @@ data_matched <-
     # follow-up time is up to and including censor date
     censor_date = pmin(
       dereg_date,
-      #vax4_date-1, # -1 because we assume vax occurs at the start of the day
+      vax2_date-1, # -1 because we assume vax occurs at the start of the day
       death_date,
       study_dates[["global"]]$studyend_date,
-      trial_date -1 + maxfup,
       na.rm=TRUE
     ),
     
@@ -289,7 +288,6 @@ km_plot_rounded <- km_plot(data_surv_rounded)
 ggsave(filename=fs::path(output_dir, "km_plot_unrounded.png"), km_plot_unrounded, width=20, height=15, units="cm")
 ggsave(filename=fs::path(output_dir, "km_plot_rounded.png"), km_plot_rounded, width=20, height=15, units="cm")
 
-
 ## calculate quantities relating to cumulative incidence curve and their ratio / difference / etc
 
 kmcontrasts <- function(data, cuts=NULL){
@@ -345,29 +343,29 @@ kmcontrasts <- function(data, cuts=NULL){
 
       inc = n.event/persontime, # = weighted.mean(kmhaz, n.atrisk*interval), incidence rate. this is equivalent to a weighted average of the hazard ratio, with time-exposed as the weights
 
-      interval = sum(interval), # width of time period
+      interval = sum(interval[n.atrisk>0]), # width of time period
 
       ## quantities calculated from time zero until end of time period
       # these should be the same as the daily values as at the end of the time period
 
 
-      surv = last(surv),
-      surv.se = last(surv.se),
-      surv.ll = last(surv.ll),
-      surv.ul = last(surv.ul),
+      surv = last(surv[n.atrisk>0]),
+      surv.se = last(surv.se[n.atrisk>0]),
+      surv.ll = last(surv.ll[n.atrisk>0]),
+      surv.ul = last(surv.ul[n.atrisk>0]),
 
-      risk = last(risk),
-      risk.se = last(risk.se),
-      risk.ll = last(risk.ll),
-      risk.ul = last(risk.ul),
+      risk = last(risk[n.atrisk>0]),
+      risk.se = last(risk.se[n.atrisk>0]),
+      risk.ll = last(risk.ll[n.atrisk>0]),
+      risk.ul = last(risk.ul[n.atrisk>0]),
 
       
       #cml.haz = last(cml.haz),  # cumulative hazard from time zero to end of time period
 
-      cml.rate = last(cml.rate), # event rate from time zero to end of time period
+      cml.rate = last(cml.rate[n.atrisk>0]), # event rate from time zero to end of time period
 
       # cml.persontime = last(cml.persontime), # total person-time at risk from time zero to end of time period
-       cml.event = last(cml.event), # number of events from time zero to end of time period
+       cml.event = last(cml.event[n.atrisk>0]), # number of events from time zero to end of time period
       # cml.censor = last(cml.censor), # number censored from time zero to end of time period
 
       # cml.summand = last(cml.summand), # summand used for estimation of SE of survival
@@ -376,11 +374,12 @@ kmcontrasts <- function(data, cuts=NULL){
     ) %>%
     ungroup() %>%
     pivot_wider(
-      id_cols= all_of(c(subgroup, "period_start", "period_end", "period",  "interval")),
+      id_cols= all_of(c(subgroup, "period_start", "period_end", "period")),
       names_from=treated,
       names_glue="{.value}_{treated}",
       values_from=c(
 
+        interval,
         persontime, n.atrisk, n.event, n.censor,
         inc, inc2,
 
@@ -451,10 +450,21 @@ kmcontrasts <- function(data, cuts=NULL){
 }
 
 
+maxfup_data <-
+  data_surv_rounded %>%
+  ungroup() %>%
+  summarise(
+    maxfup=max(time[!is.na(surv)])
+  )  %>%
+  pull(maxfup)
+
+postbaselinecuts[length(postbaselinecuts)] <- maxfup_data
+
 contrasts_km_rounded_daily <- kmcontrasts(data_surv_rounded)
 contrasts_km_rounded_cuts <- kmcontrasts(data_surv_rounded, c(0,postbaselinecuts))
-contrasts_km_rounded_overall <- kmcontrasts(data_surv_rounded, c(0,maxfup))
+contrasts_km_rounded_overall <- kmcontrasts(data_surv_rounded, c(0,maxfup_data))
 
+data_surv_rounded
 
 write_rds(contrasts_km_rounded_daily, fs::path(output_dir, "contrasts_km_daily_rounded.rds"))
 write_rds(contrasts_km_rounded_cuts, fs::path(output_dir, "contrasts_km_cuts_rounded.rds"))
@@ -562,7 +572,8 @@ coxcontrast <- function(data, cuts=NULL){
 
 # no rounding necessary as HRs are a safe statistic
 contrasts_cox_cuts <- coxcontrast(data_matched, c(0,postbaselinecuts))
-contrasts_cox_overall <- coxcontrast(data_matched, c(0,maxfup))
+contrasts_cox_overall <- coxcontrast(data_matched, c(0,maxfup_data))
 
 write_rds(contrasts_cox_cuts, fs::path(output_dir, "contrasts_cox_cuts.rds"))
 write_rds(contrasts_cox_overall, fs::path(output_dir, "contrasts_cox_overall.rds"))
+
