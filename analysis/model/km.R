@@ -60,7 +60,6 @@ fs::dir_create(output_dir)
 
 data_matched <- read_rds(ghere("output", cohort, "match", "data_matched.rds"))
 
-
 ## import baseline data, restrict to matched individuals and derive time-to-event variables
 data_matched <- 
   data_matched %>%
@@ -75,12 +74,7 @@ data_matched <-
     #   (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
     # ),
     # nopriorcovid_pair = all(nopriorcovid),
-    nopriorcovid = (
-      (is.na(positive_test_0_date) ) &
-        (is.na(primary_care_covid_case_0_date) ) &
-        (is.na(admitted_covid_0_date) )
-    ),
-    nopriorcovid_pair = all(nopriorcovid),
+    nopriorcovid_pair = !any(prior_covid_infection),
   ) %>%
   ungroup() %>%
   filter(nopriorcovid_pair) %>%

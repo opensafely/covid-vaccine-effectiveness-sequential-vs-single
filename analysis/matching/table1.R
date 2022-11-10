@@ -67,11 +67,7 @@ data_treatedeligible_exclusion <-
     #     (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
     #     (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
     # ),
-    treatedeligible_nopriorcovid = (
-      (is.na(positive_test_0_date) ) &
-        (is.na(primary_care_covid_case_0_date) ) &
-        (is.na(admitted_covid_0_date) )
-    ),
+    treatedeligible_nopriorcovid = !prior_covid_infection
   )
 
 # define additional criteria in the treated, matched population, ie, also removing matches where the control doesn't meet the criteria
@@ -90,18 +86,13 @@ data_matched_preexclusion <-
     #     (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
     # ),
     # nopriorcovid_pair = all(nopriorcovid),
-    nopriorcovid = (
-      (is.na(positive_test_0_date) ) &
-        (is.na(primary_care_covid_case_0_date) ) &
-        (is.na(admitted_covid_0_date) )
-    ),
-    nopriorcovid_pair = all(nopriorcovid),
+    nopriorcovid_pair = !any(prior_covid_infection),
   ) %>%
   ungroup() 
 
 data_treatedmatched_exclusion <- 
   data_matched_preexclusion %>%
-  select(patient_id, treated, nopriorcovid, nopriorcovid_pair) %>%
+  select(patient_id, treated, nopriorcovid_pair) %>%
   filter(treated==1L) 
 
 # combine criteria
