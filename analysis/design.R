@@ -47,7 +47,7 @@ study_dates <- lst(
     
     index_date = "2020-12-08",
   
-    studyend_date = "2021-12-31", # end of follow-up
+    studyend_date = "2021-04-19", # end of follow-up
   
     # dose 1 dates
     firstpfizer_date = "2020-12-08", # first pfizer vaccination in national roll-out
