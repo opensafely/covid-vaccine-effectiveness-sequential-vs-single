@@ -184,11 +184,26 @@ var_labels <- list(
   treated ~ "Status",
   jcvi_ageband ~ "JCVI ageband",
   sex ~ "Sex",
-  #ethnicity_combined ~ "Ethnicity",
+  ethnicity_combined ~ "Ethnicity",
   imd_Q5 ~ "Deprivation",
   region ~ "Region",
   
   cev_cv ~ "Clinically vulnerable",
+  
+  sev_obesity ~ "Body Mass Index > 40 kg/m^2",
+  chronic_heart_disease ~ "Chronic heart disease",
+  chronic_kidney_disease ~ "Chronic kidney disease",
+  diabetes ~ "Diabetes",
+  chronic_liver_disease ~ "Chronic liver disease",
+  chronic_resp_disease ~ "Chronic respiratory disease",
+  asthma ~ "Asthma",
+  chronic_neuro_disease ~ "Chronic neurological disease",
+  
+  multimorb ~ "Morbidity count",
+  immunosuppressed ~ "Immunosuppressed",
+  asplenia ~ "Asplenia or poor spleen function",
+  learndis ~ "Learning disabilities",
+  sev_mental ~ "Serious mental illness"
   
   #prior_tests_cat ~ "Number of SARS-CoV-2 tests",
   #prior_covid_infection ~ "Prior documented SARS-CoV-2 infection"
