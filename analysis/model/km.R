@@ -69,10 +69,16 @@ data_matched <-
   ungroup() %>%
   group_by(uniquematch_id) %>%
   mutate(
+    # nopriorcovid = (
+    #   (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+    #   (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+    #   (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    # ),
+    # nopriorcovid_pair = all(nopriorcovid),
     nopriorcovid = (
-      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
-      (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-      (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+      (is.na(positive_test_0_date) ) &
+        (is.na(primary_care_covid_case_0_date) ) &
+        (is.na(admitted_covid_0_date) )
     ),
     nopriorcovid_pair = all(nopriorcovid),
   ) %>%
@@ -288,6 +294,10 @@ km_plot_rounded <- km_plot(data_surv_rounded)
 ggsave(filename=fs::path(output_dir, "km_plot_unrounded.png"), km_plot_unrounded, width=20, height=15, units="cm")
 ggsave(filename=fs::path(output_dir, "km_plot_rounded.png"), km_plot_rounded, width=20, height=15, units="cm")
 
+
+remove_na <- function(x){
+  x[]
+}
 
 ## calculate quantities relating to cumulative incidence curve and their ratio / difference / etc
 

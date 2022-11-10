@@ -62,10 +62,15 @@ data_treatedeligible_exclusion <-
   read_rds(ghere("output", cohort, "treated", "data_treatedeligible.rds")) %>%
   transmute(
     patient_id, 
+    # treatedeligible_nopriorcovid = (
+    #   (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    # ),
     treatedeligible_nopriorcovid = (
-      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+      (is.na(positive_test_0_date) ) &
+        (is.na(primary_care_covid_case_0_date) ) &
+        (is.na(admitted_covid_0_date) )
     ),
   )
 
@@ -79,10 +84,16 @@ data_matched_preexclusion <-
   mutate(
     patient_id, 
     treated,
+    # nopriorcovid = (
+    #   (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
+    #     (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+    # ),
+    # nopriorcovid_pair = all(nopriorcovid),
     nopriorcovid = (
-      (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-        (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
+      (is.na(positive_test_0_date) ) &
+        (is.na(primary_care_covid_case_0_date) ) &
+        (is.na(admitted_covid_0_date) )
     ),
     nopriorcovid_pair = all(nopriorcovid),
   ) %>%
@@ -189,7 +200,7 @@ var_labels <- list(
   cev_cv ~ "Clinically vulnerable",
   
   #prior_tests_cat ~ "Number of SARS-CoV-2 tests",
-  prior_covid_infection ~ "Prior documented SARS-CoV-2 infection"
+  #prior_covid_infection ~ "Prior documented SARS-CoV-2 infection"
 ) %>%
 set_names(., map_chr(., all.vars))
 
@@ -291,10 +302,10 @@ fuptable <- function(data, ...) {
           # follow-up time is up to and including censor date
       censor_date = pmin(
         dereg_date,
-        #vax4_date-1, # -1 because we assume vax occurs at the start of the day
+        vax2_date-1, # -1 because we assume vax occurs at the start of the day
         death_date,
         study_dates[["global"]]$studyend_date,
-        trial_date -1 + maxfup,
+        #trial_date -1 + maxfup,
         na.rm=TRUE
       ),
       matchcensor_date = pmin(censor_date, controlistreated_date -1, na.rm=TRUE), # new censor date based on whether control gets treated or not
