@@ -288,11 +288,6 @@ km_plot_rounded <- km_plot(data_surv_rounded)
 ggsave(filename=fs::path(output_dir, "km_plot_unrounded.png"), km_plot_unrounded, width=20, height=15, units="cm")
 ggsave(filename=fs::path(output_dir, "km_plot_rounded.png"), km_plot_rounded, width=20, height=15, units="cm")
 
-
-remove_na <- function(x){
-  x[]
-}
-
 ## calculate quantities relating to cumulative incidence curve and their ratio / difference / etc
 
 kmcontrasts <- function(data, cuts=NULL){
