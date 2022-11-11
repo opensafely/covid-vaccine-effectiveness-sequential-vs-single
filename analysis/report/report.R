@@ -249,12 +249,15 @@ cox_cuts_MA <-
     outcome %in% c("postest", "covidadmitted", "death")
   ) %>%
   mutate(
-    period_end = if_else(period_end>40, 63, period_end),
+    period_end = if_else(period_end>35, 63, period_end),
     midpoint = (period_end+period_start)/2,
   ) %>%
   mutate(across(approach, factor, levels = c("msm", "st"), labels = c("Single trial", "Sequential trial"))) %>%
   ungroup() %>%
-  mutate(across(brand, factor, levels = c("az", "pfizer"), labels = c("ChAdOx1", "BNT162b2")))
+  mutate(across(brand, factor, levels = c("az", "pfizer"), labels = c("ChAdOx1", "BNT162b2"))) %>%
+  arrange(
+    approach, brand, outcome_descr, period_start
+  )
 
 ## table of hazard ratios ----
 doc <- officer::read_docx() 
