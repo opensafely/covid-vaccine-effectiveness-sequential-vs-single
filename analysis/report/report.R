@@ -166,49 +166,76 @@ st_cox_cuts_MA <-
 
 
 
+#msm_cox_cuts <- read_csv(fs::path(output_dir_os, "msm", "msmvstcox_estimates_timesincevax.csv")) %>%
+#filter(approach=="msm", model==4) %>%
+# mutate(
+#   subgroup="ageband2",
+#   subgroup_level = case_when(
+#     cohort == "over80s" ~ "80+",
+#     cohort == "in70s" ~ "70-79",
+#   ),
+#   subgroup_level_descr = case_when(
+#     cohort == "over80s" ~ "aged 80+",
+#     cohort == "in70s" ~ "aged 70-79",
+#   ),
+#   period_start = as.integer(str_extract(term, "^\\d+"))-1,
+#   period_end = as.integer(str_extract(term, "\\d+$")),
+# ) %>%
+#   mutate(
+#     outcome_descr = fct_recoderelevel(as.character(outcome),  recoder$outcome),
+#     subgroup_descr = fct_recoderelevel(subgroup,  recoder$subgroup),
+#     subgroup_level_descr = replace_na(subgroup_level_descr, "")
+#   )
 
-msm_cox_cuts <- read_csv(fs::path(output_dir_os, "msm", "msmvstcox_estimates_timesincevax.csv")) %>%
-  filter(approach=="msm", model==4) %>%
+# msm_cox_cuts_MA <- 
+#   msm_cox_cuts %>%
+#   filter(subgroup=="ageband2") %>%
+#   group_by(brand, outcome_descr, outcome, period_start, period_end) %>%
+#   mutate(
+#     loghr = log(or),
+#     period_end = if_else(is.na(period_end), 63L, period_end),
+#   ) %>%
+#   summarise(
+#     # NOTE: std.error is the standard error of the log hazard ratio, not the hazard ratio
+#     loghr = weighted.mean(loghr, std.error^-2),
+#     hr = exp(loghr),
+#     loghr.se = sqrt(1/sum(std.error^-2)),
+#     statistic = loghr/loghr.se,
+#     p.value = pchisq(statistic^2, df=1, lower.tail=FALSE),
+#     conf.low = exp(loghr + qnorm(0.025)*loghr.se),
+#     conf.high = exp(loghr + qnorm(0.975)*loghr.se),
+#     approach="msm",
+#   ) %>%
+#   ungroup()
+
+
+msm_cox_cuts_MA <- read_csv(fs::path(output_dir_os, "msm", "meta_estimates.csv")) %>%
+  filter(recent_postestperiod == Inf, model==4, brand != "any") %>%  
   mutate(
-    subgroup="ageband2",
-    subgroup_level = case_when(
-      cohort == "over80s" ~ "80+",
-      cohort == "in70s" ~ "70-79",
-    ),
-    subgroup_level_descr = case_when(
-      cohort == "over80s" ~ "aged 80+",
-      cohort == "in70s" ~ "aged 70-79",
-    ),
+    # subgroup="ageband2",
+    # subgroup_level = case_when(
+    #   cohort == "over80s" ~ "80+",
+    #   cohort == "in70s" ~ "70-79",
+    # ),
+    # subgroup_level_descr = case_when(
+    #   cohort == "over80s" ~ "aged 80+",
+    #   cohort == "in70s" ~ "aged 70-79",
+    # ),
     period_start = as.integer(str_extract(term, "^\\d+"))-1,
     period_end = as.integer(str_extract(term, "\\d+$")),
   ) %>%
   mutate(
     outcome_descr = fct_recoderelevel(as.character(outcome),  recoder$outcome),
-    subgroup_descr = fct_recoderelevel(subgroup,  recoder$subgroup),
-    subgroup_level_descr = replace_na(subgroup_level_descr, "")
+    #subgroup_descr = fct_recoderelevel(subgroup,  recoder$subgroup),
+    #subgroup_level_descr = replace_na(subgroup_level_descr, "")
+    period_end = if_else(is.na(period_end), 63L, period_end),
+    hr=or,
+    conf.low=or.ll,
+    conf.high=or.ul,
+    approach="msm"
   )
 
 
-msm_cox_cuts_MA <- 
-  msm_cox_cuts %>%
-  filter(subgroup=="ageband2") %>%
-  group_by(brand, outcome_descr, outcome, period_start, period_end) %>%
-  mutate(
-    loghr = log(or),
-    period_end = if_else(is.na(period_end), 63L, period_end),
-  ) %>%
-  summarise(
-    # NOTE: std.error is the standard error of the log hazard ratio, not the hazard ratio
-    loghr = weighted.mean(loghr, std.error^-2),
-    hr = exp(loghr),
-    loghr.se = sqrt(1/sum(std.error^-2)),
-    statistic = loghr/loghr.se,
-    p.value = pchisq(statistic^2, df=1, lower.tail=FALSE),
-    conf.low = exp(loghr + qnorm(0.025)*loghr.se),
-    conf.high = exp(loghr + qnorm(0.975)*loghr.se),
-    approach="msm",
-  ) %>%
-  ungroup()
 
 
 ## combine and plot ----
@@ -222,9 +249,10 @@ cox_cuts_MA <-
     outcome %in% c("postest", "covidadmitted", "death")
   ) %>%
   mutate(
+    period_end = if_else(period_end>40, 63, period_end),
     midpoint = (period_end+period_start)/2,
   ) %>%
-  mutate(across(approach, factor, levels = c("msm", "st"), labels = c("Marginal structural model", "Sequential trial"))) %>%
+  mutate(across(approach, factor, levels = c("msm", "st"), labels = c("Single trial", "Sequential trial"))) %>%
   ungroup() %>%
   mutate(across(brand, factor, levels = c("az", "pfizer"), labels = c("ChAdOx1", "BNT162b2")))
 
