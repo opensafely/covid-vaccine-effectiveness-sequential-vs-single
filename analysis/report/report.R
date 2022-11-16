@@ -520,3 +520,110 @@ ggsave(
   plot_coverage_cumuln,
   width=15, height=20, units="cm"
 )  
+
+
+
+## table 1 ----
+
+
+match_table1_pfizer <- read_csv(fs::path(output_dir_os, "st", "pfizer", "table1.csv"))
+match_table1_az <- read_csv(fs::path(output_dir_os, "st", "az", "table1.csv"))
+
+
+match_table1 <-
+  bind_rows(
+    match_table1_pfizer %>% mutate(vaxtype="pfizer"),
+    match_table1_az %>% mutate(vaxtype="az"),
+  ) %>%
+  mutate(
+    variable_levels = coalesce(variable_levels, ""), # NA to ""
+    var_label = fct_inorder(var_label),
+    variable = fct_inorder(variable),
+    level = fct_rev(fct_inorder(str_replace(paste(var_label, variable_levels, sep=": "),  "\\:\\s$", ""))), # unique var * level value
+  )
+
+
+match_table1_wide <-
+  match_table1 %>%
+  filter(
+    variable !="N",
+  ) %>%
+  # one column per treatment group
+  pivot_wider(
+    id_cols = c(vaxtype, var_label, variable, variable_levels, level),
+    names_from = by,
+    values_from = c(N, n, p, stat_display)
+  ) %>%
+  # format columns
+  #filter(!is.na(`n_1`)) %>%
+  mutate(
+    stat_0 = glue("{n_0} ({scales::label_number(0.1, 100)(p_0)})"),
+    stat_1 = glue("{n_1} ({scales::label_number(0.1, 100)(p_1)})"),
+    order_level = row_number(),
+    order_var = cumsum(lag(variable, 1, first(variable))!=variable),
+  )
+
+
+match_table1_wide_wide <-
+  match_table1_wide %>%
+  pivot_wider(
+    id_cols = c(var_label, variable, variable_levels, level),
+    names_from=vaxtype,
+    values_from = c(stat_0, stat_1)
+  ) %>%
+  mutate(
+    order_var = cumsum(lag(variable, 1, first(variable))!=variable)
+  )
+
+
+tab1 <-
+  match_table1_wide_wide %>%
+  gt(
+    groupname_col = "var_label"
+  ) %>%
+  fmt_markdown(columns = "var_label") %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "gray96")
+    ),
+    locations = cells_body(
+      rows = order_var%%2 == 0
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(weight = "bold")
+    ),
+    locations = cells_column_labels(everything())
+  ) %>%
+  cols_label(
+    var_label = "Variable",
+    variable_levels = "",
+    `stat_0_pfizer` = glue("Unvaccinated (N={filter(match_table1, vaxtype=='pfizer', variable=='N', by==0) %>% pull(n)})"),
+    `stat_1_pfizer` = glue("Vaccinated (N={filter(match_table1, vaxtype=='pfizer', variable=='N', by==1) %>% pull(n)})"),
+    `stat_0_az` = glue("Unvaccinated (N={filter(match_table1, vaxtype=='az', variable=='N', by==0) %>% pull(n)})"),
+    `stat_1_az` = glue("Vaccinated (N={filter(match_table1, vaxtype=='az', variable=='N', by==1) %>% pull(n)})"),
+
+  ) %>%
+  tab_spanner(
+    label = "BNT162b2",
+    columns = ends_with("_pfizer")
+  ) %>%
+  tab_spanner(
+    label = "ChAdOx1",
+    columns = ends_with("_az")
+  ) %>%
+  cols_align(
+    align = c("right"),
+    columns =  ends_with(c("_pfizer", "_az"))
+  ) %>%
+  cols_hide(c("variable", "level", "order_var")) %>%
+  tab_options(
+    table.font.size = 8,
+    row_group.as_column = TRUE
+  )
+
+
+gtsave(tab1, fs::path(output_dir_os, "table1.html"))
+
+tab1
