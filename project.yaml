@@ -991,5 +991,15 @@ actions:
         rds: output/az/models/km/combined/*.csv
         png: output/az/models/km/combined/*.png
 
+  flowchart:
+    run: r:latest analysis/report/flowchart.R
+    needs:
+    - process_treated
+    - process_controlfinal_pfizer
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        flow_matching: output/flowchart/*.csv
+
   ## #### End #### 
 

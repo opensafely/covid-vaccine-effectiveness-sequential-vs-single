@@ -440,6 +440,19 @@ actions_list <- splice(
 
   action_km_combine("az"),
   
+  action(
+    name = "flowchart",
+    run = glue("r:latest analysis/report/flowchart.R"),
+    needs = namelesslst(
+      "process_treated",
+      "process_controlfinal_pfizer",
+      "process_controlfinal_az"
+    ),
+    moderately_sensitive = lst(
+      flow_matching = "output/flowchart/*.csv"
+      )
+    ),
+  
   # 
   # comment("# # # # # # # # # # # # # # # # # # #", 
   #         "Move files for release", 
