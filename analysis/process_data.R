@@ -448,6 +448,7 @@ if (stage %in% c("treated", "potential", "actual")) {
     transmute(
       
       patient_id,
+      vax1_type,
       has_age = !is.na(age),
       has_sex = !is.na(sex),
       has_imd = imd_Q5 != "Unknown",
@@ -516,46 +517,61 @@ if (stage == "treated") {
 # create flowchart (only when stage="treated") ----
 if (stage == "treated") {
   
-  data_flowchart <- data_criteria %>%
-    summarise(
-      across(matches("^c\\d"), .fns=sum)
-    ) %>%
-    pivot_longer(
-      cols=everything(),
-      names_to="criteria",
-      values_to="n"
-    ) %>%
-    mutate(
-      n_exclude = lag(n) - n,
-      pct_exclude = n_exclude/lag(n),
-      pct_all = n / first(n),
-      pct_step = n / lag(n),
-      crit = str_extract(criteria, "^c\\d+"),
-      criteria = fct_case_when(
-        crit == "c0" ~ "Aged 70+ with 1st dose between study dates", 
-        crit == "c1" ~ "  no unreliable vaccination data",
-        crit == "c2" ~ "  not a HSC worker",
-        crit == "c3" ~ "  not a care/nursing home resident, end-of-life or housebound",
-        crit == "c4" ~ "  no missing demographic information",
-        crit == "c5" ~ "  no evidence of covid in 30 days before trial date",
-        crit == "c6" ~ "  not in hospital (unplanned) on trial date",
-        TRUE ~ NA_character_
-      )
-    ) %>%
-    mutate(across(criteria, factor, labels = sapply(levels(.$criteria), glue)))
+  create_flowchart <- function(brand="any") {
+    
+    if (brand == "any") {
+      data_flowchart <- data_criteria 
+    } else {
+      data_flowchart <- data_criteria %>%
+        filter(vax1_type == brand)
+    }
+    
+    data_flowchart <- data_flowchart %>%
+      summarise(
+        across(matches("^c\\d"), .fns=sum)
+      ) %>%
+      pivot_longer(
+        cols=everything(),
+        names_to="criteria",
+        values_to="n"
+      ) %>%
+      mutate(
+        n_exclude = lag(n) - n,
+        pct_exclude = n_exclude/lag(n),
+        pct_all = n / first(n),
+        pct_step = n / lag(n),
+        crit = str_extract(criteria, "^c\\d+"),
+        criteria = fct_case_when(
+          crit == "c0" ~ "Aged 70+ with 1st dose between study dates", 
+          crit == "c1" ~ "  no unreliable vaccination data",
+          crit == "c2" ~ "  not a HSC worker",
+          crit == "c3" ~ "  not a care/nursing home resident, end-of-life or housebound",
+          crit == "c4" ~ "  no missing demographic information",
+          crit == "c5" ~ "  no evidence of covid in 30 days before trial date",
+          crit == "c6" ~ "  not in hospital (unplanned) on trial date",
+          TRUE ~ NA_character_
+        )
+      ) %>%
+      mutate(across(criteria, factor, labels = sapply(levels(.$criteria), glue)))
+    
+    write_rds(data_flowchart, here("output", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_unrounded.rds")))
+    
+    data_flowchart %>%
+      transmute(
+        criteria, crit, 
+        n = ceiling_any(n, to=7),
+        n_exclude = lag(n) - n,
+        pct_exclude = n_exclude/lag(n),
+        pct_all = n / first(n),
+        pct_step = n / lag(n),
+      ) %>%
+      write_csv(here("output", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_rounded.csv"))) 
+    
+  }
   
-  write_rds(data_flowchart, here("output", "treated", "eligible", "flowchart_treatedeligible.rds"))
-  
-  data_flowchart %>%
-    transmute(
-      criteria, crit, 
-      n = ceiling_any(n, to=7),
-      n_exclude = lag(n) - n,
-      pct_exclude = n_exclude/lag(n),
-      pct_all = n / first(n),
-      pct_step = n / lag(n),
-    ) %>%
-    write_csv(here("output", "treated", "eligible", "flowchart_treatedeligible_rounded.csv")) 
+  create_flowchart("any")
+  create_flowchart("pfizer")
+  create_flowchart("az")
   
   # distribution of vax1_date by jcvi_ageband
   vax1_date_plot <- data_eligible %>%
