@@ -1,8 +1,9 @@
 library(tidyverse)
 library(glue)
+library(here)
 
 # load and define functions
-source(here::here("lib", "functions", "utility.R"))
+source(here("lib", "functions", "utility.R"))
 
 calculate_flow_stats <- function(.data) {
   .data %>%
@@ -14,12 +15,14 @@ calculate_flow_stats <- function(.data) {
     )
 }
 
+# create output directories
+fs::dir_create(here("output", "flowchart"))
+
 # derive data for flowcharts with brands combined and specified
 for (brand in c("any", "pfizer", "az")) {
   
   # read data for eligible treated
-  treated_eligible <- readr::read_rds(here::here("output", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_unrounded.rds"))) %>%
-    mutate(section = "eligibility")
+  treated_eligible <- readr::read_rds(here("output", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_unrounded.rds"))) 
   
   # define function for extracting values for the flow chart
   match_flow_fun <- function(
@@ -28,7 +31,7 @@ for (brand in c("any", "pfizer", "az")) {
   ) {
     
     # read matching data
-    data_matched <- readr::read_rds(here::here("output", brand, "match", "data_matched.rds"))
+    data_matched <- readr::read_rds(here("output", brand, "match", "data_matched.rds"))
     
     # unique ids included
     included_ids <- data_matched %>%
@@ -76,50 +79,49 @@ for (brand in c("any", "pfizer", "az")) {
     match_flow_pfizer <- match_flow_fun("pfizer")
     match_flow_az <- match_flow_fun("az")
     
-    included_ids <- bind_rows(
+    total_included <- bind_rows(
       match_flow_pfizer$included_ids,
       match_flow_az$included_ids
-    )
+    ) %>%
+      distinct() %>%
+      nrow()
     
     flow <- bind_rows(
       match_flow_pfizer$flow,
       match_flow_az$flow
-    )
+    ) 
     
   } else {
     
     match_flow_brand <- match_flow_fun(brand)
-    included_ids <- match_flow_brand$included_ids
-    flow <- match_flow_brand$flow
+    total_included <- match_flow_brand$included_ids %>%
+      distinct() %>%
+      nrow()
+    flow <- match_flow_brand$flow 
     
   }
   
-  # calculate total unique ids inluded across both brands
-  total_included <- included_ids %>% 
-    distinct() %>% 
-    nrow()
-  
-  # bind to treated_eligible
-  flow_unrounded <- treated_eligible %>%
-    bind_rows(flow) %>%
+  flow_unrounded <- flow %>%
     add_row(
       criteria = "Total unique ids included", n = total_included, section = "total"
     ) 
   
-  flow_unrounded %>%
-    print(n=Inf)
+  write_csv(flow_unrounded, here("output", "flowchart", glue("flowchart_matching_{brand}_unrounded.csv"))) 
   
   flow_rounded <- flow_unrounded %>%
-    mutate(across(n, ceiling_any, to = 7)) %>%
-    group_by(section) %>%
-    calculate_flow_stats() %>%
-    ungroup()
+      mutate(across(n, ceiling_any, to = 7)) %>%
+      group_by(section) %>%
+      calculate_flow_stats() %>%
+      ungroup()
   
-  flow_rounded %>%
-    print(n=Inf)
+  write_csv(flow_rounded, here("output", "flowchart", glue("flowchart_matching_{brand}_rounded.csv"))) 
+  
+  # move flowchart_treatedeligible_{brand}_rounded.csv to folder for easy release
+  flowchart_treatedeligible <- glue("flowchart_treatedeligible_{brand}_rounded.csv")
+  tibble(
+    plotdir = here("output", "treated", "eligible", flowchart_treatedeligible),
+    plotnewdir = here("output", "flowchart", flowchart_treatedeligible),
+  ) %>%
+    {walk2(.$plotdir, .$plotnewdir, ~fs::file_copy(.x, .y, overwrite = TRUE))}
   
 }
-
-
-
-
