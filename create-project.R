@@ -255,6 +255,22 @@ action_km <- function(cohort, subgroup, outcome){
   )
 }
 
+action_coxcmlinc <- function(cohort, subgroup, outcome){
+  action(
+    name = glue("coxcmlinc_{cohort}_{subgroup}_{outcome}"),
+    run = glue("r:latest analysis/model/coxcmlinc.R"),
+    arguments = c(cohort, subgroup, outcome),
+    needs = namelesslst(
+      glue("process_controlfinal_{cohort}"),
+    ),
+    moderately_sensitive= lst(
+      #csv= glue("output/{cohort}/models/km/{subgroup}/{outcome}/*.csv"),
+      rds= glue("output/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.rds"),
+      png= glue("output/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.png"),
+    )
+  )
+}
+
 ## model action function ----
 action_km_combine <- function(
     cohort
@@ -278,6 +294,35 @@ action_km_combine <- function(
     moderately_sensitive = lst(
       rds = glue("output/{cohort}/models/km/combined/*.csv"),
       png = glue("output/{cohort}/models/km/combined/*.png"),
+    )
+  )
+}
+
+
+
+## model action function ----
+action_coxcmlinc_combine <- function(
+    cohort
+){
+  
+  action(
+    name = glue("combine_coxcmlinc_{cohort}"),
+    run = glue("r:latest analysis/model/coxcmlinc_combine.R"),
+    arguments = c(cohort),
+    needs = splice(
+      as.list(
+        glue_data(
+          .x=expand_grid(
+            subgroup=c("all", "ageband2"),
+            outcome=c("postest", "emergency", "covidemergency", "covidadmitted", "covidcritcare", "coviddeath", "noncoviddeath", "death"),
+          ),
+          "coxcmlinc_{cohort}_{subgroup}_{outcome}"
+        )
+      )
+    ),
+    moderately_sensitive = lst(
+      rds = glue("output/{cohort}/models/coxcmlinc/combined/*.csv"),
+      png = glue("output/{cohort}/models/coxcmlinc/combined/*.png"),
     )
   )
 }
@@ -401,9 +446,29 @@ actions_list <- splice(
   action_km("pfizer", "ageband2", "coviddeath"),
   action_km("pfizer", "ageband2", "noncoviddeath"),
   action_km("pfizer", "ageband2", "death"),
-
   
   action_km_combine("pfizer"),
+  
+  
+  action_coxcmlinc("pfizer", "all", "postest"),
+  action_coxcmlinc("pfizer", "all", "emergency"),
+  action_coxcmlinc("pfizer", "all", "covidemergency"),
+  action_coxcmlinc("pfizer", "all", "covidadmitted"),
+  action_coxcmlinc("pfizer", "all", "covidcritcare"),
+  action_coxcmlinc("pfizer", "all", "coviddeath"),
+  action_coxcmlinc("pfizer", "all", "noncoviddeath"),
+  action_coxcmlinc("pfizer", "all", "death"),
+  
+  action_coxcmlinc("pfizer", "ageband2", "postest"),
+  action_coxcmlinc("pfizer", "ageband2", "emergency"),
+  action_coxcmlinc("pfizer", "ageband2", "covidemergency"),
+  action_coxcmlinc("pfizer", "ageband2", "covidadmitted"),
+  action_coxcmlinc("pfizer", "ageband2", "covidcritcare"),
+  action_coxcmlinc("pfizer", "ageband2", "coviddeath"),
+  action_coxcmlinc("pfizer", "ageband2", "noncoviddeath"),
+  action_coxcmlinc("pfizer", "ageband2", "death"),
+  
+  action_coxcmlinc_combine("pfizer"),
   
   comment("# # # # # # # # # # # # # # # # # # #",
           "AZ cohort",
@@ -439,6 +504,27 @@ actions_list <- splice(
 
 
   action_km_combine("az"),
+  
+  
+  action_coxcmlinc("az", "all", "postest"),
+  action_coxcmlinc("az", "all", "emergency"),
+  action_coxcmlinc("az", "all", "covidemergency"),
+  action_coxcmlinc("az", "all", "covidadmitted"),
+  action_coxcmlinc("az", "all", "covidcritcare"),
+  action_coxcmlinc("az", "all", "coviddeath"),
+  action_coxcmlinc("az", "all", "noncoviddeath"),
+  action_coxcmlinc("az", "all", "death"),
+  
+  action_coxcmlinc("az", "ageband2", "postest"),
+  action_coxcmlinc("az", "ageband2", "emergency"),
+  action_coxcmlinc("az", "ageband2", "covidemergency"),
+  action_coxcmlinc("az", "ageband2", "covidadmitted"),
+  action_coxcmlinc("az", "ageband2", "covidcritcare"),
+  action_coxcmlinc("az", "ageband2", "coviddeath"),
+  action_coxcmlinc("az", "ageband2", "noncoviddeath"),
+  action_coxcmlinc("az", "ageband2", "death"),
+  
+  action_coxcmlinc_combine("az"),
   
   action(
     name = "flowchart",
