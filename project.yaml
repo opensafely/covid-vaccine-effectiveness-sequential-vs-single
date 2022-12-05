@@ -521,6 +521,174 @@ actions:
         rds: output/pfizer/models/km/combined/*.csv
         png: output/pfizer/models/km/combined/*.png
 
+  coxcmlinc_pfizer_all_postest:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all postest
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/postest/*.rds
+        png: output/pfizer/models/coxcmlinc/all/postest/*.png
+
+  coxcmlinc_pfizer_all_emergency:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all emergency
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/emergency/*.rds
+        png: output/pfizer/models/coxcmlinc/all/emergency/*.png
+
+  coxcmlinc_pfizer_all_covidemergency:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all covidemergency
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/covidemergency/*.rds
+        png: output/pfizer/models/coxcmlinc/all/covidemergency/*.png
+
+  coxcmlinc_pfizer_all_covidadmitted:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all covidadmitted
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/covidadmitted/*.rds
+        png: output/pfizer/models/coxcmlinc/all/covidadmitted/*.png
+
+  coxcmlinc_pfizer_all_covidcritcare:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all covidcritcare
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/covidcritcare/*.rds
+        png: output/pfizer/models/coxcmlinc/all/covidcritcare/*.png
+
+  coxcmlinc_pfizer_all_coviddeath:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all coviddeath
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/coviddeath/*.rds
+        png: output/pfizer/models/coxcmlinc/all/coviddeath/*.png
+
+  coxcmlinc_pfizer_all_noncoviddeath:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all noncoviddeath
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/noncoviddeath/*.rds
+        png: output/pfizer/models/coxcmlinc/all/noncoviddeath/*.png
+
+  coxcmlinc_pfizer_all_death:
+    run: r:latest analysis/model/coxcmlinc.R pfizer all death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/all/death/*.rds
+        png: output/pfizer/models/coxcmlinc/all/death/*.png
+
+  coxcmlinc_pfizer_ageband2_postest:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 postest
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/postest/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/postest/*.png
+
+  coxcmlinc_pfizer_ageband2_emergency:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 emergency
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/emergency/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/emergency/*.png
+
+  coxcmlinc_pfizer_ageband2_covidemergency:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 covidemergency
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/covidemergency/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/covidemergency/*.png
+
+  coxcmlinc_pfizer_ageband2_covidadmitted:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 covidadmitted
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/covidadmitted/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/covidadmitted/*.png
+
+  coxcmlinc_pfizer_ageband2_covidcritcare:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 covidcritcare
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/covidcritcare/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/covidcritcare/*.png
+
+  coxcmlinc_pfizer_ageband2_coviddeath:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 coviddeath
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/coviddeath/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/coviddeath/*.png
+
+  coxcmlinc_pfizer_ageband2_noncoviddeath:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 noncoviddeath
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/noncoviddeath/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/noncoviddeath/*.png
+
+  coxcmlinc_pfizer_ageband2_death:
+    run: r:latest analysis/model/coxcmlinc.R pfizer ageband2 death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/ageband2/death/*.rds
+        png: output/pfizer/models/coxcmlinc/ageband2/death/*.png
+
+  combine_coxcmlinc_pfizer:
+    run: r:latest analysis/model/coxcmlinc_combine.R pfizer
+    needs:
+    - coxcmlinc_pfizer_all_postest
+    - coxcmlinc_pfizer_all_emergency
+    - coxcmlinc_pfizer_all_covidemergency
+    - coxcmlinc_pfizer_all_covidadmitted
+    - coxcmlinc_pfizer_all_covidcritcare
+    - coxcmlinc_pfizer_all_coviddeath
+    - coxcmlinc_pfizer_all_noncoviddeath
+    - coxcmlinc_pfizer_all_death
+    - coxcmlinc_pfizer_ageband2_postest
+    - coxcmlinc_pfizer_ageband2_emergency
+    - coxcmlinc_pfizer_ageband2_covidemergency
+    - coxcmlinc_pfizer_ageband2_covidadmitted
+    - coxcmlinc_pfizer_ageband2_covidcritcare
+    - coxcmlinc_pfizer_ageband2_coviddeath
+    - coxcmlinc_pfizer_ageband2_noncoviddeath
+    - coxcmlinc_pfizer_ageband2_death
+    outputs:
+      moderately_sensitive:
+        rds: output/pfizer/models/coxcmlinc/combined/*.csv
+        png: output/pfizer/models/coxcmlinc/combined/*.png
+
   ## # # # # # # # # # # # # # # # # # # # 
   ## AZ cohort 
   ## # # # # # # # # # # # # # # # # # # # 
@@ -990,6 +1158,174 @@ actions:
       moderately_sensitive:
         rds: output/az/models/km/combined/*.csv
         png: output/az/models/km/combined/*.png
+
+  coxcmlinc_az_all_postest:
+    run: r:latest analysis/model/coxcmlinc.R az all postest
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/postest/*.rds
+        png: output/az/models/coxcmlinc/all/postest/*.png
+
+  coxcmlinc_az_all_emergency:
+    run: r:latest analysis/model/coxcmlinc.R az all emergency
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/emergency/*.rds
+        png: output/az/models/coxcmlinc/all/emergency/*.png
+
+  coxcmlinc_az_all_covidemergency:
+    run: r:latest analysis/model/coxcmlinc.R az all covidemergency
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/covidemergency/*.rds
+        png: output/az/models/coxcmlinc/all/covidemergency/*.png
+
+  coxcmlinc_az_all_covidadmitted:
+    run: r:latest analysis/model/coxcmlinc.R az all covidadmitted
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/covidadmitted/*.rds
+        png: output/az/models/coxcmlinc/all/covidadmitted/*.png
+
+  coxcmlinc_az_all_covidcritcare:
+    run: r:latest analysis/model/coxcmlinc.R az all covidcritcare
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/covidcritcare/*.rds
+        png: output/az/models/coxcmlinc/all/covidcritcare/*.png
+
+  coxcmlinc_az_all_coviddeath:
+    run: r:latest analysis/model/coxcmlinc.R az all coviddeath
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/coviddeath/*.rds
+        png: output/az/models/coxcmlinc/all/coviddeath/*.png
+
+  coxcmlinc_az_all_noncoviddeath:
+    run: r:latest analysis/model/coxcmlinc.R az all noncoviddeath
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/noncoviddeath/*.rds
+        png: output/az/models/coxcmlinc/all/noncoviddeath/*.png
+
+  coxcmlinc_az_all_death:
+    run: r:latest analysis/model/coxcmlinc.R az all death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/all/death/*.rds
+        png: output/az/models/coxcmlinc/all/death/*.png
+
+  coxcmlinc_az_ageband2_postest:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 postest
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/postest/*.rds
+        png: output/az/models/coxcmlinc/ageband2/postest/*.png
+
+  coxcmlinc_az_ageband2_emergency:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 emergency
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/emergency/*.rds
+        png: output/az/models/coxcmlinc/ageband2/emergency/*.png
+
+  coxcmlinc_az_ageband2_covidemergency:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 covidemergency
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/covidemergency/*.rds
+        png: output/az/models/coxcmlinc/ageband2/covidemergency/*.png
+
+  coxcmlinc_az_ageband2_covidadmitted:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 covidadmitted
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/covidadmitted/*.rds
+        png: output/az/models/coxcmlinc/ageband2/covidadmitted/*.png
+
+  coxcmlinc_az_ageband2_covidcritcare:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 covidcritcare
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/covidcritcare/*.rds
+        png: output/az/models/coxcmlinc/ageband2/covidcritcare/*.png
+
+  coxcmlinc_az_ageband2_coviddeath:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 coviddeath
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/coviddeath/*.rds
+        png: output/az/models/coxcmlinc/ageband2/coviddeath/*.png
+
+  coxcmlinc_az_ageband2_noncoviddeath:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 noncoviddeath
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/noncoviddeath/*.rds
+        png: output/az/models/coxcmlinc/ageband2/noncoviddeath/*.png
+
+  coxcmlinc_az_ageband2_death:
+    run: r:latest analysis/model/coxcmlinc.R az ageband2 death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/ageband2/death/*.rds
+        png: output/az/models/coxcmlinc/ageband2/death/*.png
+
+  combine_coxcmlinc_az:
+    run: r:latest analysis/model/coxcmlinc_combine.R az
+    needs:
+    - coxcmlinc_az_all_postest
+    - coxcmlinc_az_all_emergency
+    - coxcmlinc_az_all_covidemergency
+    - coxcmlinc_az_all_covidadmitted
+    - coxcmlinc_az_all_covidcritcare
+    - coxcmlinc_az_all_coviddeath
+    - coxcmlinc_az_all_noncoviddeath
+    - coxcmlinc_az_all_death
+    - coxcmlinc_az_ageband2_postest
+    - coxcmlinc_az_ageband2_emergency
+    - coxcmlinc_az_ageband2_covidemergency
+    - coxcmlinc_az_ageband2_covidadmitted
+    - coxcmlinc_az_ageband2_covidcritcare
+    - coxcmlinc_az_ageband2_coviddeath
+    - coxcmlinc_az_ageband2_noncoviddeath
+    - coxcmlinc_az_ageband2_death
+    outputs:
+      moderately_sensitive:
+        rds: output/az/models/coxcmlinc/combined/*.csv
+        png: output/az/models/coxcmlinc/combined/*.png
 
   flowchart:
     run: r:latest analysis/report/flowchart.R
