@@ -374,6 +374,10 @@ actions_list <- splice(
   ),
   
   comment("# # # # # # # # # # # # # # # # # # #", 
+          "SEQUENTIAL TRIAL APPROACH", 
+          "# # # # # # # # # # # # # # # # # # #"),
+  
+  comment("# # # # # # # # # # # # # # # # # # #", 
           "Extract and process treated data", 
           "# # # # # # # # # # # # # # # # # # #"),
   # all treated people
@@ -538,6 +542,28 @@ actions_list <- splice(
       flow_matching = "output/flowchart/*.csv"
       )
     ),
+  
+  comment("# # # # # # # # # # # # # # # # # # #", 
+          "SINGLE TRIAL APPROACH", 
+          "# # # # # # # # # # # # # # # # # # #"),
+  
+  action(
+    name = "process_single",
+    run = "r:latest analysis/process_data.R",
+    arguments = "single",
+    needs = namelesslst(
+      "extract_treated",
+      "extract_controlpotential_pfizer_1"
+    ),
+    highly_sensitive = lst(
+      eligible = "output/single/eligible/*.rds"
+    ),
+    moderately_sensitive = lst(
+      eligiblecsv = "output/single/eligible/*.csv",
+      data_processed_skim = "output/single/process/*.txt",
+      data_eligible_skim = "output/single/eligible/*.txt"
+    )
+  ),
   
   # 
   # comment("# # # # # # # # # # # # # # # # # # #", 
