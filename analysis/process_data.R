@@ -31,18 +31,19 @@ args <- commandArgs(trailingOnly = TRUE)
 
 if (length(args) == 0) {
   # use for interactive testing
+  stage <- "single"
   # stage <- "treated"
   #stage <- "potential"
-  stage <- "actual"
+  # stage <- "actual"
   # stage <- "final"
-  cohort <- "pfizer"
-  matching_round <- as.integer("3")
+  # cohort <- "pfizer"
+  # matching_round <- as.integer("3")
 } else {
   stage <- args[[1]]
   
-  if (stage == "treated") {
+  if (stage %in% c("treated", "single")) {
     if (length(args) > 1) 
-      stop("No additional args to be specified when `stage=\"treated\"")
+      stop("No additional args to be specified when `stage`=\"treated\" or `stage`=\"single\"")
   } else if (stage %in% c("potential", "actual")) {
     if (length(args) == 1) {
       stop("`cohort` and `matching_round` must be specified when `stage=\"potential\"` or \"actual\"")
@@ -62,12 +63,19 @@ if (length(args) == 0) {
 } 
 
 ## get cohort-specific parameters study dates and parameters ---- 
-if (stage == "potential") {
+if (stage == "single") {
+  matching_round <- 1
+  cohort <- "pfizer"
+}
+if (stage %in% c("single", "potential")) {
   matching_round_date <- study_dates[[cohort]]$control_extract_dates[matching_round]
 }
 
 ## create output directory ----
-if (stage == "treated") {
+if (stage == "single") {
+  fs::dir_create(here("output", "single", "eligible"))
+  fs::dir_create(here("output", "single", "process"))
+} else if (stage == "treated") {
   fs::dir_create(here("output", "pfizer", "treated"))
   fs::dir_create(here("output", "az", "treated"))
   fs::dir_create(here("output", "treated", "eligible"))
@@ -106,10 +114,13 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   if (stage == "treated") {
     studydef_path <- here("output", "treated", "extract", "input_treated.feather")
     custom_path <- here("lib", "dummydata", "dummy_treated.feather")
-  } else if (stage %in% c("potential", "actual")) {
+  } else if (stage %in% c("single", "potential")) {
     studydef_path <- ghere("output", cohort, "matchround{matching_round}", "extract", "input_controlpotential.feather")
     custom_path <- here("lib", "dummydata", "dummy_control_potential1.feather")
-  }  else if (stage == "final") {
+  } else if (stage == "actual") {
+    studydef_path <- ghere("output", cohort, "matchround{matching_round}", "extract", "input_controlactual.feather")
+    custom_path <- here("lib", "dummydata", "dummy_control_potential1.feather")
+  } else if (stage == "final") {
     studydef_path <- ghere("output", cohort, "extract", "input_controlfinal.feather")
     custom_path <- ghere("output", cohort, "dummydata", "dummy_control_final.feather")
   }
@@ -126,6 +137,16 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
     # reuse previous extraction for dummy run, dummy_control_potential1.feather
     data_custom_dummy <- data_custom_dummy %>%
       filter(patient_id %in% data_potential_matchstatus[(data_potential_matchstatus$treated==0L),]$patient_id) %>%
+      # remove vaccine variables
+      select(-starts_with("covid_vax_")) %>%
+      # trial_date and match_id are not included in the dummy data so join them on here
+      # they're joined in the study def using `with_values_from_file`
+      left_join(
+        data_potential_matchstatus %>% 
+          filter(treated==0L) %>%
+          select(patient_id, trial_date, match_id),
+        by="patient_id"
+      ) %>%
       # change a few variables to simulate new index dates
       mutate(
         region = if_else(runif(n())<0.05, sample(x=unique(region), size=n(), replace=TRUE), region),
@@ -187,7 +208,7 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
       #because date types are not returned consistently by cohort extractor
       mutate(across(ends_with("_date"),  as.Date))
     
-  } else if (stage == "potential") {
+  } else if (stage %in% c("single", "potential")) {
     
     data_extract <- read_feather(ghere("output", cohort, "matchround{matching_round}", "extract", "input_controlpotential.feather")) %>%
       # because date types are not returned consistently by cohort extractor
@@ -308,12 +329,20 @@ if (stage == "final") {
 } 
 
 # script stops here when stage = "final"
+# make sure all code beyond this point wrapped in `if` statements conditional on `stage`
 
 
 # process data -----
 
 ## define index data ----
-if (stage == "treated") {
+if (stage == "single") {
+  
+  # no need to summarise as had already been summarised when stage="potential" and matching round=1
+  
+  data_extract <- data_extract %>%
+    mutate(index_date = matching_round_date) 
+  
+} else if (stage == "treated") {
   
   # summarise extracted data
   my_skim(data_extract, path = here("output", "treated", "extract", "input_treated_skim.txt"))
@@ -339,7 +368,7 @@ if (stage == "treated") {
   
 }
 
-if (stage %in% c("treated", "potential", "actual")) {
+if (stage %in% c("single", "treated", "potential", "actual")) {
   data_processed <- data_extract %>%
     process_jcvi() %>%
     process_demo() %>%
@@ -353,7 +382,7 @@ if (stage == "treated") {
 
 ## process vaccination data ----
 
-if (stage %in% c("treated", "potential")) {
+if (stage %in% c("single", "treated", "potential")) {
   
   data_processed <- data_processed %>%
     process_vax(stage)
@@ -375,9 +404,9 @@ if (stage %in% c("treated", "potential")) {
 }
 
 # summarise processed data
-if (stage %in% c("treated", "potential", "actual")) {
-  if (stage == "treated") {
-    skim_path <- here("output", "treated", "process", "data_processed_skim.txt")
+if (stage %in% c("single", "treated", "potential", "actual")) {
+  if (stage %in% c("single", "treated")) {
+    skim_path <- here("output", stage, "process", "data_processed_skim.txt")
   } else {
     skim_path <- ghere("output", cohort, "matchround{matching_round}", stage, "data_processed_skim.txt")
   }
@@ -415,14 +444,29 @@ if (stage == "treated") {
     
   )
   
-} else if (stage %in% c("potential",  "actual")) {
+} else if (stage %in% c("single", "potential",  "actual")) {
+  
+  vax1_notbeforeindexdate_fun <- function(stage, vax1_date, index_date) {
+    
+    if (stage == "single") {
+      # on or after index_date
+      case_when(
+        is.na(vax1_date) | (vax1_date >= index_date) ~ TRUE,
+        TRUE ~ FALSE
+      )
+    } else {
+      # after index date
+      case_when(
+        is.na(vax1_date) | (vax1_date > index_date) ~ TRUE,
+        TRUE ~ FALSE
+      )
+    }
+    
+  }
   
   selection_stage <- rlang::quos(
     
-    vax1_notbeforeindexdate = case_when(
-      is.na(vax1_date) | (vax1_date > index_date) ~ TRUE,
-      TRUE ~ FALSE
-    ),
+    vax1_notbeforeindexdate = vax1_notbeforeindexdate_fun(stage, vax1_date, index_date),
     
     vax1_notbeforeageeligible = case_when(
       ageband2 %in% c("80+") & vax1_date < study_dates$over80s$start_date ~ FALSE,
@@ -438,7 +482,13 @@ if (stage == "treated") {
 } 
 
 # Define selection criteria ----
-if (stage %in% c("treated", "potential", "actual")) {
+if (stage %in% c("single", "treated", "potential", "actual")) {
+  
+  if (stage == "single") {
+    include <- "c5"
+  } else {
+    include <- "c6"
+  }
   
   data_criteria <- data_processed %>%
     left_join(
@@ -474,7 +524,7 @@ if (stage %in% c("treated", "potential", "actual")) {
       c5 = c4 & no_recentcovid30,
       c6 = c5 & isnot_inhospital,
       
-      include = c6,
+      include = !! sym(include),
       
     )
   
@@ -487,7 +537,15 @@ if (stage %in% c("treated", "potential", "actual")) {
 }
 
 # save cohort-specific datasets ----
-if (stage == "treated") {
+if (stage == "single") {
+  
+  my_skim(data_eligible, path = ghere("output", "single", "eligible", "data_eligible_skim.txt"))
+  
+  write_rds(data_eligible, 
+            ghere("output", "single", "eligible", "data_singleeligible.rds"),
+            compress = "gz")
+  
+} else if (stage == "treated") {
   
   data_eligible %>% filter(vax1_type == "pfizer") %>%
     my_skim(path = here("output", "treated", "eligible", "data_eligible_pfizer_skim.txt"))
@@ -514,8 +572,8 @@ if (stage == "treated") {
 }
 
 
-# create flowchart (only when stage="treated") ----
-if (stage == "treated") {
+# create flowchart (only when stage="treated" or "single") ----
+if (stage %in% c("single", "treated")) {
   
   create_flowchart <- function(brand="any") {
     
@@ -526,9 +584,23 @@ if (stage == "treated") {
         filter(vax1_type == brand)
     }
     
+    criteria_descr <- character()
+    if (stage == "single") {
+      criteria_descr["Aged 70+ and not vaccinated before eligible"] <- "c0"
+    } else if (stage == "treated") {
+      criteria_descr["Aged 70+ with 1st dose between study dates"] <- "c0"
+      criteria_descr["  not in hospital (unplanned) on trial date"] <- "c6"
+    }
+    criteria_descr["  no unreliable vaccination data"] <- "c1"
+    criteria_descr["  not a HSC worker"] <- "c2"
+    criteria_descr["  not a care/nursing home resident, end-of-life or housebound"] <- "c3"
+    criteria_descr["  no missing demographic information"] <- "c4"
+    criteria_descr["  no evidence of covid in 30 days before trial date"] <- "c5"
+    criteria_descr <- sort(criteria_descr)
+    
     data_flowchart <- data_flowchart %>%
       summarise(
-        across(matches("^c\\d"), .fns=sum)
+        across(unname(criteria_descr), .fns=sum)
       ) %>%
       pivot_longer(
         cols=everything(),
@@ -541,20 +613,10 @@ if (stage == "treated") {
         pct_all = n / first(n),
         pct_step = n / lag(n),
         crit = str_extract(criteria, "^c\\d+"),
-        criteria = fct_case_when(
-          crit == "c0" ~ "Aged 70+ with 1st dose between study dates", 
-          crit == "c1" ~ "  no unreliable vaccination data",
-          crit == "c2" ~ "  not a HSC worker",
-          crit == "c3" ~ "  not a care/nursing home resident, end-of-life or housebound",
-          crit == "c4" ~ "  no missing demographic information",
-          crit == "c5" ~ "  no evidence of covid in 30 days before trial date",
-          crit == "c6" ~ "  not in hospital (unplanned) on trial date",
-          TRUE ~ NA_character_
-        )
-      ) %>%
-      mutate(across(criteria, factor, labels = sapply(levels(.$criteria), glue)))
+        criteria = fct_recoderelevel(crit, criteria_descr)
+      ) 
     
-    write_rds(data_flowchart, here("output", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_unrounded.rds")))
+    write_rds(data_flowchart, here("output", stage, "eligible", glue("flowchart_{stage}eligible_{brand}_unrounded.rds")))
     
     data_flowchart %>%
       transmute(
@@ -565,27 +627,33 @@ if (stage == "treated") {
         pct_all = n / first(n),
         pct_step = n / lag(n),
       ) %>%
-      write_csv(here("output", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_rounded.csv"))) 
+      write_csv(here("output", stage, "eligible", glue("flowchart_{stage}eligible_{brand}_rounded.csv"))) 
     
   }
   
   create_flowchart("any")
-  create_flowchart("pfizer")
-  create_flowchart("az")
   
-  # distribution of vax1_date by jcvi_ageband
-  vax1_date_plot <- data_eligible %>%
-    select(patient_id, vax1_date, vax1_type, jcvi_ageband) %>%
-    ggplot(aes(x = vax1_date, colour = vax1_type)) +
-    geom_freqpoly(binwidth=1) +
-    facet_grid(jcvi_ageband~., scales = "free_y")
-  ggsave(
-    filename = here("output", "treated", "eligible", "vax1_dates.png"),
-    plot = vax1_date_plot,
-    width=20, height=15, units="cm"
-  )
+  if (stage == "treated") {
+    
+    create_flowchart("pfizer")
+    create_flowchart("az")
+    
+    # distribution of vax1_date by jcvi_ageband
+    vax1_date_plot <- data_eligible %>%
+      select(patient_id, vax1_date, vax1_type, jcvi_ageband) %>%
+      ggplot(aes(x = vax1_date, colour = vax1_type)) +
+      geom_freqpoly(binwidth=1) +
+      facet_grid(jcvi_ageband~., scales = "free_y")
+    ggsave(
+      filename = here("output", "treated", "eligible", "vax1_dates.png"),
+      plot = vax1_date_plot,
+      width=20, height=15, units="cm"
+    )
+    
+  }
   
 }
+
 
 # check matching (only when stage="actual") ----
 if (stage == "actual") { 
