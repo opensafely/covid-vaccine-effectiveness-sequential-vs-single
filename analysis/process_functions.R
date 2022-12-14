@@ -216,8 +216,8 @@ process_vax <- function(.data, stage) {
       names_glue = "covid_vax_{vax_index}_{.value}"
     )
   
-  # only add variables corresponding to 2nd dose if stage = treated
-  if (stage == "treated") {
+  # only add variables corresponding to 2nd dose if stage = single or treated
+  if (stage %in% c("single", "treated")) {
     vax2_vars <- rlang::quos(
       
       vax2_type = covid_vax_2_type,
