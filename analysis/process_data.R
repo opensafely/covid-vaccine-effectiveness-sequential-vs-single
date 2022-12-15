@@ -33,11 +33,13 @@ if (length(args) == 0) {
   # use for interactive testing
   stage <- "single"
   # stage <- "treated"
-  #stage <- "potential"
+  # stage <- "potential"
   # stage <- "actual"
   # stage <- "final"
-  # cohort <- "pfizer"
-  # matching_round <- as.integer("3")
+  if (stage %in% c("potential", "actual", "final")) {
+    cohort <- "pfizer"
+    if (stage != "final") matching_round <- as.integer("3")
+  }
 } else {
   stage <- args[[1]]
   
@@ -188,17 +190,6 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   )
   
   data_extract <- data_custom_dummy 
-  
-  if (stage == "actual") {
-    
-    data_extract <- data_extract %>%
-      # these variables are not included in the dummy data so join them on here
-      # they're joined in the study def using `with_values_from_file`
-      left_join(data_potential_matchstatus %>% filter(treated==0L), by=c("patient_id")) %>%
-      # remove vax variables
-      select(-starts_with("covid_vax"))
-    
-  }
   
 } else {
   
