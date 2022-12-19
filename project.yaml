@@ -23,6 +23,9 @@ actions:
         lib: lib/design/study-dates.json
 
   ## # # # # # # # # # # # # # # # # # # # 
+  ## SEQUENTIAL TRIAL APPROACH 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # 
   ## Extract and process treated data 
   ## # # # # # # # # # # # # # # # # # # # 
 
@@ -1336,6 +1339,23 @@ actions:
     outputs:
       moderately_sensitive:
         flow_matching: output/flowchart/*.csv
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## SINGLE TRIAL APPROACH 
+  ## # # # # # # # # # # # # # # # # # # # 
+
+  process_single:
+    run: r:latest analysis/process_data.R single
+    needs:
+    - extract_treated
+    - extract_controlpotential_pfizer_1
+    outputs:
+      highly_sensitive:
+        eligible: output/single/eligible/*.rds
+      moderately_sensitive:
+        eligiblecsv: output/single/eligible/*.csv
+        data_processed_skim: output/single/process/*.txt
+        data_eligible_skim: output/single/eligible/*.txt
 
   ## #### End #### 
 
