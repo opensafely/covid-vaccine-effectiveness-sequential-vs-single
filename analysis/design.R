@@ -16,7 +16,7 @@ fs::dir_create(here("lib", "design"))
 
 # number of matching rounds to perform
 
-n_matching_rounds <- 4
+n_matching_rounds <- 2#4
 
 
 # define key dates ----
@@ -94,6 +94,8 @@ events_lookup <- tribble(
   "admitted", "admitted_unplanned_1_date", "Unplanned hospitalisation",
   "emergency", "emergency_date", "A&E attendance",
 )
+
+model_outcomes <- c("postest", "covidadmitted", "death")
 
 # define treatments ----
 
