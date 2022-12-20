@@ -336,60 +336,14 @@ sim_list_outcome = lst(
     ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
     missing_rate = ~0.7
   ),
-  covid_test_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
-    missing_rate = ~0.7
-  ),
   postest_day = bn_node(
     ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
     missing_rate = ~0.7
   ),
-  emergency_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 200)),
-    missing_rate = ~0.8
-  ),
-  emergencyhosp_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 200)),
-    missing_rate = ~0.85
-  ),
-  covidemergency_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 200)),
-    missing_rate = ~0.8
-  ),
-  covidemergencyhosp_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 200)),
-    missing_rate = ~0.85
-  ),
-  
-  # respemergency_day = bn_node(
-  #   ~as.integer(runif(n=..n, index_day, index_day+100)),
-  #   missing_rate = ~0.95
-  # ),
-  #
-  # respemergencyhosp_day = bn_node(
-  #   ~as.integer(runif(n=..n, index_day, index_day+100)),
-  #   missing_rate = ~0.95
-  # ),
-  
   covidadmitted_day = bn_node(
     ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
     missing_rate = ~0.7
   ),
-  
-  # placeholder for single criticalcare variable ---
-  covidcritcare_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
-    missing_rate = ~0.8
-  ),
-  admitted_unplanned_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
-    missing_rate = ~0.7
-  ),
-  # admitted_planned_day = bn_node(
-  #   ~as.integer(runif(n=..n, index_day, index_day+100)),
-  #   missing_rate = ~0.7
-  # ),
-  
   coviddeath_day = bn_node(
     ~death_day,
     missing_rate = ~0.7,
