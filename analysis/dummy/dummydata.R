@@ -5,7 +5,7 @@ library('arrow')
 library('here')
 library('glue')
 
-source(here("lib", "functions", "utility.R"))
+source(here("analysis", "functions", "utility.R"))
 
 #remotes::install_github("https://github.com/wjchulme/dd4d")
 library('dd4d')

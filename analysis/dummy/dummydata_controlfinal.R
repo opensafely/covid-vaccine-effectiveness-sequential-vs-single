@@ -16,7 +16,7 @@ if(length(args)==0){
   cohort <- args[[1]]
 }
 
-fs::dir_create(here("output", cohort,  "dummydata"))
+fs::dir_create(here("output", "sequential", cohort,  "dummydata"))
 
 # no indents to make it easier to compare diff
 if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){ 
@@ -52,16 +52,16 @@ set.seed(10)
 dummydata <- data_matchedcontrols %>%
   mutate(
     dereg_day = missing(as.integer(runif(n=n(), trial_day, trial_day+120)), 0.99),
-    primary_care_covid_case_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.7),
-    covid_test_day = missing(as.integer(runif(n=n(), trial_day, trial_day+90)), 0.7),
+    # primary_care_covid_case_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.7),
+    # covid_test_day = missing(as.integer(runif(n=n(), trial_day, trial_day+90)), 0.7),
     postest_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.7),
-    emergency_day = missing(as.integer(runif(n=n(), trial_day, trial_day+200)), 0.8),
-    emergencyhosp_day = missing(as.integer(runif(n=n(), trial_day, trial_day+200)), 0.85),
-    covidemergency_day = missing(as.integer(runif(n=n(), trial_day, trial_day+120)), 0.8),
-    covidemergencyhosp_day = missing(as.integer(runif(n=n(), trial_day, trial_day+200)), 0.85),
+    # emergency_day = missing(as.integer(runif(n=n(), trial_day, trial_day+200)), 0.8),
+    # emergencyhosp_day = missing(as.integer(runif(n=n(), trial_day, trial_day+200)), 0.85),
+    # covidemergency_day = missing(as.integer(runif(n=n(), trial_day, trial_day+120)), 0.8),
+    # covidemergencyhosp_day = missing(as.integer(runif(n=n(), trial_day, trial_day+200)), 0.85),
     covidadmitted_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.7),
-    covidcritcare_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.8),
-    admitted_unplanned_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.7),
+    # covidcritcare_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.8),
+    # admitted_unplanned_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.7),
     death_day = missing(as.integer(runif(n=n(), trial_day, trial_day+100)), 0.9),
     coviddeath_day = missing(death_day, 0.7),
   )

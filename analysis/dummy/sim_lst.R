@@ -332,10 +332,10 @@ sim_list_outcome = lst(
     ~ as.integer(runif(n = ..n, index_day, index_day + 120)),
     missing_rate = ~0.99
   ),
-  primary_care_covid_case_day = bn_node(
-    ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
-    missing_rate = ~0.7
-  ),
+  # primary_care_covid_case_day = bn_node(
+  #   ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
+  #   missing_rate = ~0.7
+  # ),
   postest_day = bn_node(
     ~ as.integer(runif(n = ..n, index_day, index_day + 100)),
     missing_rate = ~0.7
