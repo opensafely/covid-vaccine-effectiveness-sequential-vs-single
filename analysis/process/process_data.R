@@ -124,7 +124,7 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
     custom_path <- here("lib", "dummydata", "dummy_control_potential1.feather")
   } else if (stage == "final") {
     studydef_path <- ghere("output", "sequential", cohort, "extract", "input_controlfinal.feather")
-    custom_path <- ghere("output", cohort, "dummydata", "dummy_control_final.feather")
+    custom_path <- ghere("output", "sequential", cohort, "dummydata", "dummy_control_final.feather")
   }
   
   data_studydef_dummy <- read_feather(studydef_path) %>%
@@ -136,6 +136,7 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   data_custom_dummy <- read_feather(custom_path) 
   
   if (stage == "actual") {
+    
     # reuse previous extraction for dummy run, dummy_control_potential1.feather
     data_custom_dummy <- data_custom_dummy %>%
       filter(patient_id %in% data_potential_matchstatus[(data_potential_matchstatus$treated==0L),]$patient_id) %>%
@@ -209,11 +210,7 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
     
     data_extract <- read_feather(ghere("output", "sequential", cohort, "matchround{matching_round}", "extract", glue("input_controlactual.feather"))) %>%
       #because date types are not returned consistently by cohort extractor
-      mutate(across(ends_with("_date"),  as.Date)) %>% 
-      mutate(treated=0L) %>%
-      # these variables are not included in the dummy data so join them on here
-      # they're joined in the study def using `with_values_from_file`
-      left_join(data_potential_matchstatus %>% filter(treated==0L), by=c("patient_id", "treated", "trial_date", "match_id"))
+      mutate(across(ends_with("_date"),  as.Date)) 
     
   } else if (stage == "final") {
     
@@ -361,12 +358,24 @@ if (stage == "single") {
   
 } else if(stage == "actual"){
   
+  # add certain matching variables when stage=actual
+  data_extract <- data_extract %>%
+    # add: treated 
+    mutate(treated=0L) %>%
+    # add: trial_time, matched, control, controlistreated_date to data_extract
+    left_join(
+      data_potential_matchstatus %>%
+        filter(treated==0L),
+      by=c("patient_id", "treated", "trial_date", "match_id")
+    )
+  
   # summarise extracted data
   my_skim(
     data_extract, 
     path = ghere("output", "sequential", cohort, "matchround{matching_round}", "extract", "actual", "input_controlactual_skim.txt")
     )
   
+  # add: index date
   data_extract <- data_extract %>%
     mutate(index_date = trial_date) 
   
@@ -713,7 +722,7 @@ if (stage == "actual") {
       #   all_of(names(caliper_variables))
       # )) 
       filter_at(
-        all_of(names(caliper_variables)),
+        vars(names(caliper_variables)),
         all_vars(.)
       )
     
@@ -784,7 +793,7 @@ if (stage == "actual") {
     mutate(
       trial_date=as.character(trial_date)
     ) %>%
-    filter(treated==0L) %>% #only interested in controls as all
+    filter(treated==0L) %>% # only interested in controls
     write_csv(
       ghere("output", "sequential", cohort, "matchround{matching_round}", "actual", "cumulative_matchedcontrols.csv.gz")
       )
