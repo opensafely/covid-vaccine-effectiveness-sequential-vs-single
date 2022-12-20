@@ -14,15 +14,20 @@ from cohortextractor import (
   params
 )
 
-cohort = params["cohort"]
-n_matching_rounds = params["n_matching_rounds"]
+# import study dates defined in "./analysis/design.R" script
+with open("./lib/design/study-dates.json") as f:
+  study_dates = json.load(f)
+index_date = study_dates['pfizer']['start_date']
 
 ############################################################
 ## outcome variables
 from variables_outcome import generate_outcome_variables 
-outcome_variables = generate_outcome_variables(index_date="trial_date")
+outcome_variables = generate_outcome_variables(index_date="index_date")
 ############################################################
-
+## timevarying variables
+from variables_timevarying import generate_timevarying_variables 
+timevarying_variables = generate_timevarying_variables(index_date="index_date", n=6)
+############################################################
 
 # Specify study defeinition
 study = StudyDefinition(
@@ -37,26 +42,18 @@ study = StudyDefinition(
   },
   
   # This line defines the study population
-  population = patients.which_exist_in_file(
-    f_path=f"output/sequential/{cohort}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz"
-    ),
-
-  trial_date = patients.with_value_from_file(
-    f_path=f"output/sequential/{cohort}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz", 
-    returning="trial_date", 
-    returning_type="date", 
-    date_format='YYYY-MM-DD'
-    ),
+  population = patients.which_exist_in_file(f_path="output/single/eligible/data_singleeligible.csv.gz"),
   
-  match_id = patients.with_value_from_file(
-    f_path=f"output/sequential/{cohort}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz", 
-    returning="match_id", 
-    returning_type="int"
-    ),
+  index_date = index_date,
+  
+  ###############################################################################
+  # time varying covariates
+  ##############################################################################
+  **timevarying_variables,
 
   ###############################################################################
   # outcome variables
   ##############################################################################
   **outcome_variables,
-
+  
 )
