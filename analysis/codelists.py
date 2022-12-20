@@ -455,3 +455,9 @@ discharged_to_hospital = codelist(
     ["306706006", "1066331000000109", "1066391000000105"],
     system="snomed",
 )
+
+ICD10_I_codes = codelist_from_csv(
+    "codelists/opensafely-icd-10-chapter-i.csv",
+    system="icd10",
+    column="code",
+)
