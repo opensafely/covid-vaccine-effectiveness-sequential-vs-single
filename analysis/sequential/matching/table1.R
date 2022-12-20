@@ -43,14 +43,14 @@ dates <- study_dates[[cohort]]
 
 ## create output directories ----
 
-output_dir <- here("output", cohort, "table1")
+output_dir <- here("output", "sequential", cohort, "table1")
 fs::dir_create(output_dir)
 
 ## Import data and derive some variables ----
 
-data_matched0 <- read_rds(ghere("output", cohort, "match", "data_matched.rds")) 
+data_matched0 <- read_rds(ghere("output", "sequential", cohort, "match", "data_matched.rds")) 
 
-data_treatedeligible_matchstatus <- read_rds(here("output", cohort, "match", "data_treatedeligible_matchstatus.rds"))
+data_treatedeligible_matchstatus <- read_rds(here("output", "sequential", cohort, "match", "data_treatedeligible_matchstatus.rds"))
 
 
 ## apply additional exclusion criteria ----
@@ -59,7 +59,7 @@ data_treatedeligible_matchstatus <- read_rds(here("output", cohort, "match", "da
 
 # define additional criteria in the treated, elgible population
 data_treatedeligible_exclusion <- 
-  read_rds(ghere("output", cohort, "treated", "data_treatedeligible.rds")) %>%
+  read_rds(ghere("output", "sequential", cohort, "treated", "data_treatedeligible.rds")) %>%
   transmute(
     patient_id, 
     # treatedeligible_nopriorcovid = (

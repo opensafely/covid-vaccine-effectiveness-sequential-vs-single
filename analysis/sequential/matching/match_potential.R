@@ -25,7 +25,7 @@ library('MatchIt')
 
 source(here("analysis", "design.R"))
 
-source(here("lib", "functions", "utility.R"))
+source(here("analysis", "functions", "utility.R"))
 
 
 # import command-line arguments ----
@@ -35,41 +35,42 @@ args <- commandArgs(trailingOnly=TRUE)
 
 if(length(args)==0){
   # use for interactive testing
-  removeobjects <- FALSE
   cohort <- "pfizer"
   matching_round <- as.integer("1")
 } else {
   #FIXME replace with actual eventual action variables
-  removeobjects <- TRUE
   cohort <- args[[1]]
   matching_round <- as.integer(args[[2]])
 }
 
 
 ## get cohort-specific parameters study dates and parameters ----
-
 dates <- map(study_dates[[cohort]], as.Date)
-
-
 matching_round_date <- dates$control_extract_dates[matching_round]
 
-
-
 ## create output directory ----
-fs::dir_create(ghere("output", cohort, "matchround{matching_round}", "potential"))
+fs::dir_create(ghere("output", "sequential", cohort, "matchround{matching_round}", "potential"))
 
 # Import datasets ----
 
 ## import treated populations ----
-data_alltreated <- read_rds(ghere("output", cohort, "treated", "data_treatedeligible.rds")) %>% mutate(treated=1L)
+data_alltreated <- read_rds(
+  ghere("output", "sequential", cohort, "treated", "data_treatedeligible.rds")
+  ) %>%
+  mutate(treated=1L)
 
 ## import control populations ----
-data_control <- read_rds(ghere("output", cohort, "matchround{matching_round}", "process", "data_controlpotential.rds")) %>% mutate(treated=0L)
+data_control <- read_rds(
+  ghere("output", "sequential", cohort, "matchround{matching_round}", "process", "data_controlpotential.rds")
+  ) %>% 
+  mutate(treated=0L)
 
 # remove already-matched people from previous matching rounds
 if(matching_round>1){
   
-  data_matchstatusprevious <- read_rds(ghere("output", cohort, "matchround{matching_round-1L}", "actual", "data_matchstatus_allrounds.rds")) %>%
+  data_matchstatusprevious <- read_rds(
+    ghere("output", "sequential", cohort, "matchround{matching_round-1L}", "actual", "data_matchstatus_allrounds.rds")
+    ) %>%
     select(patient_id, treated)
   
   # do not select treated people who have already been matched
@@ -306,7 +307,11 @@ local({
 })
  
 # output matching status ----
-write_rds(data_matchstatus, ghere("output", cohort, "matchround{matching_round}", "potential", "data_potential_matchstatus.rds"), compress="gz")
+write_rds(
+  data_matchstatus,
+  ghere("output", "sequential", cohort, "matchround{matching_round}", "potential", "data_potential_matchstatus.rds"), 
+  compress="gz"
+  )
 
 # number of treated/controls per trial
 with(data_matchstatus %>% filter(matched==1), table(trial_time, treated))
@@ -317,7 +322,6 @@ with(data_matchstatus %>% filter(matched==1), table(treated))
 # max trial date
 print(paste0("max trial day is ", as.integer(max(data_matchstatus %>% filter(matched==1) %>% pull(trial_time), na.rm=TRUE))))
 
-
 # output csv for subsequent study definition
 data_matchstatus %>% 
   filter(control==1L, matched==1L) %>% 
@@ -325,7 +329,9 @@ data_matchstatus %>%
   mutate(
     trial_date=as.character(trial_date)
   ) %>%
-  write_csv(ghere("output", cohort, "matchround{matching_round}", "potential", glue("potential_matchedcontrols.csv.gz")))
+  write_csv(
+    ghere("output", "sequential", cohort, "matchround{matching_round}", "potential", glue("potential_matchedcontrols.csv.gz"))
+    )
 
 
 print(paste0("number of duplicate control IDs is ", data_matchstatus %>% filter(control==1L, matched==1L) %>% group_by(patient_id) %>% summarise(n=n()) %>% filter(n>1) %>% nrow() ))
