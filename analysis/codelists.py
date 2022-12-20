@@ -84,8 +84,6 @@ ethnicity_16 = codelist_from_csv(
 )
 
 ## PRIMIS
-
-
 # Patients in long-stay nursing and residential care
 carehome = codelist_from_csv(
     "codelists/primis-covid19-vacc-uptake-longres.csv", 
