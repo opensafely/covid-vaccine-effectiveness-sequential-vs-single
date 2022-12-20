@@ -76,7 +76,7 @@ action_1matchround <- function(cohort, matching_round){
       run = glue(
         "cohortextractor:latest generate_cohort", 
         " --study-definition study_definition_controlpotential", 
-        " --output-file output/{cohort}/matchround{matching_round}/extract/input_controlpotential.feather", 
+        " --output-file output/sequential/{cohort}/matchround{matching_round}/extract/input_controlpotential.feather", 
         " --param cohort={cohort}",
         " --param matching_round={matching_round}",
         " --param index_date={control_extract_date}"
@@ -86,30 +86,30 @@ action_1matchround <- function(cohort, matching_round){
         if(matching_round>1) {glue("process_controlactual_{cohort}_{matching_round-1}")} else {NULL}
       ) %>% as.list,
       highly_sensitive = lst(
-        cohort = glue("output/{cohort}/matchround{matching_round}/extract/input_controlpotential.feather")
+        cohort = glue("output/sequential/{cohort}/matchround{matching_round}/extract/input_controlpotential.feather")
       )
     ),
     
     action(
       name = glue("process_controlpotential_{cohort}_{matching_round}"),
-      run = glue("r:latest analysis/process_data.R"),
+      run = glue("r:latest analysis/process/process_data.R"),
       arguments = c("potential", cohort, matching_round),
       needs = namelesslst(
         glue("extract_controlpotential_{cohort}_{matching_round}"),
       ),
       highly_sensitive = lst(
-        rds = glue("output/{cohort}/matchround{matching_round}/process/*.rds")
+        rds = glue("output/sequential/{cohort}/matchround{matching_round}/process/*.rds")
       ),
       moderately_sensitive = lst(
-        input_controlpotential_skim = glue("output/{cohort}/matchround{matching_round}/extract/potential/*.txt"),
-        data_processed_skim = glue("output/{cohort}/matchround{matching_round}/potential/*.txt"),
-        data_controlpotential_skim = glue("output/{cohort}/matchround{matching_round}/process/*.txt")
+        input_controlpotential_skim = glue("output/sequential/{cohort}/matchround{matching_round}/extract/potential/*.txt"),
+        data_processed_skim = glue("output/sequential/{cohort}/matchround{matching_round}/potential/*.txt"),
+        data_controlpotential_skim = glue("output/sequential/{cohort}/matchround{matching_round}/process/*.txt")
       )
     ),
     
     action(
       name = glue("match_potential_{cohort}_{matching_round}"),
-      run = glue("r:latest analysis/matching/match_potential.R"),
+      run = glue("r:latest analysis/sequential/matching/match_potential.R"),
       arguments = c(cohort, matching_round),
       needs = c(
         glue("process_treated"), 
@@ -117,8 +117,8 @@ action_1matchround <- function(cohort, matching_round){
         if(matching_round>1) {glue("process_controlactual_{cohort}_{matching_round-1}")} else {NULL}
       ) %>% as.list,
       highly_sensitive = lst(
-        rds = glue("output/{cohort}/matchround{matching_round}/potential/*.rds"),
-        csv = glue("output/{cohort}/matchround{matching_round}/potential/*.csv.gz"),
+        rds = glue("output/sequential/{cohort}/matchround{matching_round}/potential/*.rds"),
+        csv = glue("output/sequential/{cohort}/matchround{matching_round}/potential/*.csv.gz"),
       )
     ),
     
@@ -127,7 +127,7 @@ action_1matchround <- function(cohort, matching_round){
       run = glue(
         "cohortextractor:latest generate_cohort", 
         " --study-definition study_definition_controlactual", 
-        " --output-file output/{cohort}/matchround{matching_round}/extract/input_controlactual.feather", 
+        " --output-file output/sequential/{cohort}/matchround{matching_round}/extract/input_controlactual.feather", 
         " --param cohort={cohort}",
         " --param matching_round={matching_round}",
       ),
@@ -136,14 +136,14 @@ action_1matchround <- function(cohort, matching_round){
         glue("match_potential_{cohort}_{matching_round}"), 
       ),
       highly_sensitive = lst(
-        cohort = glue("output/{cohort}/matchround{matching_round}/extract/input_controlactual.feather")
+        cohort = glue("output/sequential/{cohort}/matchround{matching_round}/extract/input_controlactual.feather")
       )
     ),
     
     
     action(
       name = glue("process_controlactual_{cohort}_{matching_round}"),
-      run = glue("r:latest analysis/process_data.R"),
+      run = glue("r:latest analysis/process/process_data.R"),
       arguments = c("actual", cohort, matching_round),
       needs = c(
         glue("process_treated"),
@@ -154,12 +154,12 @@ action_1matchround <- function(cohort, matching_round){
         if(matching_round>1){glue("process_controlactual_{cohort}_{matching_round-1}")} else {NULL}
       ) %>% as.list,
       highly_sensitive = lst(
-        rds = glue("output/{cohort}/matchround{matching_round}/actual/*.rds"),
-        csv = glue("output/{cohort}/matchround{matching_round}/actual/*.csv.gz"),
+        rds = glue("output/sequential/{cohort}/matchround{matching_round}/actual/*.rds"),
+        csv = glue("output/sequential/{cohort}/matchround{matching_round}/actual/*.csv.gz"),
       ),
       moderately_sensitive = lst(
-        input_controlactual_skim = glue("output/{cohort}/matchround{matching_round}/extract/actual/*.txt"),
-        data_actual_skim = glue("output/{cohort}/matchround{matching_round}/actual/*.txt"),
+        input_controlactual_skim = glue("output/sequential/{cohort}/matchround{matching_round}/extract/actual/*.txt"),
+        data_actual_skim = glue("output/sequential/{cohort}/matchround{matching_round}/actual/*.txt"),
       )
     )
 
@@ -184,7 +184,7 @@ action_extract_and_match <- function(cohort, n_matching_rounds){
       run = glue(
         "cohortextractor:latest generate_cohort", 
         " --study-definition study_definition_controlfinal", 
-        " --output-file output/{cohort}/extract/input_controlfinal.feather",
+        " --output-file output/sequential/{cohort}/extract/input_controlfinal.feather",
         " --param cohort={cohort}",
         " --param n_matching_rounds={n_matching_rounds}",
       ),
@@ -193,7 +193,7 @@ action_extract_and_match <- function(cohort, n_matching_rounds){
         glue("process_controlactual_{cohort}_{n_matching_rounds}")
       ),
       highly_sensitive = lst(
-        extract = glue("output/{cohort}/extract/input_controlfinal.feather")
+        extract = glue("output/sequential/{cohort}/extract/input_controlfinal.feather")
       )
     ),
     
@@ -206,13 +206,13 @@ action_extract_and_match <- function(cohort, n_matching_rounds){
         ~glue("process_controlactual_{cohort}_",.x)
       ),
       highly_sensitive = lst(
-        dummydata_controlfinal = glue("output/{cohort}/dummydata/dummy_control_final.feather")
+        dummydata_controlfinal = glue("output/sequential/{cohort}/dummydata/dummy_control_final.feather")
       ),
     ),
     
     action(
       name = glue("process_controlfinal_{cohort}"),
-      run = glue("r:latest analysis/process_data.R"),
+      run = glue("r:latest analysis/process/process_data.R"),
       arguments = c("final", cohort),
       needs = c(
         map(
@@ -224,11 +224,11 @@ action_extract_and_match <- function(cohort, n_matching_rounds){
         glue("dummydata_controlfinal_{cohort}")
       ),
       highly_sensitive = lst(
-        extract = glue("output/{cohort}/match/*.rds")
+        extract = glue("output/sequential/{cohort}/match/*.rds")
       ),
       moderately_sensitive = lst(
-        input_controlfinal_skim = glue("output/{cohort}/extract/*.txt"),
-        data_matched_skim = glue("output/{cohort}/match/*.txt")
+        input_controlfinal_skim = glue("output/sequential/{cohort}/extract/*.txt"),
+        data_matched_skim = glue("output/sequential/{cohort}/match/*.txt")
       )
     )
   )
@@ -242,15 +242,15 @@ action_extract_and_match <- function(cohort, n_matching_rounds){
 action_km <- function(cohort, subgroup, outcome){
   action(
     name = glue("km_{cohort}_{subgroup}_{outcome}"),
-    run = glue("r:latest analysis/model/km.R"),
+    run = glue("r:latest analysis/sequential/model/km.R"),
     arguments = c(cohort, subgroup, outcome),
     needs = namelesslst(
       glue("process_controlfinal_{cohort}"),
     ),
     moderately_sensitive= lst(
-      #csv= glue("output/{cohort}/models/km/{subgroup}/{outcome}/*.csv"),
-      rds= glue("output/{cohort}/models/km/{subgroup}/{outcome}/*.rds"),
-      png= glue("output/{cohort}/models/km/{subgroup}/{outcome}/*.png"),
+      #csv= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.csv"),
+      rds= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.rds"),
+      png= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.png"),
     )
   )
 }
@@ -258,15 +258,15 @@ action_km <- function(cohort, subgroup, outcome){
 action_coxcmlinc <- function(cohort, subgroup, outcome){
   action(
     name = glue("coxcmlinc_{cohort}_{subgroup}_{outcome}"),
-    run = glue("r:latest analysis/model/coxcmlinc.R"),
+    run = glue("r:latest analysis/sequential/model/coxcmlinc.R"),
     arguments = c(cohort, subgroup, outcome),
     needs = namelesslst(
       glue("process_controlfinal_{cohort}"),
     ),
     moderately_sensitive= lst(
-      #csv= glue("output/{cohort}/models/km/{subgroup}/{outcome}/*.csv"),
-      rds= glue("output/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.rds"),
-      png= glue("output/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.png"),
+      #csv= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.csv"),
+      rds= glue("output/sequential/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.rds"),
+      png= glue("output/sequential/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.png"),
     )
   )
 }
@@ -278,22 +278,22 @@ action_km_combine <- function(
 
   action(
     name = glue("combine_km_{cohort}"),
-    run = glue("r:latest analysis/model/km_combine.R"),
+    run = glue("r:latest analysis/sequential/model/km_combine.R"),
     arguments = c(cohort),
     needs = splice(
       as.list(
         glue_data(
           .x=expand_grid(
             subgroup=c("all", "ageband2"),
-            outcome=c("postest", "emergency", "covidemergency", "covidadmitted", "covidcritcare", "coviddeath", "noncoviddeath", "death"),
+            outcome=model_outcomes,
           ),
           "km_{cohort}_{subgroup}_{outcome}"
         )
       )
     ),
     moderately_sensitive = lst(
-      rds = glue("output/{cohort}/models/km/combined/*.csv"),
-      png = glue("output/{cohort}/models/km/combined/*.png"),
+      rds = glue("output/sequential/{cohort}/models/km/combined/*.csv"),
+      png = glue("output/sequential/{cohort}/models/km/combined/*.png"),
     )
   )
 }
@@ -307,22 +307,22 @@ action_coxcmlinc_combine <- function(
   
   action(
     name = glue("combine_coxcmlinc_{cohort}"),
-    run = glue("r:latest analysis/model/coxcmlinc_combine.R"),
+    run = glue("r:latest analysis/sequential/model/coxcmlinc_combine.R"),
     arguments = c(cohort),
     needs = splice(
       as.list(
         glue_data(
           .x=expand_grid(
             subgroup=c("all", "ageband2"),
-            outcome=c("postest", "emergency", "covidemergency", "covidadmitted", "covidcritcare", "coviddeath", "noncoviddeath", "death"),
+            outcome=model_outcomes,
           ),
           "coxcmlinc_{cohort}_{subgroup}_{outcome}"
         )
       )
     ),
     moderately_sensitive = lst(
-      rds = glue("output/{cohort}/models/coxcmlinc/combined/*.csv"),
-      png = glue("output/{cohort}/models/coxcmlinc/combined/*.png"),
+      rds = glue("output/sequential/{cohort}/models/coxcmlinc/combined/*.csv"),
+      png = glue("output/sequential/{cohort}/models/coxcmlinc/combined/*.png"),
     )
   )
 }
@@ -330,18 +330,64 @@ action_coxcmlinc_combine <- function(
 action_table1 <- function(cohort){
   action(
     name = glue("table1_{cohort}"),
-    run = glue("r:latest analysis/matching/table1.R"),
+    run = glue("r:latest analysis/sequential/matching/table1.R"),
     arguments = c(cohort),
     needs = namelesslst(
       "process_treated",
       glue("process_controlfinal_{cohort}"),
     ),
     moderately_sensitive= lst(
-      csv= glue("output/{cohort}/table1/*.csv"),
-      # png= glue("output/{cohort}/table1/*.png"),
+      csv= glue("output/sequential/{cohort}/table1/*.csv"),
+      # png= glue("output/sequential/{cohort}/table1/*.png"),
     )
   )
 }
+
+brand_seqtrial <- function(brand) {
+  
+  splice(
+    comment("# # # # # # # # # # # # # # # # # # #",
+            glue("{brand} cohort"),
+            "# # # # # # # # # # # # # # # # # # #"),
+    
+    comment("# # # # # # # # # # # # # # # # # # #",
+            "Extract and match",
+            "# # # # # # # # # # # # # # # # # # #"),
+    
+    action_extract_and_match(brand, n_matching_rounds),
+    
+    action_table1(brand),
+    
+    comment("# # # # # # # # # # # # # # # # # # #",
+            "Model"),
+    unlist(
+      lapply(
+        c("all", "ageband2"),
+        function(x) {
+          unlist(
+            lapply(
+              model_outcomes,
+              function(y) {
+                splice(
+                  action_km(brand, x, y),
+                  action_coxcmlinc(brand, x, y)
+                )
+              }
+            ),
+            recursive = FALSE
+          )
+        }
+      ),
+      recursive = FALSE
+    ),
+    
+    action_km_combine(brand),
+    action_coxcmlinc_combine(brand)
+    
+  )
+  
+}
+
 
 # specify project ----
 
@@ -386,160 +432,50 @@ actions_list <- splice(
     run = glue(
       "cohortextractor:latest generate_cohort", 
       " --study-definition study_definition_treated", 
-      " --output-file output/treated/extract/input_treated.feather",
+      " --output-file output/sequential/treated/extract/input_treated.feather",
     ),
     needs = namelesslst(
       "design"
     ),
     highly_sensitive = lst(
-      extract = "output/treated/extract/input_treated.feather"
+      extract = "output/sequential/treated/extract/input_treated.feather"
     ),
   ),
   
   # all treated people
   action(
     name = "process_treated",
-    run = "r:latest analysis/process_data.R",
+    run = "r:latest analysis/process/process_data.R",
     arguments = "treated",
     needs = namelesslst(
       "extract_treated"
     ),
     highly_sensitive = lst(
-      eligible = "output/treated/eligible/*.rds",
-      pfizer = "output/pfizer/treated/*.rds",
-      az = "output/az/treated/*.rds"
+      eligible = "output/sequential/treated/eligible/*.rds",
+      pfizer = "output/sequential/pfizer/treated/*.rds",
+      az = "output/sequential/az/treated/*.rds"
     ),
     moderately_sensitive = lst(
-      eligiblecsv = "output/treated/eligible/*.csv",
-      vax1_dates = "output/treated/eligible/*.png",
-      input_treated_skim = "output/treated/extract/*.txt",
-      data_processed_skim = "output/treated/process/*.txt",
-      data_eligible_skim = "output/treated/eligible/*.txt"
+      eligiblecsv = "output/sequential/treated/eligible/*.csv",
+      input_treated_skim = "output/sequential/treated/extract/*.txt",
+      data_processed_skim = "output/sequential/treated/process/*.txt",
+      data_eligible_skim = "output/sequential/treated/eligible/*.txt"
     )
   ),
 
-  
-  comment("# # # # # # # # # # # # # # # # # # #",
-          "Pfizer cohort",
-          "# # # # # # # # # # # # # # # # # # #"),
-
-  comment("# # # # # # # # # # # # # # # # # # #",
-          "Extract and match"),
-
-  action_extract_and_match("pfizer", n_matching_rounds),
-
-  action_table1("pfizer"),
-
-  comment("# # # # # # # # # # # # # # # # # # #",
-          "Model"),
-
-  action_km("pfizer", "all", "postest"),
-  action_km("pfizer", "all", "emergency"),
-  action_km("pfizer", "all", "covidemergency"),
-  action_km("pfizer", "all", "covidadmitted"),
-  action_km("pfizer", "all", "covidcritcare"),
-  action_km("pfizer", "all", "coviddeath"),
-  action_km("pfizer", "all", "noncoviddeath"),
-  action_km("pfizer", "all", "death"),
-
-  action_km("pfizer", "ageband2", "postest"),
-  action_km("pfizer", "ageband2", "emergency"),
-  action_km("pfizer", "ageband2", "covidemergency"),
-  action_km("pfizer", "ageband2", "covidadmitted"),
-  action_km("pfizer", "ageband2", "covidcritcare"),
-  action_km("pfizer", "ageband2", "coviddeath"),
-  action_km("pfizer", "ageband2", "noncoviddeath"),
-  action_km("pfizer", "ageband2", "death"),
-  
-  action_km_combine("pfizer"),
-  
-  
-  action_coxcmlinc("pfizer", "all", "postest"),
-  action_coxcmlinc("pfizer", "all", "emergency"),
-  action_coxcmlinc("pfizer", "all", "covidemergency"),
-  action_coxcmlinc("pfizer", "all", "covidadmitted"),
-  action_coxcmlinc("pfizer", "all", "covidcritcare"),
-  action_coxcmlinc("pfizer", "all", "coviddeath"),
-  action_coxcmlinc("pfizer", "all", "noncoviddeath"),
-  action_coxcmlinc("pfizer", "all", "death"),
-  
-  action_coxcmlinc("pfizer", "ageband2", "postest"),
-  action_coxcmlinc("pfizer", "ageband2", "emergency"),
-  action_coxcmlinc("pfizer", "ageband2", "covidemergency"),
-  action_coxcmlinc("pfizer", "ageband2", "covidadmitted"),
-  action_coxcmlinc("pfizer", "ageband2", "covidcritcare"),
-  action_coxcmlinc("pfizer", "ageband2", "coviddeath"),
-  action_coxcmlinc("pfizer", "ageband2", "noncoviddeath"),
-  action_coxcmlinc("pfizer", "ageband2", "death"),
-  
-  action_coxcmlinc_combine("pfizer"),
-  
-  comment("# # # # # # # # # # # # # # # # # # #",
-          "AZ cohort",
-          "# # # # # # # # # # # # # # # # # # #"),
-  
-  comment("# # # # # # # # # # # # # # # # # # #",
-          "Extract and match"),
-  
-  action_extract_and_match("az", n_matching_rounds),
-  
-  action_table1("az"),
-  
-  comment("# # # # # # # # # # # # # # # # # # #",
-          "Model"),
-  
-  action_km("az", "all", "postest"),
-  action_km("az", "all", "emergency"),
-  action_km("az", "all", "covidemergency"),
-  action_km("az", "all", "covidadmitted"),
-  action_km("az", "all", "covidcritcare"),
-  action_km("az", "all", "coviddeath"),
-  action_km("az", "all", "noncoviddeath"),
-  action_km("az", "all", "death"),
-
-  action_km("az", "ageband2", "postest"),
-  action_km("az", "ageband2", "emergency"),
-  action_km("az", "ageband2", "covidemergency"),
-  action_km("az", "ageband2", "covidadmitted"),
-  action_km("az", "ageband2", "covidcritcare"),
-  action_km("az", "ageband2", "coviddeath"),
-  action_km("az", "ageband2", "noncoviddeath"),
-  action_km("az", "ageband2", "death"),
-
-
-  action_km_combine("az"),
-  
-  
-  action_coxcmlinc("az", "all", "postest"),
-  action_coxcmlinc("az", "all", "emergency"),
-  action_coxcmlinc("az", "all", "covidemergency"),
-  action_coxcmlinc("az", "all", "covidadmitted"),
-  action_coxcmlinc("az", "all", "covidcritcare"),
-  action_coxcmlinc("az", "all", "coviddeath"),
-  action_coxcmlinc("az", "all", "noncoviddeath"),
-  action_coxcmlinc("az", "all", "death"),
-  
-  action_coxcmlinc("az", "ageband2", "postest"),
-  action_coxcmlinc("az", "ageband2", "emergency"),
-  action_coxcmlinc("az", "ageband2", "covidemergency"),
-  action_coxcmlinc("az", "ageband2", "covidadmitted"),
-  action_coxcmlinc("az", "ageband2", "covidcritcare"),
-  action_coxcmlinc("az", "ageband2", "coviddeath"),
-  action_coxcmlinc("az", "ageband2", "noncoviddeath"),
-  action_coxcmlinc("az", "ageband2", "death"),
-  
-  action_coxcmlinc_combine("az"),
+  brand_seqtrial("pfizer"),
+  brand_seqtrial("az"),
   
   action(
     name = "flowchart",
-    run = glue("r:latest analysis/report/flowchart.R"),
+    run = glue("r:latest analysis/sequential/report/flowchart.R"),
     needs = namelesslst(
       "process_treated",
       "process_controlfinal_pfizer",
       "process_controlfinal_az"
     ),
     moderately_sensitive = lst(
-      flow_matching = "output/flowchart/*.csv"
+      flow_matching = "output/sequential/flowchart/*.csv"
       )
     ),
   
@@ -549,7 +485,7 @@ actions_list <- splice(
   
   action(
     name = "process_single",
-    run = "r:latest analysis/process_data.R",
+    run = "r:latest analysis/process/process_data.R",
     arguments = "single",
     needs = namelesslst(
       "extract_treated",
@@ -560,9 +496,26 @@ actions_list <- splice(
     ),
     moderately_sensitive = lst(
       eligiblecsv = "output/single/eligible/*.csv",
+      eligiblecsvgz = "output/single/eligible/*.csv.gz",
       data_processed_skim = "output/single/process/*.txt",
       data_eligible_skim = "output/single/eligible/*.txt"
     )
+  ),
+  
+  # extract outcome and timevarying variables for the single trial approach
+  action(
+    name = "extract_timevarying",
+    run = glue(
+      "cohortextractor:latest generate_cohort", 
+      " --study-definition study_definition_timevarying", 
+      " --output-file output/single/extract/input_timevarying.feather",
+    ),
+    needs = namelesslst(
+      "design", "process_single"
+    ),
+    highly_sensitive = lst(
+      extract = "output/single/extract/input_timevarying.feather"
+    ),
   ),
   
   # 
