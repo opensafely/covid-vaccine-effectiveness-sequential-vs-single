@@ -128,3 +128,29 @@ def admitted_date_X(
         ))
     return variables
 
+####################################################################################################
+def emergency_attendance_date_X(
+  name, 
+  index_date,
+  n, 
+  with_these_diagnoses,
+  return_expectations=None
+  ):
+    def var_signature(
+      name, 
+      on_or_after, 
+      ):
+        return {
+            name: patients.attended_emergency_care(
+                    returning="date_arrived",
+                    on_or_after=on_or_after,
+                    with_these_diagnoses = with_these_diagnoses,
+                    find_first_match_in_period=True,
+                    date_format="YYYY-MM-DD",
+                    return_expectations=return_expectations
+	        ),
+        }
+    variables = var_signature(f"{name}_1_date", index_date)
+    for i in range(2, n+1):
+        variables.update(var_signature(f"{name}_{i}_date", f"{name}_{i-1}_date + 1 day"))
+    return variables
