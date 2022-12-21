@@ -216,4 +216,511 @@ actions:
         input_controlfinal_skim: output/sequential/pfizer/extract/*.txt
         data_matched_skim: output/sequential/pfizer/match/*.txt
 
-  
+  table1_pfizer:
+    run: r:latest analysis/sequential/matching/table1.R pfizer
+    needs:
+    - process_treated
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        csv: output/sequential/pfizer/table1/*.csv
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Model 
+
+  km_pfizer_all_postest:
+    run: r:latest analysis/sequential/model/km.R pfizer all postest
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/km/all/postest/*.rds
+        png: output/sequential/pfizer/models/km/all/postest/*.png
+
+  coxcmlinc_pfizer_all_postest:
+    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer all postest
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/coxcmlinc/all/postest/*.rds
+        png: output/sequential/pfizer/models/coxcmlinc/all/postest/*.png
+
+  km_pfizer_all_covidadmitted:
+    run: r:latest analysis/sequential/model/km.R pfizer all covidadmitted
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/km/all/covidadmitted/*.rds
+        png: output/sequential/pfizer/models/km/all/covidadmitted/*.png
+
+  coxcmlinc_pfizer_all_covidadmitted:
+    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer all covidadmitted
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/coxcmlinc/all/covidadmitted/*.rds
+        png: output/sequential/pfizer/models/coxcmlinc/all/covidadmitted/*.png
+
+  km_pfizer_all_death:
+    run: r:latest analysis/sequential/model/km.R pfizer all death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/km/all/death/*.rds
+        png: output/sequential/pfizer/models/km/all/death/*.png
+
+  coxcmlinc_pfizer_all_death:
+    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer all death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/coxcmlinc/all/death/*.rds
+        png: output/sequential/pfizer/models/coxcmlinc/all/death/*.png
+
+  km_pfizer_ageband2_postest:
+    run: r:latest analysis/sequential/model/km.R pfizer ageband2 postest
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/km/ageband2/postest/*.rds
+        png: output/sequential/pfizer/models/km/ageband2/postest/*.png
+
+  coxcmlinc_pfizer_ageband2_postest:
+    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer ageband2 postest
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/coxcmlinc/ageband2/postest/*.rds
+        png: output/sequential/pfizer/models/coxcmlinc/ageband2/postest/*.png
+
+  km_pfizer_ageband2_covidadmitted:
+    run: r:latest analysis/sequential/model/km.R pfizer ageband2 covidadmitted
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/km/ageband2/covidadmitted/*.rds
+        png: output/sequential/pfizer/models/km/ageband2/covidadmitted/*.png
+
+  coxcmlinc_pfizer_ageband2_covidadmitted:
+    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer ageband2 covidadmitted
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/coxcmlinc/ageband2/covidadmitted/*.rds
+        png: output/sequential/pfizer/models/coxcmlinc/ageband2/covidadmitted/*.png
+
+  km_pfizer_ageband2_death:
+    run: r:latest analysis/sequential/model/km.R pfizer ageband2 death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/km/ageband2/death/*.rds
+        png: output/sequential/pfizer/models/km/ageband2/death/*.png
+
+  coxcmlinc_pfizer_ageband2_death:
+    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer ageband2 death
+    needs:
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/coxcmlinc/ageband2/death/*.rds
+        png: output/sequential/pfizer/models/coxcmlinc/ageband2/death/*.png
+
+  combine_km_pfizer:
+    run: r:latest analysis/sequential/model/km_combine.R pfizer
+    needs:
+    - km_pfizer_all_postest
+    - km_pfizer_all_covidadmitted
+    - km_pfizer_all_death
+    - km_pfizer_ageband2_postest
+    - km_pfizer_ageband2_covidadmitted
+    - km_pfizer_ageband2_death
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/km/combined/*.csv
+        png: output/sequential/pfizer/models/km/combined/*.png
+
+  combine_coxcmlinc_pfizer:
+    run: r:latest analysis/sequential/model/coxcmlinc_combine.R pfizer
+    needs:
+    - coxcmlinc_pfizer_all_postest
+    - coxcmlinc_pfizer_all_covidadmitted
+    - coxcmlinc_pfizer_all_death
+    - coxcmlinc_pfizer_ageband2_postest
+    - coxcmlinc_pfizer_ageband2_covidadmitted
+    - coxcmlinc_pfizer_ageband2_death
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/pfizer/models/coxcmlinc/combined/*.csv
+        png: output/sequential/pfizer/models/coxcmlinc/combined/*.png
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## az cohort 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Extract and match 
+  ## # # # # # # # # # # # # # # # # # # # 
+
+  extract_controlpotential_az_1:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/sequential/az/matchround1/extract/input_controlpotential.feather
+      --param cohort=az --param matching_round=1 --param index_date=2021-01-04
+    needs:
+    - design
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround1/extract/input_controlpotential.feather
+
+  process_controlpotential_az_1:
+    run: r:latest analysis/process/process_data.R potential az 1
+    needs:
+    - extract_controlpotential_az_1
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround1/process/*.rds
+      moderately_sensitive:
+        input_controlpotential_skim: output/sequential/az/matchround1/extract/potential/*.txt
+        data_processed_skim: output/sequential/az/matchround1/potential/*.txt
+        data_controlpotential_skim: output/sequential/az/matchround1/process/*.txt
+
+  match_potential_az_1:
+    run: r:latest analysis/sequential/matching/match_potential.R az 1
+    needs:
+    - process_treated
+    - process_controlpotential_az_1
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround1/potential/*.rds
+        csv: output/sequential/az/matchround1/potential/*.csv.gz
+
+  extract_controlactual_az_1:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/sequential/az/matchround1/extract/input_controlactual.feather
+      --param cohort=az --param matching_round=1
+    needs:
+    - design
+    - match_potential_az_1
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround1/extract/input_controlactual.feather
+
+  process_controlactual_az_1:
+    run: r:latest analysis/process/process_data.R actual az 1
+    needs:
+    - process_treated
+    - match_potential_az_1
+    - extract_controlpotential_az_1
+    - process_controlpotential_az_1
+    - extract_controlactual_az_1
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround1/actual/*.rds
+        csv: output/sequential/az/matchround1/actual/*.csv.gz
+      moderately_sensitive:
+        input_controlactual_skim: output/sequential/az/matchround1/extract/actual/*.txt
+        data_actual_skim: output/sequential/az/matchround1/actual/*.txt
+
+  extract_controlpotential_az_2:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/sequential/az/matchround2/extract/input_controlpotential.feather
+      --param cohort=az --param matching_round=2 --param index_date=2021-01-18
+    needs:
+    - design
+    - process_controlactual_az_1
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround2/extract/input_controlpotential.feather
+
+  process_controlpotential_az_2:
+    run: r:latest analysis/process/process_data.R potential az 2
+    needs:
+    - extract_controlpotential_az_2
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround2/process/*.rds
+      moderately_sensitive:
+        input_controlpotential_skim: output/sequential/az/matchround2/extract/potential/*.txt
+        data_processed_skim: output/sequential/az/matchround2/potential/*.txt
+        data_controlpotential_skim: output/sequential/az/matchround2/process/*.txt
+
+  match_potential_az_2:
+    run: r:latest analysis/sequential/matching/match_potential.R az 2
+    needs:
+    - process_treated
+    - process_controlpotential_az_2
+    - process_controlactual_az_1
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround2/potential/*.rds
+        csv: output/sequential/az/matchround2/potential/*.csv.gz
+
+  extract_controlactual_az_2:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/sequential/az/matchround2/extract/input_controlactual.feather
+      --param cohort=az --param matching_round=2
+    needs:
+    - design
+    - match_potential_az_2
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround2/extract/input_controlactual.feather
+
+  process_controlactual_az_2:
+    run: r:latest analysis/process/process_data.R actual az 2
+    needs:
+    - process_treated
+    - match_potential_az_2
+    - extract_controlpotential_az_2
+    - process_controlpotential_az_2
+    - extract_controlactual_az_2
+    - process_controlactual_az_1
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround2/actual/*.rds
+        csv: output/sequential/az/matchround2/actual/*.csv.gz
+      moderately_sensitive:
+        input_controlactual_skim: output/sequential/az/matchround2/extract/actual/*.txt
+        data_actual_skim: output/sequential/az/matchround2/actual/*.txt
+
+  extract_controlfinal_az:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
+      --output-file output/sequential/az/extract/input_controlfinal.feather --param
+      cohort=az --param n_matching_rounds=2
+    needs:
+    - design
+    - process_controlactual_az_2
+    outputs:
+      highly_sensitive:
+        extract: output/sequential/az/extract/input_controlfinal.feather
+
+  dummydata_controlfinal_az:
+    run: r:latest analysis/dummy/dummydata_controlfinal.R az
+    needs:
+    - process_controlactual_az_1
+    - process_controlactual_az_2
+    outputs:
+      highly_sensitive:
+        dummydata_controlfinal: output/sequential/az/dummydata/dummy_control_final.feather
+
+  process_controlfinal_az:
+    run: r:latest analysis/process/process_data.R final az
+    needs:
+    - process_controlactual_az_1
+    - process_controlactual_az_2
+    - extract_controlfinal_az
+    - process_treated
+    - dummydata_controlfinal_az
+    outputs:
+      highly_sensitive:
+        extract: output/sequential/az/match/*.rds
+      moderately_sensitive:
+        input_controlfinal_skim: output/sequential/az/extract/*.txt
+        data_matched_skim: output/sequential/az/match/*.txt
+
+  table1_az:
+    run: r:latest analysis/sequential/matching/table1.R az
+    needs:
+    - process_treated
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        csv: output/sequential/az/table1/*.csv
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Model 
+
+  km_az_all_postest:
+    run: r:latest analysis/sequential/model/km.R az all postest
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/km/all/postest/*.rds
+        png: output/sequential/az/models/km/all/postest/*.png
+
+  coxcmlinc_az_all_postest:
+    run: r:latest analysis/sequential/model/coxcmlinc.R az all postest
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/coxcmlinc/all/postest/*.rds
+        png: output/sequential/az/models/coxcmlinc/all/postest/*.png
+
+  km_az_all_covidadmitted:
+    run: r:latest analysis/sequential/model/km.R az all covidadmitted
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/km/all/covidadmitted/*.rds
+        png: output/sequential/az/models/km/all/covidadmitted/*.png
+
+  coxcmlinc_az_all_covidadmitted:
+    run: r:latest analysis/sequential/model/coxcmlinc.R az all covidadmitted
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/coxcmlinc/all/covidadmitted/*.rds
+        png: output/sequential/az/models/coxcmlinc/all/covidadmitted/*.png
+
+  km_az_all_death:
+    run: r:latest analysis/sequential/model/km.R az all death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/km/all/death/*.rds
+        png: output/sequential/az/models/km/all/death/*.png
+
+  coxcmlinc_az_all_death:
+    run: r:latest analysis/sequential/model/coxcmlinc.R az all death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/coxcmlinc/all/death/*.rds
+        png: output/sequential/az/models/coxcmlinc/all/death/*.png
+
+  km_az_ageband2_postest:
+    run: r:latest analysis/sequential/model/km.R az ageband2 postest
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/km/ageband2/postest/*.rds
+        png: output/sequential/az/models/km/ageband2/postest/*.png
+
+  coxcmlinc_az_ageband2_postest:
+    run: r:latest analysis/sequential/model/coxcmlinc.R az ageband2 postest
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/coxcmlinc/ageband2/postest/*.rds
+        png: output/sequential/az/models/coxcmlinc/ageband2/postest/*.png
+
+  km_az_ageband2_covidadmitted:
+    run: r:latest analysis/sequential/model/km.R az ageband2 covidadmitted
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/km/ageband2/covidadmitted/*.rds
+        png: output/sequential/az/models/km/ageband2/covidadmitted/*.png
+
+  coxcmlinc_az_ageband2_covidadmitted:
+    run: r:latest analysis/sequential/model/coxcmlinc.R az ageband2 covidadmitted
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/coxcmlinc/ageband2/covidadmitted/*.rds
+        png: output/sequential/az/models/coxcmlinc/ageband2/covidadmitted/*.png
+
+  km_az_ageband2_death:
+    run: r:latest analysis/sequential/model/km.R az ageband2 death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/km/ageband2/death/*.rds
+        png: output/sequential/az/models/km/ageband2/death/*.png
+
+  coxcmlinc_az_ageband2_death:
+    run: r:latest analysis/sequential/model/coxcmlinc.R az ageband2 death
+    needs:
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/coxcmlinc/ageband2/death/*.rds
+        png: output/sequential/az/models/coxcmlinc/ageband2/death/*.png
+
+  combine_km_az:
+    run: r:latest analysis/sequential/model/km_combine.R az
+    needs:
+    - km_az_all_postest
+    - km_az_all_covidadmitted
+    - km_az_all_death
+    - km_az_ageband2_postest
+    - km_az_ageband2_covidadmitted
+    - km_az_ageband2_death
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/km/combined/*.csv
+        png: output/sequential/az/models/km/combined/*.png
+
+  combine_coxcmlinc_az:
+    run: r:latest analysis/sequential/model/coxcmlinc_combine.R az
+    needs:
+    - coxcmlinc_az_all_postest
+    - coxcmlinc_az_all_covidadmitted
+    - coxcmlinc_az_all_death
+    - coxcmlinc_az_ageband2_postest
+    - coxcmlinc_az_ageband2_covidadmitted
+    - coxcmlinc_az_ageband2_death
+    outputs:
+      moderately_sensitive:
+        rds: output/sequential/az/models/coxcmlinc/combined/*.csv
+        png: output/sequential/az/models/coxcmlinc/combined/*.png
+
+  flowchart:
+    run: r:latest analysis/sequential/report/flowchart.R
+    needs:
+    - process_treated
+    - process_controlfinal_pfizer
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        flow_matching: output/sequential/flowchart/*.csv
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## SINGLE TRIAL APPROACH 
+  ## # # # # # # # # # # # # # # # # # # # 
+
+  process_single:
+    run: r:latest analysis/process/process_data.R single
+    needs:
+    - extract_treated
+    - extract_controlpotential_pfizer_1
+    outputs:
+      highly_sensitive:
+        eligible: output/single/eligible/*.rds
+      moderately_sensitive:
+        eligiblecsv: output/single/eligible/*.csv
+        eligiblecsvgz: output/single/eligible/*.csv.gz
+        data_processed_skim: output/single/process/*.txt
+        data_eligible_skim: output/single/eligible/*.txt
+
+  extract_timevarying:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_timevarying
+      --output-file output/single/extract/input_timevarying.feather
+    needs:
+    - design
+    - process_single
+    outputs:
+      highly_sensitive:
+        extract: output/single/extract/input_timevarying.feather
+
+  process_timevarying:
+    run: r:latest analysis/single/process_timevarying.R
+    needs:
+    - process_single
+    - extract_timevarying
+    outputs:
+      highly_sensitive:
+        processed: output/single/process/*.rds
+
+  ## #### End #### 
+

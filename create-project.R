@@ -518,6 +518,20 @@ actions_list <- splice(
     ),
   ),
   
+  action(
+    name = "process_timevarying",
+    run = "r:latest analysis/single/process_timevarying.R",
+    needs = namelesslst(
+      "process_single",
+      "extract_timevarying"
+    ),
+    highly_sensitive = lst(
+      processed = "output/single/process/*.rds"
+    )#,
+    # moderately_sensitive = lst(
+    # )
+  ),
+  
   # 
   # comment("# # # # # # # # # # # # # # # # # # #", 
   #         "Move files for release", 
