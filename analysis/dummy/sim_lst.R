@@ -271,16 +271,15 @@ sim_list_demographic <- lst(
 # sim list pre ----
 sim_list_pre = lst(
   
-  covid_test_0_day = bn_node(
-    ~as.integer(runif(n=..n, index_day-100, index_day-1)),
-    missing_rate = ~0.7
-  ),
+  # covid_test_0_day = bn_node(
+  #   ~as.integer(runif(n=..n, index_day-100, index_day-1)),
+  #   missing_rate = ~0.7
+  # ),
   
   primary_care_covid_case_0_day = bn_node(
     ~as.integer(runif(n=..n, index_day-100, index_day-1)),
     missing_rate = ~0.99
   ),
-  
   
   prior_covid_test_frequency = bn_node(
     ~as.integer(rpois(n=..n, lambda=3)),
