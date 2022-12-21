@@ -149,17 +149,12 @@ maxfup <- max(postbaselinecuts)
 
 # exact variables
 exact_variables <- c(
-  
   "jcvi_ageband",
   "cev_cv",
   "region",
   "sex",
-
-  #"multimorb",
   "timesince_covid_cat",
   "prior_covid_infection",
-  #"immunosuppressed",
-  #"status_hospplanned"
   NULL
 )
 
