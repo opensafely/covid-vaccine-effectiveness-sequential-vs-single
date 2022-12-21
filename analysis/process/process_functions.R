@@ -147,13 +147,34 @@ process_pre <- function(.data) {
   
   .data %>%
     mutate(
-      prior_tests_cat = cut(prior_covid_test_frequency, breaks=c(0, 1, 2, 3, Inf), labels=c("0", "1", "2", "3+"), right=FALSE),
+      prior_tests_cat = cut(
+        prior_covid_test_frequency, 
+        breaks=c(0, 1, 2, 3, Inf), 
+        labels=c("0", "1", "2", "3+"),
+        right=FALSE
+        ),
       # any covid event before study start
-      prior_covid_infection = (!is.na(positive_test_0_date)) | (!is.na(covidemergency_0_date))| (!is.na(admitted_covid_0_date)) | (!is.na(primary_care_covid_case_0_date)),
+      prior_covid_infection = (
+        !is.na(positive_test_0_date)) | 
+        (!is.na(covidemergency_0_date))| 
+        (!is.na(admitted_covid_0_date)) |
+        (!is.na(primary_care_covid_case_0_date)
+         ),
       # date of latest covid event before study start
-      anycovid_0_date = pmax(positive_test_0_date, covidemergency_0_date, admitted_covid_0_date, na.rm=TRUE), # do not use primary care covid here as unreliable event time
+      anycovid_0_date = pmax(
+        positive_test_0_date, 
+        covidemergency_0_date,
+        admitted_covid_0_date,
+        # do not use primary care covid here as unreliable event time
+        na.rm=TRUE
+        ),
       timesince_covid = as.numeric(index_date - anycovid_0_date),
-      timesince_covid_cat = cut(coalesce(timesince_covid, -Inf), breaks = c(-Inf, 0, 30, 90, Inf), labels=c("Never", "<30 days", "30-90 days", "90+ days"), right=FALSE)
+      timesince_covid_cat = cut(
+        coalesce(timesince_covid, -Inf),
+        breaks = c(-Inf, 0, 30, 90, Inf),
+        labels=c("Never", "<30 days", "30-90 days", "90+ days"), 
+        right=FALSE
+        )
     )
   
 }
