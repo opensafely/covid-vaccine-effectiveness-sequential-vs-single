@@ -216,71 +216,19 @@ actions:
         input_controlfinal_skim: output/sequential/pfizer/extract/*.txt
         data_matched_skim: output/sequential/pfizer/match/*.txt
 
-  table1_pfizer:
-    run: r:latest analysis/sequential/matching/table1.R pfizer
+  match_report_pfizer:
+    run: r:latest analysis/sequential/matching/match_report.R pfizer
     needs:
     - process_treated
     - process_controlfinal_pfizer
     outputs:
       moderately_sensitive:
-        csv: output/sequential/pfizer/table1/*.csv
+        coverage: output/sequential/pfizer/match/report/coverage.csv
+        table1: output/sequential/pfizer/match/report/table1.csv
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model 
-
-  km_pfizer_all_postest:
-    run: r:latest analysis/sequential/model/km.R pfizer all postest
-    needs:
-    - process_controlfinal_pfizer
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/pfizer/models/km/all/postest/*.rds
-        png: output/sequential/pfizer/models/km/all/postest/*.png
-
-  coxcmlinc_pfizer_all_postest:
-    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer all postest
-    needs:
-    - process_controlfinal_pfizer
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/pfizer/models/coxcmlinc/all/postest/*.rds
-        png: output/sequential/pfizer/models/coxcmlinc/all/postest/*.png
-
-  km_pfizer_all_covidadmitted:
-    run: r:latest analysis/sequential/model/km.R pfizer all covidadmitted
-    needs:
-    - process_controlfinal_pfizer
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/pfizer/models/km/all/covidadmitted/*.rds
-        png: output/sequential/pfizer/models/km/all/covidadmitted/*.png
-
-  coxcmlinc_pfizer_all_covidadmitted:
-    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer all covidadmitted
-    needs:
-    - process_controlfinal_pfizer
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/pfizer/models/coxcmlinc/all/covidadmitted/*.rds
-        png: output/sequential/pfizer/models/coxcmlinc/all/covidadmitted/*.png
-
-  km_pfizer_all_death:
-    run: r:latest analysis/sequential/model/km.R pfizer all death
-    needs:
-    - process_controlfinal_pfizer
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/pfizer/models/km/all/death/*.rds
-        png: output/sequential/pfizer/models/km/all/death/*.png
-
-  coxcmlinc_pfizer_all_death:
-    run: r:latest analysis/sequential/model/coxcmlinc.R pfizer all death
-    needs:
-    - process_controlfinal_pfizer
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/pfizer/models/coxcmlinc/all/death/*.rds
-        png: output/sequential/pfizer/models/coxcmlinc/all/death/*.png
+  ## # # # # # # # # # # # # # # # # # # # 
 
   km_pfizer_ageband2_postest:
     run: r:latest analysis/sequential/model/km.R pfizer ageband2 postest
@@ -339,9 +287,6 @@ actions:
   combine_km_pfizer:
     run: r:latest analysis/sequential/model/km_combine.R pfizer
     needs:
-    - km_pfizer_all_postest
-    - km_pfizer_all_covidadmitted
-    - km_pfizer_all_death
     - km_pfizer_ageband2_postest
     - km_pfizer_ageband2_covidadmitted
     - km_pfizer_ageband2_death
@@ -353,9 +298,6 @@ actions:
   combine_coxcmlinc_pfizer:
     run: r:latest analysis/sequential/model/coxcmlinc_combine.R pfizer
     needs:
-    - coxcmlinc_pfizer_all_postest
-    - coxcmlinc_pfizer_all_covidadmitted
-    - coxcmlinc_pfizer_all_death
     - coxcmlinc_pfizer_ageband2_postest
     - coxcmlinc_pfizer_ageband2_covidadmitted
     - coxcmlinc_pfizer_ageband2_death
@@ -527,71 +469,19 @@ actions:
         input_controlfinal_skim: output/sequential/az/extract/*.txt
         data_matched_skim: output/sequential/az/match/*.txt
 
-  table1_az:
-    run: r:latest analysis/sequential/matching/table1.R az
+  match_report_az:
+    run: r:latest analysis/sequential/matching/match_report.R az
     needs:
     - process_treated
     - process_controlfinal_az
     outputs:
       moderately_sensitive:
-        csv: output/sequential/az/table1/*.csv
+        coverage: output/sequential/az/match/report/coverage.csv
+        table1: output/sequential/az/match/report/table1.csv
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model 
-
-  km_az_all_postest:
-    run: r:latest analysis/sequential/model/km.R az all postest
-    needs:
-    - process_controlfinal_az
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/az/models/km/all/postest/*.rds
-        png: output/sequential/az/models/km/all/postest/*.png
-
-  coxcmlinc_az_all_postest:
-    run: r:latest analysis/sequential/model/coxcmlinc.R az all postest
-    needs:
-    - process_controlfinal_az
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/az/models/coxcmlinc/all/postest/*.rds
-        png: output/sequential/az/models/coxcmlinc/all/postest/*.png
-
-  km_az_all_covidadmitted:
-    run: r:latest analysis/sequential/model/km.R az all covidadmitted
-    needs:
-    - process_controlfinal_az
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/az/models/km/all/covidadmitted/*.rds
-        png: output/sequential/az/models/km/all/covidadmitted/*.png
-
-  coxcmlinc_az_all_covidadmitted:
-    run: r:latest analysis/sequential/model/coxcmlinc.R az all covidadmitted
-    needs:
-    - process_controlfinal_az
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/az/models/coxcmlinc/all/covidadmitted/*.rds
-        png: output/sequential/az/models/coxcmlinc/all/covidadmitted/*.png
-
-  km_az_all_death:
-    run: r:latest analysis/sequential/model/km.R az all death
-    needs:
-    - process_controlfinal_az
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/az/models/km/all/death/*.rds
-        png: output/sequential/az/models/km/all/death/*.png
-
-  coxcmlinc_az_all_death:
-    run: r:latest analysis/sequential/model/coxcmlinc.R az all death
-    needs:
-    - process_controlfinal_az
-    outputs:
-      moderately_sensitive:
-        rds: output/sequential/az/models/coxcmlinc/all/death/*.rds
-        png: output/sequential/az/models/coxcmlinc/all/death/*.png
+  ## # # # # # # # # # # # # # # # # # # # 
 
   km_az_ageband2_postest:
     run: r:latest analysis/sequential/model/km.R az ageband2 postest
@@ -650,9 +540,6 @@ actions:
   combine_km_az:
     run: r:latest analysis/sequential/model/km_combine.R az
     needs:
-    - km_az_all_postest
-    - km_az_all_covidadmitted
-    - km_az_all_death
     - km_az_ageband2_postest
     - km_az_ageband2_covidadmitted
     - km_az_ageband2_death
@@ -664,9 +551,6 @@ actions:
   combine_coxcmlinc_az:
     run: r:latest analysis/sequential/model/coxcmlinc_combine.R az
     needs:
-    - coxcmlinc_az_all_postest
-    - coxcmlinc_az_all_covidadmitted
-    - coxcmlinc_az_all_death
     - coxcmlinc_az_ageband2_postest
     - coxcmlinc_az_ageband2_covidadmitted
     - coxcmlinc_az_ageband2_death

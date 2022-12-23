@@ -284,7 +284,7 @@ action_km_combine <- function(
       as.list(
         glue_data(
           .x=expand_grid(
-            subgroup=c("all", "ageband2"),
+            subgroup=model_subgroups,
             outcome=model_outcomes,
           ),
           "km_{cohort}_{subgroup}_{outcome}"
@@ -313,7 +313,7 @@ action_coxcmlinc_combine <- function(
       as.list(
         glue_data(
           .x=expand_grid(
-            subgroup=c("all", "ageband2"),
+            subgroup=model_subgroups,
             outcome=model_outcomes,
           ),
           "coxcmlinc_{cohort}_{subgroup}_{outcome}"
@@ -327,18 +327,18 @@ action_coxcmlinc_combine <- function(
   )
 }
 
-action_table1 <- function(cohort){
+action_match_report <- function(cohort){
   action(
-    name = glue("table1_{cohort}"),
-    run = glue("r:latest analysis/sequential/matching/table1.R"),
+    name = glue("match_report_{cohort}"),
+    run = glue("r:latest analysis/sequential/matching/match_report.R"),
     arguments = c(cohort),
     needs = namelesslst(
       "process_treated",
       glue("process_controlfinal_{cohort}"),
     ),
     moderately_sensitive= lst(
-      csv= glue("output/sequential/{cohort}/table1/*.csv"),
-      # png= glue("output/sequential/{cohort}/table1/*.png"),
+      coverage= glue("output/sequential/{cohort}/match/report/coverage.csv"),
+      table1= glue("output/sequential/{cohort}/match/report/table1.csv")
     )
   )
 }
@@ -356,13 +356,14 @@ brand_seqtrial <- function(brand) {
     
     action_extract_and_match(brand, n_matching_rounds),
     
-    action_table1(brand),
+    action_match_report(brand),
     
     comment("# # # # # # # # # # # # # # # # # # #",
-            "Model"),
+            "Model",
+            "# # # # # # # # # # # # # # # # # # #"),
     unlist(
       lapply(
-        c("all", "ageband2"),
+        model_subgroups,
         function(x) {
           unlist(
             lapply(
