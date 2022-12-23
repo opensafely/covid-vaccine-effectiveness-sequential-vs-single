@@ -500,7 +500,7 @@ if (stage == "treated") {
 if (stage %in% c("single", "treated", "potential", "actual")) {
   
   if (stage == "single") {
-    include <- "c4"
+    include <- "c5"
   } else {
     include <- "c6"
   }
@@ -529,14 +529,14 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
       
       !!! selection_stage,
       
-      no_recentcovid30 = is.na(anycovid_0_date) | ((index_date - anycovid_0_date) > 30),
+      # no_recentcovid30 = is.na(anycovid_0_date) | ((index_date - anycovid_0_date) > 30),
       
       isnot_inhospital = is.na(admitted_unplanned_0_date) | (!is.na(discharged_unplanned_0_date) & discharged_unplanned_0_date < index_date),
       
       c2 = c1 & isnot_hscworker,
       c3 = c2 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
       c4 = c3 & has_age & has_sex & has_imd & has_ethnicity & has_region,
-      c5 = c4 & no_recentcovid30,
+      c5 = c4 & !prior_covid_infection,
       c6 = c5 & isnot_inhospital,
       
       include = !! sym(include),
@@ -613,13 +613,13 @@ if (stage %in% c("single", "treated")) {
       criteria_descr["Aged 70+ and not vaccinated before eligible"] <- "c0"
     } else if (stage == "treated") {
       criteria_descr["Aged 70+ with 1st dose between study dates"] <- "c0"
-      criteria_descr["  no evidence of covid in 30 days before trial date"] <- "c5"
       criteria_descr["  not in hospital (unplanned) on trial date"] <- "c6"
     }
     criteria_descr["  no unreliable vaccination data"] <- "c1"
     criteria_descr["  not a HSC worker"] <- "c2"
     criteria_descr["  not a care/nursing home resident, end-of-life or housebound"] <- "c3"
     criteria_descr["  no missing demographic information"] <- "c4"
+    criteria_descr["  no evidence of covid before trial date"] <- "c5"
     criteria_descr <- sort(criteria_descr)
     
     data_flowchart <- data_flowchart %>%
