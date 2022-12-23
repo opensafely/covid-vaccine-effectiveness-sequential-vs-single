@@ -18,20 +18,19 @@ library('glue')
 library('survival')
 
 ## Import custom user functions from lib
-source(here("lib", "utility_functions.R"))
-source(here("lib", "survival_functions.R"))
+source(here("analysis", "functions", "utility.R"))
+source(here("analysis", "functions", "survival.R"))
 
 # import command-line arguments ----
 
 args <- commandArgs(trailingOnly=TRUE)
 
-
-
-
 if(length(args)==0){
   # use for interactive testing
   removeobs <- FALSE
-  cohort <- "over80s"
+  cohort <- "all"
+  # cohort <- "over80s"
+  # cohort <- "in70s"
   
 } else{
   removeobs <- TRUE
@@ -39,14 +38,23 @@ if(length(args)==0){
 }
 
 # Import processed data ----
-data_cohort <- read_rds(here("output", cohort, "data", "data_cohort.rds"))
-characteristics <- read_rds(here("output", "metadata", "baseline_characteristics.rds"))
+data_cohort <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds"))
+# data_cohort <- read_rds(here("output", cohort, "data", "data_cohort.rds"))
+# characteristics <- read_rds(here("output", "metadata", "baseline_characteristics.rds"))
+
+if (cohort == "over80s") {
+  data_cohort <- data_cohort %>%
+    filter(ageband2 == "80+")
+} else if (cohort == "in70s") {
+  data_cohort <- data_cohort %>%
+    filter(ageband2 == "70-79")
+}
 
 
-# import globally defined repo variables from
-gbl_vars <- jsonlite::fromJSON(
-  txt="./analysis/global-variables.json"
-)
+# # import globally defined repo variables from
+# gbl_vars <- jsonlite::fromJSON(
+#   txt="./analysis/global-variables.json"
+# )
 
 
 # Generate different data formats ----
