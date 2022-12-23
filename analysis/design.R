@@ -12,7 +12,8 @@ library('here')
 ## create output directories ----
 fs::dir_create(here("lib", "design"))
 
-
+## round counts to nearest 6 for disclosure control
+threshold <- 6
 
 # number of matching rounds to perform
 
@@ -134,6 +135,7 @@ recoder <-
     ),
   )
 
+model_subgroups <- "ageband2"
 
 ## follow-up time ----
 
