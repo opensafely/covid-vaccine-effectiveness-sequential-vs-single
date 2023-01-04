@@ -1,7 +1,7 @@
 # sim list vax ----
 sim_list_vax <- lst(
   
-  first_vax_type = bn_node(~rcat(n=..n, c("pfizer","az", "moderna", ""), c(0.46,0.48, 0.05, 0.01)), keep=FALSE),
+  first_vax_type = bn_node(~rcat(n=..n, c("pfizer","az", ""), c(0.49,0.50, 0.01)), keep=FALSE),
   covid_vax_pfizer_1_day = bn_node(
     ~as.integer(runif(n=..n, pfizerstart_day, pfizerstart_day+60)),
     missing_rate = ~1-(first_vax_type=="pfizer")
@@ -20,16 +20,6 @@ sim_list_vax <- lst(
     needs = c("covid_vax_az_1_day"),
     missing_rate = ~0.01
   ),
-  covid_vax_moderna_1_day = bn_node(
-    ~as.integer(runif(n=..n, modernastart_day, modernastart_day+60)),
-    missing_rate = ~1-(first_vax_type=="moderna")
-  ),
-  covid_vax_moderna_2_day = bn_node(
-    ~as.integer(runif(n=..n, covid_vax_moderna_1_day+30, covid_vax_moderna_1_day+60)),
-    needs = c("covid_vax_moderna_1_day"),
-    missing_rate = ~0.01
-  ),
-  
 )
 
 # sim list jcvi ----
