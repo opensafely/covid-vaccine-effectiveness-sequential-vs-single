@@ -14,7 +14,9 @@ library('tidyverse')
 library('here')
 library('glue')
 
-# import custom user functions
+## import local functions and parameters ---
+
+source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 
 # create output directories 
@@ -22,14 +24,15 @@ outdir <- here("output", "single", "process")
 fs::dir_create(outdir)
 
 # import timevarying extract 
-data_extract <- arrow::read_feather(here("output", "single", "extract", "input_timevarying.feather"))
+data_extract <- arrow::read_feather(here("output", "single", "extract", "input_timevarying.feather")) %>%
+  mutate(across(ends_with("_date"),  as.Date))
 
 # import eligible data 
 data_eligible <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds"))
 
 # select and save outcomes
 data_outcomes <- data_extract %>%
-  select(patient_id, postest_date, covidadmitted_date, coviddeath_date, death_date)
+  select(patient_id, dereg_date, postest_date, covidadmitted_date, coviddeath_date, death_date)
 write_rds(
   data_outcomes,
   file.path(outdir, "data_outcomes.rds"), 
@@ -40,7 +43,6 @@ write_rds(
 # for the timevarying variables that occur both before (data_eligible) 
 # and after (data_timevarying) trial_date
 data_timevarying <- data_extract %>%
-  mutate(across(ends_with("_date"),  as.Date)) %>%
   left_join(
     data_eligible %>% 
       select(
