@@ -24,38 +24,37 @@ n_matching_rounds <- 2#4
 
 study_dates <- lst(
   
+  global = lst(
+    
+    # dose 1 dates
+    firstpfizer_date = "2020-12-08", # first pfizer vaccination in national roll-out
+    firstaz_date = "2021-01-04", # first az vaccination in national roll-out
+    firstmoderna_date = "2021-04-13", # first moderna vaccination in national roll-out
+    firstpossiblevax_date = "2020-06-01", # used to catch "real" vaccination dates (eg not 1900-01-01)
+    
+    index_date = firstpfizer_date,
+    studyend_date = as.Date(firstmoderna_date) - 1, # end of follow-up
+    
+  ),
+  
   pfizer = lst( # pfizer dose 1
-   start_date = "2020-12-08", #start of recruitment
-   end_date = "2021-04-19", # end of recruitment
-   # followupend_date = "2022-01-02", # end of follow-up
+   start_date = global$firstpfizer_date, #start of recruitment
+   end_date = global$studyend_date, # end of recruitment and follow-up
   ),
   
   az = lst( # az dose 1
-    start_date = "2021-01-04", #start of recruitment
-    end_date = "2021-04-19", # end of recruitment
-    # followupend_date = "2022-07-10" # end of follow-up
+    start_date = global$firstaz_date, #start of recruitment
+    end_date = global$studyend_date, # end of recruitment and follow-up
   ),
   
   over80s = lst(
-    start_date = "2020-12-08"
+    start_date = global$firstpfizer_date
   ),
   
   in70s = lst(
     start_date = "2021-01-05"
   ),
   
-  global = lst(
-    
-    index_date = "2020-12-08",
-  
-    studyend_date = "2021-04-19", # end of follow-up
-  
-    # dose 1 dates
-    firstpfizer_date = "2020-12-08", # first pfizer vaccination in national roll-out
-    firstaz_date = "2021-01-04", # first az vaccination in national roll-out
-    firstmoderna_date = "2021-04-13", # first moderna vaccination in national roll-out
-    firstpossiblevax_date = "2020-06-01", # used to catch "real" vaccination dates (eg not 1900-01-01)
-  ),
 )
 
 
