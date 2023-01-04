@@ -24,7 +24,7 @@ index_date = params["index_date"]
 ############################################################
 ## inclusion variables
 from variables_vax import generate_vax_variables 
-vax_variables = generate_vax_variables(index_date="1900-01-01", n=3)
+vax_variables = generate_vax_variables(index_date="1900-01-01", n=2)
 ############################################################
 # vax variables
 from variables_inclusion import generate_inclusion_variables 
