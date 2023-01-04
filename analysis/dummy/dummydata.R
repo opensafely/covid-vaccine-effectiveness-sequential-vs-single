@@ -16,24 +16,21 @@ source(here("analysis", "dummy", "sim_lst.R"))
 
 population_size <- 20000
 
-# import globally defined repo variables from
-study_dates <- jsonlite::read_json(
-  path=here("lib", "design", "study-dates.json")
-)
-
 # create dummy data for variables defined before baseline ----
-pfizerstart_date <- as.Date(study_dates$pfizer$start_date)
-azstart_date <- as.Date(study_dates$az$start_date)
+pfizerstart_date <- as.Date(study_dates$global$firstpfizer_date)
+azstart_date <- as.Date(study_dates$global$firstaz_date)
+modernastart_date <- as.Date(study_dates$global$firstmoderna_date)
 
 index_date <- as.Date(study_dates$global$index_date)
 
 index_day <- 0L
 pfizerstart_day <- as.integer(pfizerstart_date - index_date)
 azstart_day <- as.integer(azstart_date - index_date)
+modernastart_day <- as.integer(modernastart_date - index_date)
 
 known_variables <- c(
-  "index_date", "pfizerstart_date", "azstart_date",
-  "index_day", "pfizerstart_day", "azstart_day"
+  "index_date", "pfizerstart_date", "azstart_date", "modernastart_date",
+  "index_day", "pfizerstart_day", "azstart_day", "modernastart_day"
 )
 
 sim_list <- splice(
@@ -45,9 +42,6 @@ sim_list <- splice(
 )
 
 bn <- bn_create(sim_list, known_variables = known_variables)
-
-# bn_plot(bn)
-# bn_plot(bn, connected_only = TRUE)
 
 set.seed(10)
 
@@ -63,7 +57,7 @@ dummydata_vax <- dummydata %>%
   group_by(patient_id) %>%
   mutate(sequence = rank(value, ties = "random")) %>%
   ungroup() %>%
-  filter(sequence<=4) %>%
+  filter(sequence<=2) %>%
   select(-name) %>%
   pivot_wider(
     names_from = sequence,
@@ -89,12 +83,11 @@ fs::dir_create(here("lib", "dummydata"))
 
 # dummy_treated
 dummydata_processed %>% 
-  filter(!is.na(covid_vax_disease_3_date)) %>% 
+  filter(!is.na(covid_vax_disease_1_date)) %>% 
   write_feather(sink = here("lib", "dummydata", "dummy_treated.feather"))
 
 # dummy_control_potential1 (reused for actual)
 dummydata_processed %>% 
   select(-all_of(str_replace(names(sim_list_outcome), "_day", "_date"))) %>%
-  select(-matches("covid_vax_\\w+_4_date")) %>%
   write_feather(sink = here("lib", "dummydata", "dummy_control_potential1.feather"))
 
