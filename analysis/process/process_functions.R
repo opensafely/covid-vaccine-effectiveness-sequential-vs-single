@@ -206,28 +206,15 @@ process_vax <- function(.data, stage) {
       ) %>%
       arrange(patient_id, date)
     
-    data_vax_moderna <- .data %>%
-      select(patient_id, matches("covid\\_vax\\_moderna\\_\\d+\\_date")) %>%
-      pivot_longer(
-        cols = -patient_id,
-        names_to = c(NA, "vax_moderna_index"),
-        names_pattern = "^(.*)_(\\d+)_date",
-        values_to = "date",
-        values_drop_na = TRUE
-      ) %>%
-      arrange(patient_id, date)
-    
 
     data_vax <-
       data_vax_pfizer %>%
       full_join(data_vax_az, by=c("patient_id", "date")) %>%
-      full_join(data_vax_moderna, by=c("patient_id", "date")) %>%
       mutate(
         type = fct_case_when(
-          (!is.na(vax_az_index)) & is.na(vax_pfizer_index) & is.na(vax_moderna_index) ~ "az",
-          is.na(vax_az_index) & (!is.na(vax_pfizer_index)) & is.na(vax_moderna_index) ~ "pfizer",
-          is.na(vax_az_index) & is.na(vax_pfizer_index) & (!is.na(vax_moderna_index)) ~ "moderna",
-          (!is.na(vax_az_index)) + (!is.na(vax_pfizer_index)) + (!is.na(vax_moderna_index)) > 1 ~ "duplicate",
+          (!is.na(vax_az_index)) & is.na(vax_pfizer_index) ~ "az",
+          is.na(vax_az_index) & (!is.na(vax_pfizer_index)) ~ "pfizer",
+          (!is.na(vax_az_index)) + (!is.na(vax_pfizer_index)) > 1 ~ "duplicate",
           TRUE ~ NA_character_
         )
       ) %>%
@@ -259,7 +246,6 @@ process_vax <- function(.data, stage) {
       vax2_type_descr = fct_case_when(
         vax2_type == "pfizer" ~ "BNT162b2",
         vax2_type == "az" ~ "ChAdOx1",
-        vax2_type == "moderna" ~ "mRNA-1273",
         TRUE ~ NA_character_
       ),
       
@@ -284,7 +270,6 @@ process_vax <- function(.data, stage) {
       vax1_type_descr = fct_case_when(
         vax1_type == "pfizer" ~ "BNT162b2",
         vax1_type == "az" ~ "ChAdOx1",
-        vax1_type == "moderna" ~ "mRNA-1273",
         TRUE ~ NA_character_
       ),
       vax1_date = covid_vax_1_date,
