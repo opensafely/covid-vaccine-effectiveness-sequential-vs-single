@@ -19,7 +19,6 @@ population_size <- 20000
 # create dummy data for variables defined before baseline ----
 pfizerstart_date <- as.Date(study_dates$global$firstpfizer_date)
 azstart_date <- as.Date(study_dates$global$firstaz_date)
-modernastart_date <- as.Date(study_dates$global$firstmoderna_date)
 
 index_date <- as.Date(study_dates$global$index_date)
 
@@ -29,8 +28,8 @@ azstart_day <- as.integer(azstart_date - index_date)
 modernastart_day <- as.integer(modernastart_date - index_date)
 
 known_variables <- c(
-  "index_date", "pfizerstart_date", "azstart_date", "modernastart_date",
-  "index_day", "pfizerstart_day", "azstart_day", "modernastart_day"
+  "index_date", "pfizerstart_date", "azstart_date", 
+  "index_day", "pfizerstart_day", "azstart_day", 
 )
 
 sim_list <- splice(
