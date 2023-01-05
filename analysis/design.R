@@ -47,13 +47,13 @@ study_dates <- lst(
     end_date = global$studyend_date, # end of recruitment and follow-up
   ),
   
-  # over80s = lst(
-  #   start_date = global$firstpfizer_date
-  # ),
-  # 
-  # in70s = lst(
-  #   start_date = "2021-01-05"
-  # ),
+  over80s = lst(
+    start_date = global$firstpfizer_date
+  ),
+
+  in70s = lst(
+    start_date = "2021-01-05"
+  ),
   
 )
 

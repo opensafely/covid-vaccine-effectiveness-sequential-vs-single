@@ -16,5 +16,11 @@
     "start_date": "2021-01-04",
     "end_date": "2021-04-12",
     "control_extract_dates": ["2021-01-04", "2021-01-18"]
+  },
+  "over80s": {
+    "start_date": "2020-12-08"
+  },
+  "in70s": {
+    "start_date": "2021-01-05"
   }
 }
