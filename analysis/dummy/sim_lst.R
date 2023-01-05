@@ -51,7 +51,6 @@ sim_list_jcvi <- lst(
   chronic_kidney_disease = bn_node( ~rbernoulli(n=..n, p = 0.02)),
   chronic_liver_disease = bn_node( ~rbernoulli(n=..n, p = 0.02)),
   immunosuppressed = bn_node( ~rbernoulli(n=..n, p = 0.02)),
-  asplenia = bn_node( ~rbernoulli(n=..n, p = 0.02)),
   learndis = bn_node( ~rbernoulli(n=..n, p = 0.02)),
   
   cev_ever = bn_node( ~rbernoulli(n=..n, p = 0.02)),
