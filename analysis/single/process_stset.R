@@ -3,7 +3,7 @@
 # This script:
 # imports a cohort-specific processed dataset
 # creates 3 datasets for that cohort:
-# data_tte is one row per patient containing time-to-event data
+# data_patients is one row per patient containing time-to-event data
 # data_fixed is one row per patient containing baseline / time-invariant characteristics
 # data_pt is a (very large) one row per patient per day "person-time" dataset
 # creates additional survival variables for use in models (eg time to event from study start date)
@@ -45,7 +45,7 @@ fs::dir_create(outdir)
 
 # Generate different data formats ----
 
-## one-row-per-patient data ----
+## one-row-per-patient data (data_patients) ----
 
 data_fixed <- data_eligible %>%
   select(
@@ -59,7 +59,7 @@ cat(" \n")
 cat(glue("one-row-per-patient (time-independent) data size = ", nrow(data_fixed)), "\n")
 cat(glue("memory usage = ", format(object.size(data_fixed), units="GB", standard="SI", digits=3L)), "\n")
 
-data_tte <- data_eligible %>%
+data_patients <- data_eligible %>%
   left_join(data_outcomes, by = "patient_id") %>%
   transmute(
     patient_id,
@@ -119,15 +119,14 @@ data_tte <- data_eligible %>%
     .fns = as.integer
   ))
 
-stopifnot("vax1 time should not be same as vax2 time" = all(data_tte$tte_vaxany1 != data_tte$tte_vaxany2, na.rm=TRUE))
+stopifnot("vax1 time should not be same as vax2 time" = all(data_patients$tte_vaxany1 != data_patients$tte_vaxany2, na.rm=TRUE))
 
 ## print dataset size ----
 cat(" \n")
-cat(glue("one-row-per-patient (tte) data size = ", nrow(data_tte)), "\n")
-cat(glue("memory usage = ", format(object.size(data_tte), units="MB", standard="SI", digits=3L)), "\n")
+cat(glue("one-row-per-patient (tte) data size = ", nrow(data_patients)), "\n")
+cat(glue("memory usage = ", format(object.size(data_patients), units="MB", standard="SI", digits=3L)), "\n")
 
-## create counting-process format dataset ----
-# ie, one row per person per event
+## create cone row per person per event dataset (data_events) ----
 # every time an event occurs or a covariate changes, a new row is generated
 
 # import infectious hospitalisations data for time-updating "in-hospital" covariate
@@ -139,7 +138,7 @@ data_hospitalised_infectious <- read_rds(here("output", "single", "process", "da
     values_drop_na = TRUE
   ) %>%
   inner_join(
-    data_tte %>% select(patient_id, start_date, lastfup_date),
+    data_patients %>% select(patient_id, start_date, lastfup_date),
     .,
     by =c("patient_id")
   ) %>%
@@ -157,7 +156,7 @@ data_hospitalised_noninfectious <- read_rds(here("output", "single", "process", 
     values_drop_na = TRUE
   ) %>%
   inner_join(
-    data_tte %>% select(patient_id, start_date, lastfup_date),
+    data_patients %>% select(patient_id, start_date, lastfup_date),
     .,
     by =c("patient_id")
   ) %>%
@@ -169,7 +168,7 @@ data_hospitalised_noninfectious <- read_rds(here("output", "single", "process", 
 
 # data_suspected_covid <- read_rds(here("output", cohort, "data", "data_long_pr_suspected_covid_dates.rds")) %>%
 #   inner_join(
-#     data_tte %>% select(patient_id, start_date, lastfup_date),
+#     data_patients %>% select(patient_id, start_date, lastfup_date),
 #     .,
 #     by =c("patient_id")
 #   ) %>%
@@ -179,7 +178,7 @@ data_hospitalised_noninfectious <- read_rds(here("output", "single", "process", 
 
 # data_probable_covid <- read_rds(here("output", cohort, "data", "data_long_pr_probable_covid_dates.rds")) %>%
 #   inner_join(
-#     data_tte %>% select(patient_id, start_date, lastfup_date),
+#     data_patients %>% select(patient_id, start_date, lastfup_date),
 #     .,
 #     by =c("patient_id")
 #   ) %>%
@@ -189,7 +188,7 @@ data_hospitalised_noninfectious <- read_rds(here("output", "single", "process", 
 
 # data_postest <- read_rds(here("output", "single", "process", "data_long_postest_dates.rds")) %>%
 #   inner_join(
-#     data_tte %>% select(patient_id, start_date, lastfup_date),
+#     data_patients %>% select(patient_id, start_date, lastfup_date),
 #     .,
 #     by =c("patient_id")
 #   ) %>%
@@ -198,10 +197,10 @@ data_hospitalised_noninfectious <- read_rds(here("output", "single", "process", 
 #   )
 
 # initial call based on events and vaccination status
-data_tte_cp0 <- tmerge(
+data_events0 <- tmerge(
   
-  data1 = data_tte %>% select(-starts_with("ind_"), -ends_with("_date")),
-  data2 = data_tte,
+  data1 = data_patients %>% select(-starts_with("ind_"), -ends_with("_date")),
+  data2 = data_patients,
   id = patient_id,
   
   vaxany_atrisk = tdc(start_date-start_date),
@@ -248,10 +247,10 @@ data_tte_cp0 <- tmerge(
   
 ) 
 
-stopifnot("tstart should be  >= 0 in data_tte_cp0" = data_tte_cp0$tstart>=0)
-stopifnot("tstop - tstart should be strictly > 0 in data_tte_cp0" = data_tte_cp0$tstop - data_tte_cp0$tstart > 0)
+stopifnot("tstart should be  >= 0 in data_events0" = data_events0$tstart>=0)
+stopifnot("tstop - tstart should be strictly > 0 in data_events0" = data_events0$tstop - data_events0$tstart > 0)
 
-data_tte_cp <- data_tte_cp0 %>%
+data_events <- data_events0 %>%
   tmerge(
     data1 = .,
     data2 = data_hospitalised_infectious,
@@ -296,65 +295,65 @@ data_tte_cp <- data_tte_cp0 %>%
   #   id = patient_id,
   #   postesttdc = event(tte)
   # ) %>%
-  arrange(
-    patient_id, tstart
-  ) %>%
-  mutate(
-    twidth = tstop - tstart,
-    vaxany_status = vaxany1_status + vaxany2_status,
-    vaxpfizer_status = vaxpfizer1_status + vaxpfizer2_status,
-    vaxaz_status = vaxaz1_status + vaxaz2_status,
-  ) %>%
-  ungroup() %>%
-  # for some reason tmerge converts event indicators to numeric. So convert back to save space
-  mutate(across(
-    .cols = c("vaxany1",
-              "vaxany2",
-              "vaxpfizer1",
-              "vaxpfizer2",
-              "vaxaz1",
-              "vaxaz2",
-              # "covidtest",
-              "postest",
-              # "emergency",
-              "covidadmitted",
-              # "coviddeath",
-              # "noncoviddeath",
-              "death",
-              "lastfup",
-              "hospinfectious_status",
-              "hospnoninfectious_status",
-              "hospinfectiousdischarge",
-              "hospnoninfectiousdischarge"#,
-              # "suspectedcovid",
-              #"probablecovid",
-              # "postesttdc"
-    ),
-    .fns = as.integer
-  ))
+arrange(
+  patient_id, tstart
+  )
 
+# do the following processing steps using base R rather than dplyr to preserve tmerge class
+data_events$twidth <- data_events$tstop - data_events$tstart
+data_events$vaxany_status <- data_events$vaxany1_status + data_events$vaxany2_status
+data_events$vaxpfizer_status <- data_events$vaxpfizer1_status + data_events$vaxpfizer2_status
+data_events$vaxaz_status <- data_events$vaxaz1_status - data_events$vaxaz2_status
+
+cols_to_convert <-   c("vaxany1",
+                       "vaxany2",
+                       "vaxpfizer1",
+                       "vaxpfizer2",
+                       "vaxaz1",
+                       "vaxaz2",
+                       # "covidtest",
+                       "postest",
+                       # "emergency",
+                       "covidadmitted",
+                       # "coviddeath",
+                       # "noncoviddeath",
+                       "death",
+                       "lastfup",
+                       "hospinfectious_status",
+                       "hospnoninfectious_status",
+                       "hospinfectiousdischarge",
+                       "hospnoninfectiousdischarge"#,
+                       # "suspectedcovid",
+                       #"probablecovid",
+                       # "postesttdc"
+)
+
+for (var in cols_to_convert) {
+  data_events[[var]] <- as.integer(data_events[[var]])
+}
+ 
 # free up memory
 if(removeobs){
   rm(
-    data_tte_cp0, data_hospitalised_infectious, data_hospitalised_noninfectious, 
+    data_events0, data_hospitalised_infectious, data_hospitalised_noninfectious, 
     # data_suspected_covid, data_probable_covid,
     data_postest
     )
 }
 
-stopifnot("tstart should be >= 0 in data_tte_cp" = data_tte_cp$tstart>=0)
-stopifnot("tstop - tstart should be strictly > 0 in data_tte_cp" = data_tte_cp$tstop - data_tte_cp$tstart > 0)
+stopifnot("tstart should be >= 0 in data_events" = data_events$tstart>=0)
+stopifnot("tstop - tstart should be strictly > 0 in data_events" = data_events$tstop - data_events$tstart > 0)
 
 ### print dataset size ----
 cat(" \n")
-cat(glue("one-row-per-patient-per-event data size = ", nrow(data_tte_cp)), "\n")
-cat(glue("memory usage = ", format(object.size(data_tte_cp), units="GB", standard="SI", digits=3L)), "\n")
+cat(glue("one-row-per-patient-per-event data size = ", nrow(data_events)), "\n")
+cat(glue("memory usage = ", format(object.size(data_events), units="GB", standard="SI", digits=3L)), "\n")
 
-## create person-time format dataset ----
+## create person-time format dataset (data_days) ----
 # ie, one row per person per day (or per week or per month)
 # this format has lots of redundancy but is necessary for MSMs
 alltimes <- expand(
-  data_tte, 
+  data_patients, 
   patient_id, 
   times=as.integer(full_seq(c(1, tte_enddate),1))
   )
@@ -362,8 +361,8 @@ alltimes <- expand(
 # do not use survSplit as this doesn't handle multiple events properly
 # eg, a positive test will be expanded as if a tdc (eg c(0,0,1,1,1,..)) not an event (eg c(0,0,1,0,0,...))
 # also, survSplit is slower!
-data_tte_pt <- tmerge(
-  data1 = data_tte_cp,
+data_days <- tmerge(
+  data1 = data_events,
   data2 = alltimes,
   id = patient_id,
   alltimes = event(times, times)
@@ -375,13 +374,13 @@ data_tte_pt <- tmerge(
     hospnoninfectiousdischarge_time = if_else(hospnoninfectiousdischarge==1, tstop, NA_real_),
     # suspectedcovid_time = if_else(suspectedcovid==1, tstop, NA_real_),
     # probablecovid_time = if_else(probablecovid==1, tstop, NA_real_),
-    postesttdc_time = if_else(postesttdc==1, tstop, NA_real_),
+    # postesttdc_time = if_else(postesttdc==1, tstop, NA_real_),
   ) %>%
   fill(
     hospinfectiousdischarge_time, hospnoninfectiousdischarge_time, 
     # suspectedcovid_time,
     # probablecovid_time,
-    postesttdc_time
+    # postesttdc_time
   ) %>%
   mutate(
     
@@ -440,12 +439,12 @@ data_tte_pt <- tmerge(
     # ) %>% fct_explicit_na(na_level="Not probable")  %>% factor(c("Not probable", "1-21", "22-28", "29+")),
     
     # define time since positive SGSS test
-    timesince_postesttdc_pw = cut(
-      tstop - postesttdc_time,
-      breaks=c(0, 21, 28, Inf),
-      labels=c("1-21", "22-28", "29+"),
-      right=TRUE
-    ) %>% fct_explicit_na(na_level="No positive test")  %>% factor(c("No positive test", "1-21", "22-28", "29+")),
+    # timesince_postesttdc_pw = cut(
+    #   tstop - postesttdc_time,
+    #   breaks=c(0, 21, 28, Inf),
+    #   labels=c("1-21", "22-28", "29+"),
+    #   right=TRUE
+    # ) %>% fct_explicit_na(na_level="No positive test")  %>% factor(c("No positive test", "1-21", "22-28", "29+")),
     
   ) %>%
   ungroup() %>%
@@ -485,11 +484,11 @@ data_tte_pt <- tmerge(
     .fns = as.integer
   ))
 
-stopifnot("dummy 'alltimes' should be equal to tstop" = all(data_tte_pt$alltimes == data_tte_pt$tstop))
+stopifnot("dummy 'alltimes' should be equal to tstop" = all(data_days$alltimes == data_days$tstop))
 
 
 # remove unused columns
-data_tte_pt <- data_tte_pt %>%
+data_days <- data_days %>%
   mutate(
     vaxanyday1 = tte_vaxany1
   ) %>%
@@ -500,10 +499,10 @@ data_tte_pt <- data_tte_pt %>%
 
 ### print dataset size ----
 cat(" \n")
-cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_tte_pt)), "\n")
-cat(glue("memory usage = ", format(object.size(data_tte_pt), units="GB", standard="SI", digits=3L)), "\n")
+cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_days)), "\n")
+cat(glue("memory usage = ", format(object.size(data_days), units="GB", standard="SI", digits=3L)), "\n")
 
 ## Save processed tte data ----
 write_rds(data_fixed, file.path(outdir, "data_fixed.rds"), compress="gz")
-write_rds(data_tte, file.path(outdir, "data_tte.rds"), compress="gz")
-write_rds(data_tte_pt, file.path(outdir, "data_pt.rds"), compress="gz")
+write_rds(data_patients, file.path(outdir, "data_patients.rds"), compress="gz")
+write_rds(data_days, file.path(outdir, "data_pt.rds"), compress="gz")
