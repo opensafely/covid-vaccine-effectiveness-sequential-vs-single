@@ -30,33 +30,24 @@ args <- commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   # use for interactive testing
   removeobs <- FALSE
-  subgroup <- "over80s"
-  # subgroup <- "in70s"
   
 } else{
   removeobs <- TRUE
-  ageband <- args[[1]]
 }
 
 # Import processed data ----
-data_ageband <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds"))
-# data_cohort <- read_rds(here("output", cohort, "data", "data_cohort.rds"))
-# characteristics <- read_rds(here("output", "metadata", "baseline_characteristics.rds"))
+data_eligible <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds"))
 data_outcomes <- read_rds(here("output", "single", "process", "data_outcomes.rds"))
 
-if (subgroup == "over80s") {
-  data_ageband <- data_ageband %>%
-    filter(ageband2 == "80+")
-} else if (subgroup == "in70s") {
-  data_ageband <- data_ageband %>%
-    filter(ageband2 == "70-79")
-}
+# create output directory ----
+outdir <- here("output", "single", "stset")
+fs::dir_create(outdir)
 
 # Generate different data formats ----
 
 ## one-row-per-patient data ----
 
-data_fixed <- data_ageband %>%
+data_fixed <- data_eligible %>%
   select(
     patient_id,
     region,
@@ -68,14 +59,14 @@ cat(" \n")
 cat(glue("one-row-per-patient (time-independent) data size = ", nrow(data_fixed)), "\n")
 cat(glue("memory usage = ", format(object.size(data_fixed), units="GB", standard="SI", digits=3L)), "\n")
 
-data_tte <- data_ageband %>%
+data_tte <- data_eligible %>%
   left_join(data_outcomes, by = "patient_id") %>%
   transmute(
     patient_id,
     
     # since discrete dates are interpreted as the _end of_ the date, and we start follow up at the _start of_ the start date
     # this ensures everybody has at least one discrete-time "day" event-free and vaccine-free
-    start_date = study_dates[[subgroup]]$start_date - 1,
+    start_date = study_dates$global$index_date - 1,
     end_date = study_dates$global$studyend_date,
     
     vax1_date,
@@ -119,10 +110,7 @@ data_tte <- data_ageband %>%
     tte_vaxpfizer2 = if_else(vax2_type == "pfizer", tte_vaxany2, NA_real_),
     
     tte_vaxaz1 = if_else(vax1_type == "az", tte_vaxany1, NA_real_),
-    tte_vaxaz2 = if_else(vax2_type == "az", tte_vaxany2, NA_real_),
-    
-    tte_vaxmoderna1 = if_else(vax1_type == "moderna", tte_vaxany1, NA_real_),
-    tte_vaxmoderna2 = if_else(vax2_type == "moderna", tte_vaxany2, NA_real_)
+    tte_vaxaz2 = if_else(vax2_type == "az", tte_vaxany2, NA_real_)
     
   ) %>%
   # convert tte variables to integer to save space. works since we know precision is to nearest day
@@ -199,15 +187,15 @@ data_hospitalised_noninfectious <- read_rds(here("output", "single", "process", 
 #     tte = tte(start_date, date, lastfup_date, na.censor=TRUE),
 #   )
 
-data_postest <- read_rds(here("output", "single", "process", "data_long_postest_dates.rds")) %>%
-  inner_join(
-    data_tte %>% select(patient_id, start_date, lastfup_date),
-    .,
-    by =c("patient_id")
-  ) %>%
-  mutate(
-    tte = tte(start_date, date, lastfup_date, na.censor=TRUE),
-  )
+# data_postest <- read_rds(here("output", "single", "process", "data_long_postest_dates.rds")) %>%
+#   inner_join(
+#     data_tte %>% select(patient_id, start_date, lastfup_date),
+#     .,
+#     by =c("patient_id")
+#   ) %>%
+#   mutate(
+#     tte = tte(start_date, date, lastfup_date, na.censor=TRUE),
+#   )
 
 # initial call based on events and vaccination status
 data_tte_cp0 <- tmerge(
@@ -219,7 +207,6 @@ data_tte_cp0 <- tmerge(
   vaxany_atrisk = tdc(start_date-start_date),
   vaxpfizer_atrisk = tdc(as.Date(study_dates$global$firstpfizer_date)-1-start_date),
   vaxaz_atrisk = tdc(as.Date(study_dates$global$firstaz_date)-1-start_date),
-  vaxmoderna_atrisk = tdc(as.Date(study_dates$global$firstmoderna_date)-1-start_date),
 
   vaxany1_status = tdc(tte_vaxany1),
   vaxany2_status = tdc(tte_vaxany2),
@@ -229,9 +216,6 @@ data_tte_cp0 <- tmerge(
 
   vaxaz1_status = tdc(tte_vaxaz1),
   vaxaz2_status = tdc(tte_vaxaz2),
-
-  vaxmoderna1_status = tdc(tte_vaxmoderna1),
-  vaxmoderna2_status = tdc(tte_vaxmoderna2),
 
   # covidtest_status = tdc(tte_covidtest),
   postest_status = tdc(tte_postest),
@@ -249,8 +233,6 @@ data_tte_cp0 <- tmerge(
   vaxpfizer2 = event(tte_vaxpfizer2),
   vaxaz1 = event(tte_vaxaz1),
   vaxaz2 = event(tte_vaxaz2),
-  vaxmoderna1 = event(tte_vaxmoderna1),
-  vaxmoderna2 = event(tte_vaxmoderna2),
   # covidtest = event(tte_covidtest),
   postest = event(tte_postest),
   # emergency = event(tte_emergency),
@@ -264,9 +246,7 @@ data_tte_cp0 <- tmerge(
   tstart = 0L,
   tstop = tte_enddate # use enddate not lastfup because it's useful for status over time plots
   
-) %>%
-  as_tibble()
-
+) 
 
 stopifnot("tstart should be  >= 0 in data_tte_cp0" = data_tte_cp0$tstart>=0)
 stopifnot("tstop - tstart should be strictly > 0 in data_tte_cp0" = data_tte_cp0$tstop - data_tte_cp0$tstart > 0)
@@ -310,12 +290,12 @@ data_tte_cp <- data_tte_cp0 %>%
   #   id = patient_id,
   #   probablecovid = event(tte)
   # ) %>%
-  tmerge(
-    data1 = .,
-    data2 = data_postest,
-    id = patient_id,
-    postesttdc = event(tte)
-  ) %>%
+  # tmerge(
+  #   data1 = .,
+  #   data2 = data_postest,
+  #   id = patient_id,
+  #   postesttdc = event(tte)
+  # ) %>%
   arrange(
     patient_id, tstart
   ) %>%
@@ -324,7 +304,6 @@ data_tte_cp <- data_tte_cp0 %>%
     vaxany_status = vaxany1_status + vaxany2_status,
     vaxpfizer_status = vaxpfizer1_status + vaxpfizer2_status,
     vaxaz_status = vaxaz1_status + vaxaz2_status,
-    vaxmoderna_status = vaxmoderna1_status + vaxmoderna2_status
   ) %>%
   ungroup() %>%
   # for some reason tmerge converts event indicators to numeric. So convert back to save space
@@ -335,8 +314,6 @@ data_tte_cp <- data_tte_cp0 %>%
               "vaxpfizer2",
               "vaxaz1",
               "vaxaz2",
-              "vaxmoderna1",
-              "vaxmoderna2",
               # "covidtest",
               "postest",
               # "emergency",
@@ -348,21 +325,22 @@ data_tte_cp <- data_tte_cp0 %>%
               "hospinfectious_status",
               "hospnoninfectious_status",
               "hospinfectiousdischarge",
-              "hospnoninfectiousdischarge",
+              "hospnoninfectiousdischarge"#,
               # "suspectedcovid",
               #"probablecovid",
-              "postesttdc"
+              # "postesttdc"
     ),
     .fns = as.integer
   ))
 
 # free up memory
 if(removeobs){
-  rm(data_tte_cp0, data_hospitalised_infectious, data_hospitalised_noninfectious, data_suspected_covid,
-     #data_probable_covid,
-     data_postest)
+  rm(
+    data_tte_cp0, data_hospitalised_infectious, data_hospitalised_noninfectious, 
+    # data_suspected_covid, data_probable_covid,
+    data_postest
+    )
 }
-
 
 stopifnot("tstart should be >= 0 in data_tte_cp" = data_tte_cp$tstart>=0)
 stopifnot("tstop - tstart should be strictly > 0 in data_tte_cp" = data_tte_cp$tstop - data_tte_cp$tstart > 0)
@@ -375,8 +353,11 @@ cat(glue("memory usage = ", format(object.size(data_tte_cp), units="GB", standar
 ## create person-time format dataset ----
 # ie, one row per person per day (or per week or per month)
 # this format has lots of redundancy but is necessary for MSMs
-
-alltimes <- expand(data_tte, patient_id, times=as.integer(full_seq(c(1, tte_enddate),1)))
+alltimes <- expand(
+  data_tte, 
+  patient_id, 
+  times=as.integer(full_seq(c(1, tte_enddate),1))
+  )
 
 # do not use survSplit as this doesn't handle multiple events properly
 # eg, a positive test will be expanded as if a tdc (eg c(0,0,1,1,1,..)) not an event (eg c(0,0,1,0,0,...))
@@ -392,13 +373,14 @@ data_tte_pt <- tmerge(
   mutate(
     hospinfectiousdischarge_time = if_else(hospinfectiousdischarge==1, tstop, NA_real_),
     hospnoninfectiousdischarge_time = if_else(hospnoninfectiousdischarge==1, tstop, NA_real_),
-    suspectedcovid_time = if_else(suspectedcovid==1, tstop, NA_real_),
-    #probablecovid_time = if_else(probablecovid==1, tstop, NA_real_),
+    # suspectedcovid_time = if_else(suspectedcovid==1, tstop, NA_real_),
+    # probablecovid_time = if_else(probablecovid==1, tstop, NA_real_),
     postesttdc_time = if_else(postesttdc==1, tstop, NA_real_),
   ) %>%
   fill(
-    hospinfectiousdischarge_time, hospnoninfectiousdischarge_time, suspectedcovid_time,
-    #probablecovid_time,
+    hospinfectiousdischarge_time, hospnoninfectiousdischarge_time, 
+    # suspectedcovid_time,
+    # probablecovid_time,
     postesttdc_time
   ) %>%
   mutate(
@@ -411,7 +393,7 @@ data_tte_pt <- tmerge(
     vaxaz1_timesince = cumsum(vaxaz1_status),
     vaxaz2_timesince = cumsum(vaxaz2_status),
     
-    postest_timesince = tstop - postesttdc_time,
+    # postest_timesince = tstop - postesttdc_time,
     
     # define time since infectious hospitalisation
     timesince_hospinfectiousdischarge_pw = cut(
@@ -443,12 +425,12 @@ data_tte_pt <- tmerge(
     ) %>% factor(c("Not in hospital", "In hospital", "1-21", "22-28")),
     
     # define time since covid primary care event
-    timesince_suspectedcovid_pw = cut(
-      tstop - suspectedcovid_time,
-      breaks=c(0, 21, 28, Inf),
-      labels=c("1-21", "22-28", "29+"),
-      right=TRUE
-    ) %>% fct_explicit_na(na_level="Not suspected") %>% factor(c("Not suspected", "1-21", "22-28", "29+")),
+    # timesince_suspectedcovid_pw = cut(
+    #   tstop - suspectedcovid_time,
+    #   breaks=c(0, 21, 28, Inf),
+    #   labels=c("1-21", "22-28", "29+"),
+    #   right=TRUE
+    # ) %>% fct_explicit_na(na_level="Not suspected") %>% factor(c("Not suspected", "1-21", "22-28", "29+")),
     
     # timesince_probablecovid_pw = cut(
     #   tstop - probablecovid_time,
@@ -469,10 +451,10 @@ data_tte_pt <- tmerge(
   ungroup() %>%
   select(
     -hospinfectiousdischarge_time,
-    -hospnoninfectiousdischarge_time,
-    -suspectedcovid_time,
-    #-probablecovid_time,
-    -postesttdc_time,
+    -hospnoninfectiousdischarge_time#,
+    # -suspectedcovid_time,
+    # -probablecovid_time,
+    # -postesttdc_time,
   ) %>%
   # for some reason tmerge converts event indicators to numeric. So convert back to save space
   mutate(across(
@@ -482,23 +464,23 @@ data_tte_pt <- tmerge(
               "vaxpfizer2",
               "vaxaz1",
               "vaxaz2",
-              "covidtest",
+              # "covidtest",
               "postest",
-              "emergency",
+              # "emergency",
               "covidadmitted",
-              "coviddeath",
-              "noncoviddeath",
+              # "coviddeath",
+              # "noncoviddeath",
               "death",
               "dereg",
               "lastfup",
               "hospinfectious_status",
               "hospnoninfectious_status",
               "hospinfectiousdischarge",
-              "hospnoninfectiousdischarge",
-              #"probablecovid",
-              "suspectedcovid",
-              "postesttdc",
-              "postest_timesince"
+              "hospnoninfectiousdischarge"#,
+              # "probablecovid",
+              # "suspectedcovid",
+              # "postesttdc",
+              # "postest_timesince"
     ),
     .fns = as.integer
   ))
@@ -522,7 +504,6 @@ cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_tte_pt)), "
 cat(glue("memory usage = ", format(object.size(data_tte_pt), units="GB", standard="SI", digits=3L)), "\n")
 
 ## Save processed tte data ----
-write_rds(data_fixed, here("output", cohort, "data", "data_fixed.rds"), compress="gz")
-write_rds(data_tte, here("output", cohort, "data", "data_tte.rds"), compress="gz")
-#write_rds(data_tte_cp, here("output", cohort, "data", "data_cp.rds"), compress="gz")
-write_rds(data_tte_pt, here("output", cohort, "data", "data_pt.rds"), compress="gz")
+write_rds(data_fixed, file.path(outdir, "data_fixed.rds"), compress="gz")
+write_rds(data_tte, file.path(outdir, "data_tte.rds"), compress="gz")
+write_rds(data_tte_pt, file.path(outdir, "data_pt.rds"), compress="gz")
