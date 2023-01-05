@@ -11,7 +11,7 @@ process_jcvi <- function(.data) {
       
       # clinically at-risk group
       cv = immunosuppressed | chronic_kidney_disease | chronic_resp_disease | diabetes | chronic_liver_disease |
-        chronic_neuro_disease | chronic_heart_disease | asplenia | learndis | sev_mental,
+        chronic_neuro_disease | chronic_heart_disease | learndis | sev_mental,
       
       cev_cv = fct_case_when(
         cev ~ "Clinically extremely vulnerable",
@@ -20,19 +20,14 @@ process_jcvi <- function(.data) {
       ) %>% fct_rev(),
       
       multimorb =
-        (sev_obesity) +
-        (chronic_heart_disease) +
-        (chronic_kidney_disease)+
-        (diabetes) +
-        (chronic_liver_disease)+
-        (chronic_resp_disease | asthma)+
-        (chronic_neuro_disease)#+
-      #(learndis)+
-      #(sev_mental),
-      ,
+        sev_obesity +
+        chronic_heart_disease +
+        chronic_kidney_disease +
+        diabetes +
+        chronic_liver_disease +
+        chronic_resp_disease +
+        chronic_neuro_disease,
       multimorb = cut(multimorb, breaks = c(0, 1, 2, Inf), labels=c("0", "1", "2+"), right=FALSE),
-      immuno = immunosuppressed | asplenia,
-      
       
       # original priority groups https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1007737/Greenbook_chapter_14a_30July2021.pdf#page=15
       # new priority groups https://www.england.nhs.uk/coronavirus/wp-content/uploads/sites/52/2021/07/C1327-covid-19-vaccination-autumn-winter-phase-3-planning.pdf
