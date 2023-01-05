@@ -47,13 +47,13 @@ study_dates <- lst(
     end_date = global$studyend_date, # end of recruitment and follow-up
   ),
   
-  over80s = lst(
-    start_date = global$firstpfizer_date
-  ),
-  
-  in70s = lst(
-    start_date = "2021-01-05"
-  ),
+  # over80s = lst(
+  #   start_date = global$firstpfizer_date
+  # ),
+  # 
+  # in70s = lst(
+  #   start_date = "2021-01-05"
+  # ),
   
 )
 
@@ -61,8 +61,9 @@ study_dates <- lst(
 
 extract_increment <- 14
 
-study_dates$pfizer$control_extract_dates = as.Date(study_dates$pfizer$start_date) + (0:26)*extract_increment
-study_dates$az$control_extract_dates = as.Date(study_dates$az$start_date) + (0:26)*extract_increment
+for (brand in c("pfizer", "az")) {
+  study_dates[[brand]]$control_extract_dates = as.Date(study_dates[[brand]]$start_date) + (1:n_matching_rounds - 1)*extract_increment  
+}
 
 jsonlite::write_json(study_dates, path = here("lib", "design", "study-dates.json"), auto_unbox=TRUE, pretty =TRUE)
 
@@ -125,8 +126,8 @@ recoder <-
     outcome = set_names(events_lookup$event, events_lookup$event_descr),
     all = c(` ` = "all"),
     ageband2 = c(
-      `aged 80+` = "80+",
-      `aged 70-79` = "70-79"
+      `over80` = "80+",
+      `in70s` = "70-79"
     ),
     prior_covid_infection = c(
       `No prior SARS-CoV-2 infection` = "FALSE",
@@ -134,12 +135,11 @@ recoder <-
     ),
   )
 
-model_subgroups <- "ageband2"
+model_subgroups <- "all"
 
 ## follow-up time ----
 
 # where to split follow-up time after recruitment
-#postbaselinecuts <- c(14, 14 + ((1:6)*28))
 postbaselinecuts <- c(3,7,14,21,28,35,70)
 
 
@@ -166,6 +166,7 @@ caliper_variables <- c(
 )
 matching_variables <- c(exact_variables, names(caliper_variables))
 
+# TODO edit note 
 ## important NOTE:
 
 # these adjustment variables are different to those use for adjustment in the original MSM approach
@@ -184,11 +185,11 @@ adjustment_variables <- c(
   "chronic_kidney_disease",
   "diabetes",
   "chronic_liver_disease",
-  "chronic_resp_disease", "asthma",
+  "chronic_resp_disease", #"asthma", # asthma included in chronic_resp_disease
   "chronic_neuro_disease",
   "learndis",
   "sev_mental",
-  "immunosuppressed", "asplenia",
+  "immunosuppressed", #"asplenia",
   "multimorb",
   NULL
 )
