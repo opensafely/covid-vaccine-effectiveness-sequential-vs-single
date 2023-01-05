@@ -15,12 +15,12 @@ def generate_timevarying_variables(index_date, n):
   # for deriving suspected covid
   ## positive test
    # positive_test_0_date defined in variables_pre
-   **covid_test_date_X(
-    name="positive_test", 
-    index_date=index_date,
-     n=n, 
-     test_result="positive"
-    ),
+#    **covid_test_date_X(
+#     name="positive_test", 
+#     index_date=index_date,
+#      n=n, 
+#      test_result="positive"
+#     ),
 
     # for deriving unplaned hospital admissions
     ## upplanned hospital admission
@@ -118,12 +118,12 @@ def generate_timevarying_variables(index_date, n):
 
     # emergency attendance
     # covidemergency_0_date defined in variables_pre
-    **emergency_attendance_date_X(
-        name = "covidemergency",
-        index_date = index_date,
-        n = n,
-        with_these_diagnoses = codelists.covid_emergency,
-    ),
+    # **emergency_attendance_date_X(
+    #     name = "covidemergency",
+    #     index_date = index_date,
+    #     n = n,
+    #     with_these_diagnoses = codelists.covid_emergency,
+    # ),
 
   )
 
