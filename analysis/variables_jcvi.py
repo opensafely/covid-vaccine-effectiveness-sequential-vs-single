@@ -226,7 +226,7 @@ def generate_jcvi_variables(index_date):
 
   # imunosuppression
   immunosuppressed=patients.satisfying(
-    "immrx OR immdx",
+    "immrx OR immdx OR asplenia",
 
     # Immunosuppression diagnosis codes
     immdx=patients.with_these_clinical_events(
@@ -240,13 +240,12 @@ def generate_jcvi_variables(index_date):
       returning="binary_flag",
       between=[f"{index_date} - 182 days", f"{index_date} - 1 day"],
     ),
-  ),
-
-  # Asplenia or Dysfunction of the Spleen codes
-  asplenia=patients.with_these_clinical_events(
-    codelists.spln_cov,
-    returning="binary_flag",
-    on_or_before=f"{index_date} - 1 day",
+    # Asplenia or Dysfunction of the Spleen codes
+    asplenia=patients.with_these_clinical_events(
+      codelists.spln_cov,
+      returning="binary_flag",
+      on_or_before=f"{index_date} - 1 day",
+    ),
   ),
 
   # Wider Learning Disability
