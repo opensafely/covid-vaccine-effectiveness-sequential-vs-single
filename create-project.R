@@ -370,8 +370,8 @@ brand_seqtrial <- function(brand) {
               model_outcomes,
               function(y) {
                 splice(
-                  action_km(brand, x, y),
-                  action_coxcmlinc(brand, x, y)
+                  action_km(brand, x, y)#,
+                  # action_coxcmlinc(brand, x, y)
                 )
               }
             ),
@@ -382,8 +382,8 @@ brand_seqtrial <- function(brand) {
       recursive = FALSE
     ),
     
-    action_km_combine(brand),
-    action_coxcmlinc_combine(brand)
+    action_km_combine(brand)
+    # action_coxcmlinc_combine(brand)
     
   )
   
@@ -516,7 +516,19 @@ actions_list <- splice(
     ),
     highly_sensitive = lst(
       extract = "output/single/extract/input_timevarying.feather"
+    )
+  ),
+  
+  action(
+    name = "dummydata_timevarying",
+    run = "r:latest analysis/dummy/dummydata_timevarying.R",
+    needs = namelesslst(
+      "process_single",
+      "extract_timevarying"
     ),
+    highly_sensitive = lst(
+      dummydata = "output/single/dummydata/*.feather"
+    )
   ),
   
   action(
@@ -524,13 +536,24 @@ actions_list <- splice(
     run = "r:latest analysis/single/process_timevarying.R",
     needs = namelesslst(
       "process_single",
-      "extract_timevarying"
+      "extract_timevarying",
+      "dummydata_timevarying"
     ),
     highly_sensitive = lst(
       processed = "output/single/process/*.rds"
-    )#,
-    # moderately_sensitive = lst(
-    # )
+    )
+  ),
+  
+  action(
+    name = "process_stset",
+    run = "r:latest analysis/single/process_stset.R",
+    needs = namelesslst(
+      "process_single",
+      "process_timevarying"
+    ),
+    highly_sensitive = lst(
+      processed = "output/single/stset/*.rds"
+    )
   ),
   
   # 
