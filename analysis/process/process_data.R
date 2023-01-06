@@ -529,8 +529,6 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
       
       !!! selection_stage,
       
-      # no_recentcovid30 = is.na(anycovid_0_date) | ((index_date - anycovid_0_date) > 30),
-      
       isnot_inhospital = is.na(admitted_unplanned_0_date) | (!is.na(discharged_unplanned_0_date) & discharged_unplanned_0_date < index_date),
       
       c2 = c1 & isnot_hscworker,
