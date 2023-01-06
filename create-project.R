@@ -467,19 +467,6 @@ actions_list <- splice(
   brand_seqtrial("pfizer"),
   brand_seqtrial("az"),
   
-  action(
-    name = "flowchart",
-    run = glue("r:latest analysis/sequential/report/flowchart.R"),
-    needs = namelesslst(
-      "process_treated",
-      "process_controlfinal_pfizer",
-      "process_controlfinal_az"
-    ),
-    moderately_sensitive = lst(
-      flow_matching = "output/sequential/flowchart/*.csv"
-      )
-    ),
-  
   comment("# # # # # # # # # # # # # # # # # # #", 
           "SINGLE TRIAL APPROACH", 
           "# # # # # # # # # # # # # # # # # # #"),
@@ -500,6 +487,20 @@ actions_list <- splice(
       eligiblecsvgz = "output/single/eligible/*.csv.gz",
       data_processed_skim = "output/single/process/*.txt",
       data_eligible_skim = "output/single/eligible/*.txt"
+    )
+  ),
+  
+  action(
+    name = "flowchart",
+    run = glue("r:latest analysis/sequential/report/flowchart.R"),
+    needs = namelesslst(
+      "process_treated",
+      "process_controlfinal_pfizer",
+      "process_controlfinal_az",
+      "process_single"
+    ),
+    moderately_sensitive = lst(
+      flow_matching = "output/flowchart/*.csv"
     )
   ),
   
