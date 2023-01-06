@@ -120,12 +120,10 @@ var_labels <- list(
   diabetes ~ "Diabetes",
   chronic_liver_disease ~ "Chronic liver disease",
   chronic_resp_disease ~ "Chronic respiratory disease",
-  asthma ~ "Asthma",
   chronic_neuro_disease ~ "Chronic neurological disease",
   
   multimorb ~ "Morbidity count",
   immunosuppressed ~ "Immunosuppressed",
-  asplenia ~ "Asplenia or poor spleen function",
   learndis ~ "Learning disabilities",
   sev_mental ~ "Serious mental illness"
   
