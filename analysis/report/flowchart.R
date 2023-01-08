@@ -5,6 +5,7 @@ library(here)
 # load and define functions
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
+source(here("analysis", "functions", "fuzzy_join.R"))
 
 # create output directories
 outdir <- here("output", "report", "flowchart")
@@ -137,10 +138,11 @@ flow_boxes_brand <- flow_boxes %>%
   # get rid of boxes with G as these have duplicates across the brands
   filter(!str_detect(box_crit, "G")) %>%
   # join to the counts for each criteria
-  fuzzyjoin::fuzzy_left_join(
+  fuzzy_join(
     bind_rows(flowchart_matching_pfizer, flowchart_matching_az), 
     by = c("box_crit" = "crit"), 
-    match_fun = str_detect
+    match_fun = str_detect,
+    mode = "left"
   ) %>%
   # sum across all criteria in each box
   group_by(brand, box_crit, box_descr) %>%
@@ -150,7 +152,7 @@ flow_boxes_brand <- flow_boxes %>%
 flow_boxes_unvax <- flow_boxes %>%
   # get rid of boxes with G as these have duplicates across the brands
   filter(str_detect(box_crit, "G")) %>%
-  fuzzyjoin::fuzzy_left_join(
+  fuzzy_join(
     flow_categories %>%
       filter(crit %in% c("G", "H")) %>%
       mutate(
@@ -160,7 +162,8 @@ flow_boxes_unvax <- flow_boxes %>%
         )
       ), 
     by = c("box_crit" = "crit"), 
-    match_fun = str_detect
+    match_fun = str_detect,
+    mode = "left"
   ) %>%
   # sum across all criteria in each box
   group_by(box_crit, box_descr) %>%
