@@ -72,7 +72,7 @@ sim_list_demographic <- lst(
   ),
   
   age = bn_node(
-    ~as.integer(rnorm(n=..n, mean=60, sd=15))
+    ~as.integer(runif(n=..n, min=70, max=90))
   ), 
   
   age31aug2020 = bn_node(~age),
