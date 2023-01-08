@@ -50,6 +50,7 @@ fs::dir_create(outdir)
 data_fixed <- data_eligible %>%
   select(
     patient_id,
+    ageband2,
     region,
     all_of(unique(c(adjustment_variables_sequential, adjustment_variables_single)))
   )
@@ -63,11 +64,16 @@ data_patients <- data_eligible %>%
   left_join(data_outcomes, by = "patient_id") %>%
   transmute(
     patient_id,
+    ageband2,
     
     # since discrete dates are interpreted as the _end of_ the date, and we start follow up at the _start of_ the start date
     # this ensures everybody has at least one discrete-time "day" event-free and vaccine-free
     start_date = study_dates$global$index_date - 1,
     end_date = study_dates$global$studyend_date,
+    ageband2_start_date = case_when(
+      ageband2 == "70-79" ~ study_dates$in70s$start_date - 1,
+      ageband2 == "80+" ~ study_dates$over80s$start_date - 1,
+    ),
     
     vax1_date,
     vax2_date,
@@ -76,7 +82,7 @@ data_patients <- data_eligible %>%
     
     postest_date,
     covidadmitted_date,
-    coviddeath_date,
+    # coviddeath_date,
     death_date,
     
     #composite of death, deregistration and end date
@@ -99,7 +105,7 @@ data_patients <- data_eligible %>%
     # time to outcomes
     tte_postest = tte(start_date, postest_date, lastfup_date, na.censor=TRUE),
     tte_covidadmitted = tte(start_date, covidadmitted_date, lastfup_date, na.censor=TRUE),
-    tte_coviddeath = tte(start_date, coviddeath_date, lastfup_date, na.censor=TRUE),
+    # tte_coviddeath = tte(start_date, coviddeath_date, lastfup_date, na.censor=TRUE),
     tte_death = tte(start_date, death_date, lastfup_date, na.censor=TRUE),
 
     # time to vaccination    
@@ -203,7 +209,7 @@ data_events0 <- tmerge(
   data2 = data_patients,
   id = patient_id,
   
-  vaxany_atrisk = tdc(start_date-start_date),
+  vaxany_atrisk = tdc(ageband2_start_date-1-start_date),
   vaxpfizer_atrisk = tdc(as.Date(study_dates$global$firstpfizer_date)-1-start_date),
   vaxaz_atrisk = tdc(as.Date(study_dates$global$firstaz_date)-1-start_date),
 
@@ -246,6 +252,10 @@ data_events0 <- tmerge(
   tstop = tte_enddate # use enddate not lastfup because it's useful for status over time plots
   
 ) 
+
+# if not at risk of vax, not at risk of brand (use base R rather than dplyr to preserve tmerge class)
+data_events0$vaxpfizer_atrisk <- if_else(data_events0$vaxany_atrisk == 0L, 0L, data_events0$vaxpfizer_atrisk)
+data_events0$vaxaz_atrisk <- if_else(data_events0$vaxany_atrisk == 0L, 0L, data_events0$vaxaz_atrisk)
 
 stopifnot("tstart should be  >= 0 in data_events0" = data_events0$tstart>=0)
 stopifnot("tstop - tstart should be strictly > 0 in data_events0" = data_events0$tstop - data_events0$tstart > 0)
@@ -303,7 +313,7 @@ arrange(
 data_events$twidth <- data_events$tstop - data_events$tstart
 data_events$vaxany_status <- data_events$vaxany1_status + data_events$vaxany2_status
 data_events$vaxpfizer_status <- data_events$vaxpfizer1_status + data_events$vaxpfizer2_status
-data_events$vaxaz_status <- data_events$vaxaz1_status - data_events$vaxaz2_status
+data_events$vaxaz_status <- data_events$vaxaz1_status + data_events$vaxaz2_status
 
 cols_to_convert <-   c("vaxany1",
                        "vaxany2",
@@ -503,6 +513,7 @@ cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_days)), "\n
 cat(glue("memory usage = ", format(object.size(data_days), units="GB", standard="SI", digits=3L)), "\n")
 
 ## Save processed tte data ----
-write_rds(data_patients, file.path(outdir, "data_patients.rds"), compress="gz")
-write_rds(data_events, file.path(outdir, "data_events.rds"), compress="gz")
+# write_rds(data_fixed, file.path(outdir, "data_fixed.rds"), compress="gz")
+# write_rds(data_patients, file.path(outdir, "data_patients.rds"), compress="gz")
+# write_rds(data_events, file.path(outdir, "data_events.rds"), compress="gz")
 write_rds(data_days, file.path(outdir, "data_days.rds"), compress="gz")
