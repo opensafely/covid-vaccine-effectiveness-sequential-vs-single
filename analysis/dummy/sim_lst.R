@@ -92,19 +92,6 @@ sim_list_demographic <- lst(
     missing_rate = ~ 0
   ),
   
-  practice_id = bn_node(
-    ~as.integer(runif(n=..n, 1, 200))
-  ),
-  
-  msoa = bn_node(
-    ~factor(as.integer(runif(n=..n, 1, 100)), levels=1:100),
-    missing_rate = ~ 0.005
-  ),
-  
-  stp = bn_node(
-    ~factor(as.integer(runif(n=..n, 1, 36)), levels=1:36)
-  ),
-  
   region = bn_node(
     variable_formula = ~rfactor(n=..n, levels=c(
       "North East",
@@ -145,104 +132,9 @@ sim_list_demographic <- lst(
     missing_rate = ~0
   ),
   
-  rural_urban = bn_node(
-    ~rfactor(n=..n, levels = 1:9, p = rep(1/9, 9)),
-    missing_rate = ~ 0.1
+  flu_vaccine = bn_node(
+    ~rbernoulli(n=..n, p=0.5)
   ),
-  
-  
-)
-
-# sim list demographic ----
-sim_list_demographic <- lst(
-  
-  has_follow_up_previous_year = bn_node(
-    ~rbernoulli(n=..n, p=0.999)
-  ),
-  
-  hscworker = bn_node(
-    ~rbernoulli(n=..n, p=0.01)
-  ),
-  
-  age = bn_node(
-    ~as.integer(rnorm(n=..n, mean=60, sd=15))
-  ), 
-  
-  age31aug2020 = bn_node(~age),
-  
-  sex = bn_node(
-    ~rfactor(n=..n, levels = c("F", "M"), p = c(0.51, 0.49)),
-    missing_rate = ~0.001 # this is shorthand for ~(rbernoulli(n=1, p = 0.2))
-  ),
-  
-  ethnicity = bn_node(
-    ~rfactor(n=..n, levels = c(1,2,3,4,5), p = c(0.8, 0.05, 0.05, 0.05, 0.05)),
-    missing_rate = ~ 0.25
-  ),
-  
-  ethnicity_6_sus = bn_node(
-    ~rfactor(n=..n, levels = c(0,1,2,3,4,5), p = c(0.1, 0.7, 0.05, 0.05, 0.05, 0.05)),
-    missing_rate = ~ 0
-  ),
-  
-  practice_id = bn_node(
-    ~as.integer(runif(n=..n, 1, 200))
-  ),
-  
-  msoa = bn_node(
-    ~factor(as.integer(runif(n=..n, 1, 100)), levels=1:100),
-    missing_rate = ~ 0.005
-  ),
-  
-  stp = bn_node(
-    ~factor(as.integer(runif(n=..n, 1, 36)), levels=1:36)
-  ),
-  
-  region = bn_node(
-    variable_formula = ~rfactor(n=..n, levels=c(
-      "North East",
-      "North West",
-      "Yorkshire and The Humber",
-      "East Midlands",
-      "West Midlands",
-      "East",
-      "London",
-      "South East",
-      "South West"
-    ), p = c(0.2, 0.2, 0.3, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05))
-  ),
-  
-  imd = bn_node(
-    ~factor(plyr::round_any(runif(n=..n, 1, 32000), 100), levels=seq(0,32000,100)),
-    missing_rate = ~0.02,
-    keep = FALSE
-  ),
-  
-  imd_integer = bn_node(
-    ~as.integer(as.character(imd)),
-    keep=FALSE
-  ),
-  
-  imd_Q5 = bn_node(
-    ~factor(
-      case_when(
-        (imd_integer >= 0) & (imd_integer < 32844*1/5) ~ "1 (most deprived)",
-        (imd_integer >= 32844*1/5) & (imd_integer < 32844*2/5) ~ "2",
-        (imd_integer >= 32844*2/5) & (imd_integer < 32844*3/5) ~ "3",
-        (imd_integer >= 32844*3/5) & (imd_integer < 32844*4/5) ~ "4",
-        (imd_integer >= 32844*4/5) & (imd_integer <= 32844*5/5) ~ "5 (least deprived)",
-        TRUE ~ "Unknown"
-      ),
-      levels= c("1 (most deprived)", "2", "3", "4", "5 (least deprived)", "Unknown")
-    ),
-    missing_rate = ~0
-  ),
-  
-  rural_urban = bn_node(
-    ~rfactor(n=..n, levels = 1:9, p = rep(1/9, 9)),
-    missing_rate = ~ 0.1
-  ),
-  
   
 )
 
