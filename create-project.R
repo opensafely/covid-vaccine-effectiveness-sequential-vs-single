@@ -298,65 +298,44 @@ action_km_combine <- function(
   )
 }
 
-
-
-## model action function ----
-action_coxcmlinc_combine <- function(
-    cohort
-){
-  
-  action(
-    name = glue("combine_coxcmlinc_{cohort}"),
-    run = glue("r:latest analysis/sequential/model/coxcmlinc_combine.R"),
-    arguments = c(cohort),
-    needs = splice(
-      as.list(
-        glue_data(
-          .x=expand_grid(
-            subgroup=model_subgroups,
-            outcome=model_outcomes,
-          ),
-          "coxcmlinc_{cohort}_{subgroup}_{outcome}"
-        )
-      )
-    ),
-    moderately_sensitive = lst(
-      rds = glue("output/sequential/{cohort}/models/coxcmlinc/combined/*.csv"),
-      png = glue("output/sequential/{cohort}/models/coxcmlinc/combined/*.png"),
-    )
-  )
-}
-
-action_match_report <- function(cohort){
-  action(
-    name = glue("match_report_{cohort}"),
-    run = glue("r:latest analysis/sequential/matching/match_report.R"),
-    arguments = c(cohort),
-    needs = namelesslst(
-      "process_treated",
-      glue("process_controlfinal_{cohort}"),
-    ),
-    moderately_sensitive= lst(
-      coverage= glue("output/sequential/{cohort}/match/report/coverage.csv"),
-      table1= glue("output/sequential/{cohort}/match/report/table1.csv")
-    )
-  )
-}
-
-brand_seqtrial <- function(brand) {
+cohort_seqtrial <- function(cohort) {
   
   splice(
     comment("# # # # # # # # # # # # # # # # # # #",
-            glue("{brand} cohort"),
+            glue("{cohort} cohort"),
             "# # # # # # # # # # # # # # # # # # #"),
     
     comment("# # # # # # # # # # # # # # # # # # #",
             "Extract and match",
             "# # # # # # # # # # # # # # # # # # #"),
     
-    action_extract_and_match(brand, n_matching_rounds),
+    action_extract_and_match(cohort, n_matching_rounds),
     
-    action_match_report(brand),
+    action(
+      name = glue("coverage_{cohort}"),
+      run = glue("r:latest analysis/sequential/matching/coverage.R"),
+      arguments = c(cohort),
+      needs = namelesslst(
+        "process_treated",
+        glue("process_controlfinal_{cohort}"),
+      ),
+      moderately_sensitive= lst(
+        coverage = glue("output/report/coverage/coverage_{cohort}.csv")
+      )
+    ),
+    
+    action(
+      name = glue("table1_{cohort}"),
+      run = glue("r:latest analysis/report/table1.R"),
+      arguments = c(cohort),
+      needs = namelesslst(
+        "process_treated",
+        glue("process_controlfinal_{cohort}"),
+      ),
+      moderately_sensitive= lst(
+        coverage = glue("output/report/table1/table1_{cohort}.csv")
+      )
+    ),
     
     comment("# # # # # # # # # # # # # # # # # # #",
             "Model",
@@ -370,8 +349,7 @@ brand_seqtrial <- function(brand) {
               model_outcomes,
               function(y) {
                 splice(
-                  action_km(brand, x, y)#,
-                  # action_coxcmlinc(brand, x, y)
+                  action_km(cohort, x, y)
                 )
               }
             ),
@@ -382,8 +360,7 @@ brand_seqtrial <- function(brand) {
       recursive = FALSE
     ),
     
-    action_km_combine(brand)
-    # action_coxcmlinc_combine(brand)
+    action_km_combine(cohort)
     
   )
   
@@ -464,8 +441,8 @@ actions_list <- splice(
     )
   ),
 
-  brand_seqtrial("pfizer"),
-  brand_seqtrial("az"),
+  cohort_seqtrial("pfizer"),
+  cohort_seqtrial("az"),
   
   comment("# # # # # # # # # # # # # # # # # # #", 
           "SINGLE TRIAL APPROACH", 
@@ -487,6 +464,18 @@ actions_list <- splice(
       eligiblecsvgz = "output/single/eligible/*.csv.gz",
       data_processed_skim = "output/single/process/*.txt",
       data_eligible_skim = "output/single/eligible/*.txt"
+    )
+  ),
+  
+  action(
+    name = "table1_single",
+    run = glue("r:latest analysis/report/table1.R"),
+    arguments = c("single"),
+    needs = namelesslst(
+      "process_single"
+    ),
+    moderately_sensitive= lst(
+      coverage = "output/report/table1/table1_single.csv"
     )
   ),
   
@@ -557,7 +546,7 @@ actions_list <- splice(
       "process_single"
     ),
     moderately_sensitive = lst(
-      flow_matching = "output/flowchart/*.csv"
+      flow_matching = "output/report/flowchart/*.csv"
     )
   ),
   # 

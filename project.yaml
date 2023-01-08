@@ -216,15 +216,23 @@ actions:
         input_controlfinal_skim: output/sequential/pfizer/extract/*.txt
         data_matched_skim: output/sequential/pfizer/match/*.txt
 
-  match_report_pfizer:
-    run: r:latest analysis/sequential/matching/match_report.R pfizer
+  coverage_pfizer:
+    run: r:latest analysis/sequential/matching/coverage.R pfizer
     needs:
     - process_treated
     - process_controlfinal_pfizer
     outputs:
       moderately_sensitive:
-        coverage: output/sequential/pfizer/match/report/coverage.csv
-        table1: output/sequential/pfizer/match/report/table1.csv
+        coverage: output/report/coverage/coverage_pfizer.csv
+
+  table1_pfizer:
+    run: r:latest analysis/report/table1.R pfizer
+    needs:
+    - process_treated
+    - process_controlfinal_pfizer
+    outputs:
+      moderately_sensitive:
+        coverage: output/report/table1/table1_pfizer.csv
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model 
@@ -431,15 +439,23 @@ actions:
         input_controlfinal_skim: output/sequential/az/extract/*.txt
         data_matched_skim: output/sequential/az/match/*.txt
 
-  match_report_az:
-    run: r:latest analysis/sequential/matching/match_report.R az
+  coverage_az:
+    run: r:latest analysis/sequential/matching/coverage.R az
     needs:
     - process_treated
     - process_controlfinal_az
     outputs:
       moderately_sensitive:
-        coverage: output/sequential/az/match/report/coverage.csv
-        table1: output/sequential/az/match/report/table1.csv
+        coverage: output/report/coverage/coverage_az.csv
+
+  table1_az:
+    run: r:latest analysis/report/table1.R az
+    needs:
+    - process_treated
+    - process_controlfinal_az
+    outputs:
+      moderately_sensitive:
+        coverage: output/report/table1/table1_az.csv
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model 
@@ -501,6 +517,14 @@ actions:
         data_processed_skim: output/single/process/*.txt
         data_eligible_skim: output/single/eligible/*.txt
 
+  table1_single:
+    run: r:latest analysis/report/table1.R single
+    needs:
+    - process_single
+    outputs:
+      moderately_sensitive:
+        coverage: output/report/table1/table1_single.csv
+
   extract_timevarying:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_timevarying
       --output-file output/single/extract/input_timevarying.feather
@@ -544,7 +568,7 @@ actions:
   ## # # # # # # # # # # # # # # # # # # # 
 
   flowchart:
-    run: r:latest analysis/sequential/report/flowchart.R
+    run: r:latest analysis/report/flowchart.R
     needs:
     - process_treated
     - process_controlfinal_pfizer
@@ -552,7 +576,7 @@ actions:
     - process_single
     outputs:
       moderately_sensitive:
-        flow_matching: output/flowchart/*.csv
+        flow_matching: output/report/flowchart/*.csv
 
   ## #### End #### 
 
