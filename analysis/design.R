@@ -186,7 +186,6 @@ adjustment_variables_sequential <- c(
 
 adjustment_variables_single <- c(
   "age",
-  "age_squared", # TODO double check how handled in modelling scripts
   "sex",
   "region",
   "cev_cv",
