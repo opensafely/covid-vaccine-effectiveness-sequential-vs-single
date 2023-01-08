@@ -51,7 +51,7 @@ data_fixed <- data_eligible %>%
   select(
     patient_id,
     region,
-    all_of(adjustment_variables)
+    all_of(unique(c(adjustment_variables_sequential, adjustment_variables_single)))
   )
 
 ## print dataset size ----
@@ -503,6 +503,6 @@ cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_days)), "\n
 cat(glue("memory usage = ", format(object.size(data_days), units="GB", standard="SI", digits=3L)), "\n")
 
 ## Save processed tte data ----
-write_rds(data_fixed, file.path(outdir, "data_fixed.rds"), compress="gz")
 write_rds(data_patients, file.path(outdir, "data_patients.rds"), compress="gz")
-write_rds(data_days, file.path(outdir, "data_pt.rds"), compress="gz")
+write_rds(data_events, file.path(outdir, "data_events.rds"), compress="gz")
+write_rds(data_days, file.path(outdir, "data_days.rds"), compress="gz")
