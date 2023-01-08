@@ -608,7 +608,7 @@ if (stage %in% c("single", "treated")) {
     
     criteria_descr <- character()
     if (stage == "single") {
-      criteria_descr["Aged 70+ and not vaccinated before eligible"] <- "c0"
+      criteria_descr["Aged 70+"] <- "c0"
     } else if (stage == "treated") {
       criteria_descr["Aged 70+ with 1st dose between study dates"] <- "c0"
       criteria_descr["  not in hospital (unplanned) on trial date"] <- "c6"
