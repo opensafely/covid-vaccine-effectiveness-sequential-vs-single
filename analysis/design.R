@@ -175,11 +175,11 @@ adjustment_variables_sequential <- c(
   "diabetes",
   "chronic_liver_disease",
   "chronic_resp_disease", 
-  "immunosuppressed", 
   "chronic_neuro_disease",
+  "multimorb",
+  "immunosuppressed", 
   "learndis",
   "sev_mental",
-  "multimorb",
   "flu_vaccine",
   NULL
 )
