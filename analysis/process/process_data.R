@@ -500,9 +500,9 @@ if (stage == "treated") {
 if (stage %in% c("single", "treated", "potential", "actual")) {
   
   if (stage == "single") {
-    include <- "c5"
-  } else {
     include <- "c6"
+  } else {
+    include <- "c7"
   }
   
   data_criteria <- data_processed %>%
@@ -531,11 +531,12 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
       
       isnot_inhospital = is.na(admitted_unplanned_0_date) | (!is.na(discharged_unplanned_0_date) & discharged_unplanned_0_date < index_date),
       
-      c2 = c1 & isnot_hscworker,
-      c3 = c2 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
-      c4 = c3 & has_age & has_sex & has_imd & has_ethnicity & has_region,
-      c5 = c4 & !prior_covid_infection,
-      c6 = c5 & isnot_inhospital,
+      c2 = c1 & has_follow_up_previous_year,
+      c3 = c2 & isnot_hscworker,
+      c4 = c3 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
+      c5 = c4 & has_age & has_sex & has_imd & has_ethnicity & has_region,
+      c6 = c5 & !prior_covid_infection,
+      c7 = c6 & isnot_inhospital,
       
       include = !! sym(include),
       
@@ -609,15 +610,17 @@ if (stage %in% c("single", "treated")) {
     criteria_descr <- character()
     if (stage == "single") {
       criteria_descr["Aged 70+"] <- "c0"
+      criteria_descr["  no evidence of covid before eligible for vaccintation"] <- "c6"
     } else if (stage == "treated") {
       criteria_descr["Aged 70+ with 1st dose between study dates"] <- "c0"
-      criteria_descr["  not in hospital (unplanned) on trial date"] <- "c6"
+      criteria_descr["  no evidence of covid before trial date"] <- "c6"
+      criteria_descr["  not in hospital (unplanned) on trial date"] <- "c7"
     }
     criteria_descr["  no unreliable vaccination data"] <- "c1"
-    criteria_descr["  not a HSC worker"] <- "c2"
-    criteria_descr["  not a care/nursing home resident, end-of-life or housebound"] <- "c3"
-    criteria_descr["  no missing demographic information"] <- "c4"
-    criteria_descr["  no evidence of covid before trial date"] <- "c5"
+    criteria_descr["  at least 1 year continuous registration"] <- "c2"
+    criteria_descr["  not a HSC worker"] <- "c3"
+    criteria_descr["  not a care/nursing home resident, end-of-life or housebound"] <- "c4"
+    criteria_descr["  no missing demographic information"] <- "c5"
     criteria_descr <- sort(criteria_descr)
     
     data_flowchart <- data_flowchart %>%
