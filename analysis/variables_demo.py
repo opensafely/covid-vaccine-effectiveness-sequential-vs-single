@@ -54,51 +54,6 @@ def generate_demo_variables(index_date):
   ################################################################################################
   ## Practice and patient ID variables
   ################################################################################################
-  # practice pseudo id
-  practice_id=patients.registered_practice_as_of(
-    f"{index_date} - 1 day",
-    returning="pseudo_id",
-    return_expectations={
-      "int": {"distribution": "normal", "mean": 1000, "stddev": 100},
-      "incidence": 1,
-    },
-  ),
-  
-  # msoa
-  msoa=patients.address_as_of(
-    f"{index_date} - 1 day",
-    returning="msoa",
-    return_expectations={
-      "rate": "universal",
-      "category": {"ratios": {"E02000001": 0.0625, "E02000002": 0.0625, "E02000003": 0.0625, "E02000004": 0.0625,
-        "E02000005": 0.0625, "E02000007": 0.0625, "E02000008": 0.0625, "E02000009": 0.0625, 
-        "E02000010": 0.0625, "E02000011": 0.0625, "E02000012": 0.0625, "E02000013": 0.0625, 
-        "E02000014": 0.0625, "E02000015": 0.0625, "E02000016": 0.0625, "E02000017": 0.0625}},
-    },
-  ),    
-
-  # stp is an NHS administration region based on geography
-  stp=patients.registered_practice_as_of(
-    f"{index_date} - 1 day",
-    returning="stp_code",
-    return_expectations={
-      "rate": "universal",
-      "category": {
-        "ratios": {
-          "STP1": 0.1,
-          "STP2": 0.1,
-          "STP3": 0.1,
-          "STP4": 0.1,
-          "STP5": 0.1,
-          "STP6": 0.1,
-          "STP7": 0.1,
-          "STP8": 0.1,
-          "STP9": 0.1,
-          "STP10": 0.1,
-        }
-      },
-    },
-  ),
 
   # NHS administrative region
   region=patients.registered_practice_as_of(
@@ -147,19 +102,34 @@ def generate_demo_variables(index_date):
     ),
   ),
 
-  #rurality
-  rural_urban=patients.address_as_of(
-    f"{index_date} - 1 day",
-    returning="rural_urban_classification",
-    return_expectations={
-      "rate": "universal",
-      "category": {"ratios": {1: 0.125, 2: 0.125, 3: 0.125, 4: 0.125, 5: 0.125, 6: 0.125, 7: 0.125, 8: 0.125}},
-    },
-  ),
-  
-  
-  
-  
+  # flu vaccine in flu seasons 16-17, 17-18, 18-19, 19-20 or 20 (only up to 2020-12-08)
+  flu_vaccine=patients.satisfying(
+    """
+    flu_vaccine_tpp_table>0 OR
+    flu_vaccine_med>0 OR
+    flu_vaccine_clinical>0
+    """,
+        
+    flu_vaccine_tpp_table=patients.with_tpp_vaccination_record(
+      target_disease_matches="INFLUENZA",
+      between=["2016-07-01", "2020-12-08"], 
+      returning="binary_flag",
+      ),
+        
+    flu_vaccine_med=patients.with_these_medications(
+        flu_med_codes,
+        between=["2016-07-01", "2020-12-08"], 
+        returning="binary_flag",
+      ),
+    flu_vaccine_clinical=patients.with_these_clinical_events(
+        flu_clinical_given_codes,
+        ignore_days_where_these_codes_occur=flu_clinical_not_given_codes,
+        between=["2016-07-01", "2020-12-08"], 
+        returning="binary_flag",
+        ),
+      return_expectations={"incidence": 0.5},
+    ),
+
   )
   return demo_variables
 
