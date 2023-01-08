@@ -549,6 +549,19 @@ actions_list <- splice(
       flow_matching = "output/report/flowchart/*.csv"
     )
   ),
+  
+  action(
+    name = "brand12counts",
+    run = glue("r:latest analysis/report/brand12counts.R"),
+    needs = namelesslst(
+      "process_stset"
+    ),
+    moderately_sensitive = lst(
+      csv = "output/report/brand12counts/*.csv",
+      plots = "output/report/brand12counts/*.png"
+    )
+  ),
+  
   # 
   # comment("# # # # # # # # # # # # # # # # # # #", 
   #         "Move files for release", 

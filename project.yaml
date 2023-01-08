@@ -578,5 +578,14 @@ actions:
       moderately_sensitive:
         flow_matching: output/report/flowchart/*.csv
 
+  brand12counts:
+    run: r:latest analysis/report/brand12counts.R
+    needs:
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/report/brand12counts/*.csv
+        plots: output/report/brand12counts/*.png
+
   ## #### End #### 
 
