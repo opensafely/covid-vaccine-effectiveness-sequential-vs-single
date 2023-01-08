@@ -166,18 +166,7 @@ caliper_variables <- c(
 )
 matching_variables <- c(exact_variables, names(caliper_variables))
 
-# TODO edit note 
-## important NOTE:
-
-# these adjustment variables are different to those use for adjustment in the original MSM approach
-# these are updated variables using the PRIMIS specification for identifying high risk individuals
-# the older variable definitions used in the original MSM study have been superceded, although there is a great deal of overlap between the two
-# some omissions, that would require re-extraction to include, are:
-#   efi (electronic frailty index); flu vaccination; recent unplanned hospital admission (for any cause).
-# the "shielded" indicator is accommodated by the matching,  as "cev_cv" captures all  shielded people.
-# calendar-time does not need to be adjusted for as follow up is parallel on calendar time in each group. 
-
-adjustment_variables <- c(
+adjustment_variables_sequential <- c(
   "imd_Q5",
   "ethnicity_combined",
   "sev_obesity",
@@ -185,11 +174,23 @@ adjustment_variables <- c(
   "chronic_kidney_disease",
   "diabetes",
   "chronic_liver_disease",
-  "chronic_resp_disease", #"asthma", # asthma included in chronic_resp_disease
+  "chronic_resp_disease", 
+  "immunosuppressed", 
   "chronic_neuro_disease",
   "learndis",
   "sev_mental",
-  "immunosuppressed", #"asplenia",
   "multimorb",
+  "flu_vaccine",
   NULL
 )
+
+adjustment_variables_single <- c(
+  "age",
+  "age_squared", # TODO double check how handled in modelling scripts
+  "sex",
+  "region",
+  "cev_cv",
+  adjustment_variables_sequential
+)
+
+
