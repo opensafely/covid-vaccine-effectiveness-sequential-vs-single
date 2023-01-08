@@ -124,14 +124,7 @@ process_demo <- function(.data) {
         `South West` = "South West"
       ),
       
-      imd_Q5 = factor(imd_Q5, levels = c("1 (most deprived)", "2", "3", "4", "5 (least deprived)", "Unknown")),
-      
-      rural_urban_group = fct_case_when(
-        rural_urban %in% c(1,2) ~ "Urban conurbation",
-        rural_urban %in% c(3,4) ~ "Urban city or town",
-        rural_urban %in% c(5,6,7,8) ~ "Rural town or village",
-        TRUE ~ NA_character_
-      ),
+      imd_Q5 = factor(imd_Q5, levels = c("1 (most deprived)", "2", "3", "4", "5 (least deprived)", "Unknown"))
       
     ) %>%
     select(-ethnicity, -ethnicity_6_sus)
