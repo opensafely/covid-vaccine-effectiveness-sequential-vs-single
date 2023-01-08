@@ -483,16 +483,6 @@ actions:
         rds: output/sequential/az/models/km/combined/*.csv
         png: output/sequential/az/models/km/combined/*.png
 
-  flowchart:
-    run: r:latest analysis/sequential/report/flowchart.R
-    needs:
-    - process_treated
-    - process_controlfinal_pfizer
-    - process_controlfinal_az
-    outputs:
-      moderately_sensitive:
-        flow_matching: output/sequential/flowchart/*.csv
-
   ## # # # # # # # # # # # # # # # # # # # 
   ## SINGLE TRIAL APPROACH 
   ## # # # # # # # # # # # # # # # # # # # 
@@ -548,6 +538,21 @@ actions:
     outputs:
       highly_sensitive:
         processed: output/single/stset/*.rds
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## REPORT 
+  ## # # # # # # # # # # # # # # # # # # # 
+
+  flowchart:
+    run: r:latest analysis/sequential/report/flowchart.R
+    needs:
+    - process_treated
+    - process_controlfinal_pfizer
+    - process_controlfinal_az
+    - process_single
+    outputs:
+      moderately_sensitive:
+        flow_matching: output/flowchart/*.csv
 
   ## #### End #### 
 

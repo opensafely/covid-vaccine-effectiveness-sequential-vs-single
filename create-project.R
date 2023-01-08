@@ -490,20 +490,6 @@ actions_list <- splice(
     )
   ),
   
-  action(
-    name = "flowchart",
-    run = glue("r:latest analysis/sequential/report/flowchart.R"),
-    needs = namelesslst(
-      "process_treated",
-      "process_controlfinal_pfizer",
-      "process_controlfinal_az",
-      "process_single"
-    ),
-    moderately_sensitive = lst(
-      flow_matching = "output/flowchart/*.csv"
-    )
-  ),
-  
   # extract outcome and timevarying variables for the single trial approach
   action(
     name = "extract_timevarying",
@@ -557,6 +543,23 @@ actions_list <- splice(
     )
   ),
   
+  comment("# # # # # # # # # # # # # # # # # # #", 
+          "REPORT", 
+          "# # # # # # # # # # # # # # # # # # #"),
+  
+  action(
+    name = "flowchart",
+    run = glue("r:latest analysis/report/flowchart.R"),
+    needs = namelesslst(
+      "process_treated",
+      "process_controlfinal_pfizer",
+      "process_controlfinal_az",
+      "process_single"
+    ),
+    moderately_sensitive = lst(
+      flow_matching = "output/flowchart/*.csv"
+    )
+  ),
   # 
   # comment("# # # # # # # # # # # # # # # # # # #", 
   #         "Move files for release", 
