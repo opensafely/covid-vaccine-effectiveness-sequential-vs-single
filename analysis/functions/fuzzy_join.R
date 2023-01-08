@@ -1,4 +1,5 @@
 # functions pasted here as the fuzzy_join package is not installed in opensafely
+# package repo: https://github.com/dgrtwo/fuzzyjoin
 
 # utils functions
 "%||%" <- function(x, y) if (is.null(x)) y else x
