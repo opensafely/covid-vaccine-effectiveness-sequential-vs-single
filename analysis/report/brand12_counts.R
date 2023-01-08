@@ -9,32 +9,15 @@
 library('tidyverse')
 library('here')
 library('glue')
-library('lubridate')
-library('survival')
+# library('lubridate')
+# library('survival')
 
 ## Import custom user functions from lib
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
-# source(here("lib", "redaction_functions.R"))
 
 ## create output directories ----
-# fs::dir_create(here("output", cohort, "descriptive", "plots"))
-# fs::dir_create(here("output", cohort, "descriptive", "tables"))
-
-## define theme ----
-
-plot_theme <-
-  theme_minimal()+
-  theme(
-    legend.position = "left",
-    panel.border=element_rect(colour='black', fill=NA),
-    strip.text.y.right = element_text(angle = 0),
-    axis.line.x = element_line(colour = "black"),
-    axis.text.x = element_text(angle = 70, vjust = 1, hjust=1),
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    axis.ticks.x = element_line(colour = 'black')
-  )
+fs::dir_create(here("output", "report", "brand12counts"))
 
 ## Import data_days and carry out some further processing ----
 data_days <- read_rds(here("output", "single", "stset", "data_days.rds")) %>%
@@ -85,25 +68,6 @@ plot_data <- data_days %>%
   )
 
 #################################################################################
-
-plot_theme <-
-  theme_bw(base_size = 12)+
-  theme(
-    legend.position = "left",
-    
-    panel.border=element_rect(colour='black', fill=NA),
-    
-    strip.background = element_blank(),
-    # strip.text.y.right = element_text(angle = 0),
-    
-    axis.line.x = element_line(colour = "black"),
-    axis.text.x = element_text(angle = 70, vjust = 1, hjust=1),
-    
-    panel.grid.major.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    
-    axis.ticks.x = element_line(colour = 'black')
-  )
 
 colour_palette <- c(
   "Not vaccinated" = "#f7f7f7", # light grey
@@ -158,10 +122,26 @@ plot <- plot_data %>%
     fill=NULL,
     alpha=NULL
   ) +
-  plot_theme+
-  theme(legend.position = "none")
+  theme_bw(base_size = 12)+
+  theme(
+    legend.position = "left",
+    
+    panel.border=element_rect(colour='black', fill=NA),
+    
+    strip.background = element_blank(),
+    # strip.text.y.right = element_text(angle = 0),
+    
+    axis.line.x = element_line(colour = "black"),
+    axis.text.x = element_text(angle = 70, vjust = 1, hjust=1),
+    
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    
+    axis.ticks.x = element_line(colour = 'black')
+  ) +
+  theme(legend.position = "none") 
 
-fs::dir_create(here("output", "combined"))
+
 
 ggsave(
   plot = plot,
