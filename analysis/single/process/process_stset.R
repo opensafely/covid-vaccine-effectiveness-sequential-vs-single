@@ -64,7 +64,7 @@ data_patients <- data_eligible %>%
   left_join(data_outcomes, by = "patient_id") %>%
   transmute(
     patient_id,
-    ageband2,
+    # ageband2,
     
     # since discrete dates are interpreted as the _end of_ the date, and we start follow up at the _start of_ the start date
     # this ensures everybody has at least one discrete-time "day" event-free and vaccine-free
@@ -86,7 +86,7 @@ data_patients <- data_eligible %>%
     death_date,
     
     #composite of death, deregistration and end date
-    lastfup_date = pmin(death_date, end_date, dereg_date, na.rm=TRUE),
+    lastfup_date = pmin(start_date + maxfup, death_date, end_date, dereg_date, na.rm=TRUE),
     
     tte_enddate = tte(start_date, end_date, end_date),
     
@@ -210,8 +210,9 @@ data_events0 <- tmerge(
   id = patient_id,
   
   vaxany_atrisk = tdc(ageband2_start_date-1-start_date),
-  vaxpfizer_atrisk = tdc(as.Date(study_dates$global$firstpfizer_date)-1-start_date),
-  vaxaz_atrisk = tdc(as.Date(study_dates$global$firstaz_date)-1-start_date),
+  # brand specific = maximum of brand approval and age-based eligibility
+  vaxpfizer_atrisk = tdc(pmax(study_dates$global$firstpfizer_date, ageband2_start_date)-1-start_date),
+  vaxaz_atrisk = tdc(pmax(study_dates$global$firstaz_date, ageband2_start_date)-1-start_date),
 
   vaxany1_status = tdc(tte_vaxany1),
   vaxany2_status = tdc(tte_vaxany2),
@@ -514,6 +515,6 @@ cat(glue("memory usage = ", format(object.size(data_days), units="GB", standard=
 
 ## Save processed tte data ----
 write_rds(data_fixed, file.path(outdir, "data_fixed.rds"), compress="gz")
-# write_rds(data_patients, file.path(outdir, "data_patients.rds"), compress="gz")
+write_rds(data_patients, file.path(outdir, "data_patients.rds"), compress="gz")
 # write_rds(data_events, file.path(outdir, "data_events.rds"), compress="gz")
 write_rds(data_days, file.path(outdir, "data_days.rds"), compress="gz")
