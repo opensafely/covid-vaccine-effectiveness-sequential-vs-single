@@ -5,9 +5,12 @@
 # checks that there are no separation issues between covariates and outcomes
 #
 # The script should be run via an action in the project.yaml
-# The script must be accompanied by 2 arguments,
-# 1. the name of the cohort defined in data_define_cohorts.R
-# 2. the stratification variable. Use "all" if no stratification
+# The script must be accompanied by 3 arguments,
+# 1. brand
+# 2. the subgroup variable. Use "all" if no sunbgroups
+# 3. outcome
+# 4. ipw_sample_random_n
+# 5. msm_sample_nonoutcomes_n
 # # # # # # # # # # # # # # # # # # # # #
 
 # Preliminaries ----
@@ -16,11 +19,13 @@
 library('tidyverse')
 library('here')
 library('glue')
-# library('gt')
-# library('gtsummary')
+library('gt')
+library('gtsummary')
 
 ## Import custom user functions from lib
+source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
+source(here("analysis", "functions", "redaction.R"))
 source(here("analysis", "functions", "survival.R"))
 
 # import command-line arguments ----
@@ -31,51 +36,50 @@ args <- commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   # use for interactive testing
   removeobs <- FALSE
-  cohort <- "over80s"
-  strata_var <- "all"
-  recentpostest_period <- as.numeric("Inf")
+  brand <- "pfizer"
+  subgroup <- "all"
+  outcome <- "postest"
   ipw_sample_random_n <- 200000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
   msm_sample_nonoutcomes_n <- 50000 # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
 } else {
-  cohort <- args[[1]]
-  strata_var <- args[[2]]
-  recentpostest_period <- as.numeric(args[[3]])
+  brand <- args[[1]]
+  subgroup <- args[[2]]
+  outcome <- args[[3]]
   ipw_sample_random_n <- as.integer(args[[4]])
   msm_sample_nonoutcomes_n <- as.integer(args[[5]])
   removeobs <- TRUE
 }
 
-
-### import outcomes, exposures, and covariate formulae ----
-## these are created in data_define_cohorts.R script
-
-list_formula <- read_rds(here("output", "metadata", "list_formula.rds"))
-list2env(list_formula, globalenv())
-
-
-## if stratified analysis, remove strata variable from covariate set
-formula_remove_strata_var <- as.formula(paste0(". ~ . - ", strata_var))
+# create output directory ----
+outdir <- here("output", "single", brand, subgroup, outcome, "preflight")
+fs::dir_create(outdir)
 
 ## if changing treatment strategy as per Miguel's suggestion
-exclude_recentpostest <- recentpostest_period > 0
+# exclude_recentpostest <- recentpostest_period > 0
 
+# save formulas to global environment ----
+# defined in analysis/design.R
+list2env(list_formula_single, globalenv())
+formula_1 <- outcome ~ 1
+# remove subgroup variable from covariate set
+formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
-
-septab <- function(data, formula, stratum, brand, outcome, name){
+# define septab function (checks that there are no separation issues between covariates and outcomes)
+septab <- function(data, formula, subgroup_level, brand, outcome, name){
   
-  if(FALSE){
-    #this function is a quicker alternative to the following gtsummary option:
-    gttab <- data.matrix() %>%
-      select(all.vars(formula)) %>%
-      tbl_summary(
-        by=as.character(formula[2]),
-        missing = "ifany"
-      ) %>%
-      as_gt()
-  }
+  # if(FALSE){
+  #   #this function is a quicker alternative to the following gtsummary option:
+  #   gttab <- data.matrix() %>%
+  #     select(all.vars(formula)) %>%
+  #     tbl_summary(
+  #       by=as.character(formula[2]),
+  #       missing = "ifany"
+  #     ) %>%
+  #     as_gt()
+  # }
   
   tbltab <- data %>%
-    select(all.vars(formula), stratum) %>%
+    select(all.vars(formula), subgroup_level) %>%
     select(where(~(!is.double(.)))) %>%
     select(-age) %>%
     mutate(
@@ -85,7 +89,7 @@ septab <- function(data, formula, stratum, brand, outcome, name){
       )
     ) %>%
     split(.[[1]]) %>%
-    map(~.[,-1] %>% select(stratum, everything())) %>%
+    map(~.[,-1] %>% select(subgroup_level, everything())) %>%
     map(
       function(data){
         map(data, redacted_summary_cat, redaction_threshold=0) %>%
@@ -114,33 +118,25 @@ septab <- function(data, formula, stratum, brand, outcome, name){
       pattern = "({x})"
     ) %>%
     gtsave(
-      filename = glue("sepcheck_{stratum}_{recentpostest_period}_{brand}_{outcome}_{name}.html"),
-      path=here("output", cohort, "descriptive", "model-checks", strata_var, recentpostest_period)
+      filename = glue("sepcheck_{subgroup_level}_{brand}_{outcome}_{name}.html"),
+      outdir
     )
 }
 
+subgroup_levels <- recoder[[subgroup]]
 
-
-outcomes <- c("postest", "covidadmitted", "coviddeath", "noncoviddeath", "death")
-brands <- c("any", "pfizer", "az")
-strata <- read_rds(here("output", "metadata", "list_strata.rds"))[[strata_var]]
-
-for(stratum in strata){
-  for(brand in brands){
-    for(outcome in outcomes){
-      
-      fs::dir_create(here("output", cohort, "descriptive", "model-checks", strata_var, recentpostest_period))
+for(subgroup_level in subgroup_levels){
       
       cat("  \n")
-      cat(stratum, "  \n")
+      cat(subgroup_level, "  \n")
       cat("  \n")
       
-      # Import processed data ----
-      data_fixed <- read_rds(here("output", cohort, "data", glue("data_fixed.rds")))
+      ## import processed data
+      data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
       
-      ## read and process person-time dataset
-      data_pt <- read_rds(here("output", cohort, "data", glue("data_pt.rds"))) %>% # person-time dataset (one row per patient per day)
-        mutate(all = factor("all",levels=c("all"))) %>%
+      ## read and process data_days (one row per person day)
+      data_days <- read_rds(here("output", "single", "stset", "data_days.rds")) %>% 
+        mutate(all = factor("all", levels=c("all"))) %>%
         filter(
           .[[glue("{outcome}_status")]] == 0, # follow up ends at (day after) occurrence of outcome, ie where status not >0
           lastfup_status == 0, # follow up ends at (day after) occurrence of censoring event (derived from lastfup = min(end_date, death, dereg))
@@ -150,21 +146,22 @@ for(stratum in strata){
         ) %>%
         left_join(data_fixed, by="patient_id") %>%
         filter(
-          .[[strata_var]] == stratum # select patients in current stratum
+          .[[subgroup]] == subgroup_level # select patients in current subgroup_level
         ) %>%
         mutate(
-          timesincevax_pw = timesince_cut(vaxany1_timesince, postvaxcuts, "pre-vax"),
+          timesincevax_pw = timesince_cut(vaxany1_timesince, c(0,postbaselinecuts), "pre-vax"),
           outcome = .[[outcome]],
           vax = .[[glue("vax{brand}1")]],
         ) %>%
         mutate( # this step converts logical to integer so that model coefficients print nicely in gtsummary methods
           across(where(is.logical), ~.x*1L)
-        ) %>%
+        )  %>%
+        # update vax*_atrisk based on postest_status
         mutate(
-          recentpostest = (replace_na(between(postest_timesince, 1, recentpostest_period), FALSE) & exclude_recentpostest),
-          vaxany1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxany_atrisk==1 & !recentpostest),
-          vaxpfizer1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxpfizer_atrisk==1 & !recentpostest),
-          vaxaz1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxaz_atrisk==1 & !recentpostest),
+          # recentpostest = (replace_na(between(postest_timesince, 1, recentpostest_period), FALSE) & exclude_recentpostest),
+          vaxany1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxany_atrisk==1 & postest_status==0),
+          vaxpfizer1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxpfizer_atrisk==1 & postest_status==0),
+          vaxaz1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxaz_atrisk==1 & postest_status==0),
           death_atrisk = (death_status==0 & lastfup_status==0),
         ) %>%
         mutate(
@@ -177,7 +174,7 @@ for(stratum in strata){
           "outcome",
           "timesincevax_pw",
           any_of(all.vars(formula_all_rhsvars)),
-          "recentpostest",
+          # "recentpostest",
           "vaxany1_atrisk",
           "vaxpfizer1_atrisk",
           "vaxaz1_atrisk",
@@ -185,8 +182,8 @@ for(stratum in strata){
           "vax_atrisk",
           "vax",
           "death",
-          "coviddeath",
-          "noncoviddeath",
+          # "coviddeath",
+          # "noncoviddeath",
           "dereg",
           "vaxany1",
           "vaxpfizer1",
@@ -196,37 +193,58 @@ for(stratum in strata){
           "vaxaz1_status",
         )
       
-      if(removeobs) rm(data_samples, data_fixed)
+      if(removeobs) rm(data_fixed)
+
+      # define formulas      
+      treatment_any <-
+        update(vaxany1 ~ 1, formula_covars) %>% 
+        update(formula_secular_region) %>% 
+        update(formula_timedependent) %>% 
+        update(formula_remove_subgroup)
+      treatment_pfizer <-
+        update(vaxpfizer1 ~ 1, formula_covars) %>% 
+        update(formula_secular_region) %>% 
+        update(formula_timedependent) %>%
+        update(formula_remove_subgroup)
+      treatment_az <-
+        update(vaxaz1 ~ 1, formula_covars) %>%
+        update(formula_secular_region) %>%
+        update(formula_timedependent) %>% 
+        update(formula_remove_subgroup)
       
+      # treatment_coviddeath <- 
+      #   update(coviddeath ~ 1, formula_covars) %>%
+      #   update(formula_exposure) %>% 
+      #   update(formula_secular_region) %>% 
+      #   update(formula_timedependent) %>% 
+      #   update(formula_remove_subgroup)
+      # treatment_noncoviddeath <- 
+      #   update(noncoviddeath ~ 1, formula_covars) %>%
+      #   update(formula_exposure) %>%
+      #   update(formula_secular_region) %>% 
+      #   update(formula_timedependent) %>% 
+      #   update(formula_remove_subgroup)
+      treatment_death <-  
+        update(death ~ 1, formula_covars) %>% 
+        update(formula_exposure) %>% 
+        update(formula_secular_region) %>%
+        update(formula_timedependent) %>% 
+        update(formula_remove_subgroup)
       
-      ## if outcome is positive test, remove time-varying positive test info from covariate set
-      if(outcome=="postest" | exclude_recentpostest){
-        formula_remove_postest <- as.formula(". ~ . - timesince_postesttdc_pw")
-      } else{
-        formula_remove_postest <- as.formula(". ~ .")
-      }
-      
-      formula_1 <- outcome ~ 1
-      formula_remove_strata_var <- as.formula(paste0(". ~ . - ", strata_var))
-      
-      
-      treatment_any <- update(vaxany1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var)
-      treatment_pfizer <- update(vaxpfizer1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var)
-      treatment_az <- update(vaxaz1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var)
-      
-      treatment_coviddeath <- update(coviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var)
-      treatment_noncoviddeath <- update(noncoviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var)
-      treatment_death <-  update(death ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var)
-      
-      outcome_formula <- formula_1 %>% update(formula_exposure) %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var)
+      outcome_formula <- formula_1 %>% 
+        update(formula_exposure) %>% 
+        update(formula_covars) %>%
+        update(formula_secular_region) %>%
+        update(formula_timedependent) %>%
+        update(formula_remove_subgroup)
       
       
       ## vaccination models
       
-      data_pt_vax <- data_pt %>%
+      data_days_vax <- data_days %>%
         filter(vax_atrisk) # select follow-up time where vax brand is being administered
       
-      data_samples_vax <- data_pt_vax %>%
+      data_samples_vax <- data_days_vax %>%
         group_by(patient_id) %>%
         summarise(
           had_vax = any(vax>0),
@@ -237,11 +255,11 @@ for(stratum in strata){
           sample = sample_random_n(patient_id, ipw_sample_random_n)
         )
       
-      data_pt_vax_sample <- data_pt_vax %>%
+      data_days_vax_sample <- data_days_vax %>%
         left_join(data_samples_vax, by="patient_id") %>%
         filter(sample)
       
-      data_pt_vax_sample %>%
+      data_days_vax_sample %>%
         summarise(
           obs = n(),
           patients = n_distinct(patient_id),
@@ -255,25 +273,24 @@ for(stratum in strata){
           incidencerate_vaxpfizer1 = vaxpfizer1/obs,
           incidencerate_vaxaz1 = vaxaz1/obs
         ) %>%
-        write_csv(path=here("output", cohort, "descriptive", "model-checks", strata_var, recentpostest_period, glue("summary_{stratum}_{recentpostest_period}_{brand}_{outcome}_vaccinations.csv")))
+        write_csv(
+          file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_vaccinations.csv"))
+          )
       
+      septab(data_days_vax_sample, treatment_any, subgroup_level, outcome, brand, "vaxany1")
+      septab(data_days_vax_sample, treatment_pfizer, subgroup_level, outcome, brand, "vaxpfizer1")
+      septab(data_days_vax_sample, treatment_az, subgroup_level, outcome, brand, "vaxaz1")
       
-      septab(data_pt_vax_sample, treatment_any, stratum, outcome, brand, "vaxany1")
-      septab(data_pt_vax_sample, treatment_pfizer, stratum, outcome, brand, "vaxpfizer1")
-      septab(data_pt_vax_sample, treatment_az, stratum, outcome, brand, "vaxaz1")
-      
-      if(removeobs) rm(data_samples_vax, data_pt_vax, data_pt_vax_sample)
-      
-      
+      if(removeobs) rm(data_samples_vax, data_days_vax, data_days_vax_sample)
       
       ## death models
       
-      data_pt_death <- data_pt %>%
+      data_days_death <- data_days %>%
         filter(
           .[[glue("death_atrisk")]] == 1 # select follow-up time where vax brand is being administered
         )
       
-      data_samples_death <- data_pt_death %>%
+      data_samples_death <- data_days_death %>%
         group_by(patient_id) %>%
         summarise(
           had_death = any(death>0),
@@ -285,37 +302,37 @@ for(stratum in strata){
           sample_weights_death = sample_weights(had_death, sample) # not used in this script
         )
       
-      data_pt_death_sample <- data_pt_death %>%
+      data_days_death_sample <- data_days_death %>%
         left_join(data_samples_death, by="patient_id") %>%
         filter(sample)
       
-      
-      data_pt_death_sample %>%
+      data_days_death_sample %>%
         summarise(
           obs = n(),
           patients = n_distinct(patient_id),
           death = sum(death),
-          coviddeath = sum(coviddeath),
-          noncoviddeath = sum(noncoviddeath),
+          # coviddeath = sum(coviddeath),
+          # noncoviddeath = sum(noncoviddeath),
           rate_death = death/patients,
-          rate_coviddeath = coviddeath/patients,
-          rate_noncoviddeath = noncoviddeath/patients,
+          # rate_coviddeath = coviddeath/patients,
+          # rate_noncoviddeath = noncoviddeath/patients,
           incidencerate_death = death/obs,
-          incidencerate_coviddeath = coviddeath/obs,
-          incidencerate_noncoviddeath = noncoviddeath/obs
+          # incidencerate_coviddeath = coviddeath/obs,
+          # incidencerate_noncoviddeath = noncoviddeath/obs
         ) %>%
-        write_csv(path=here("output", cohort, "descriptive", "model-checks", strata_var, recentpostest_period, glue("summary_{stratum}_{recentpostest_period}_{brand}_{outcome}_deaths.csv")))
+        write_csv(
+          file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_deaths.csv"))
+        )
       
+      # septab(data_days_death_sample, treatment_coviddeath, subgroup_level, outcome, brand, "coviddeath")
+      # septab(data_days_death_sample, treatment_noncoviddeath, subgroup_level,  outcome, brand, "noncoviddeath")
+      septab(data_days_death_sample, treatment_death, subgroup_level, outcome, brand, "death")
       
-      septab(data_pt_death_sample, treatment_coviddeath, stratum, outcome, brand, "coviddeath")
-      septab(data_pt_death_sample, treatment_noncoviddeath, stratum,  outcome, brand, "noncoviddeath")
-      septab(data_pt_death_sample, treatment_death, stratum, outcome, brand, "death")
-      
-      if(removeobs) rm(data_samples_death, data_pt_death, data_pt_death_sample)
+      if(removeobs) rm(data_samples_death, data_days_death, data_days_death_sample)
       
       ## outcome models
       
-      data_samples_outcome <- data_pt %>%
+      data_samples_outcome <- data_days %>%
         group_by(patient_id) %>%
         summarise(
           had_outcome = any(outcome>0),
@@ -327,41 +344,40 @@ for(stratum in strata){
           sample_weights = sample_weights(had_outcome, sample) # not used in this script
         )
       
-      data_pt_outcome_sample <- data_pt %>%
+      data_days_outcome_sample <- data_days %>%
         left_join(data_samples_outcome, by="patient_id") %>%
         filter(sample)
       
-      data_pt_outcome_sample %>%
+      data_days_outcome_sample %>%
         summarise(
           obs = n(),
           patients = n_distinct(patient_id),
           
-          coviddeath = sum(coviddeath),
-          noncoviddeath = sum(noncoviddeath),
+          # coviddeath = sum(coviddeath),
+          # noncoviddeath = sum(noncoviddeath),
           death = sum(death),
           dereg = sum(dereg),
           outcome = sum(outcome),
           
-          rate_coviddeath = coviddeath/patients,
-          rate_noncoviddeath = noncoviddeath/patients,
+          # rate_coviddeath = coviddeath/patients,
+          # rate_noncoviddeath = noncoviddeath/patients,
           rate_death = death/patients,
           rate_dereg = dereg/patients,
           rate_outcome = outcome/patients,
           
-          incidencerate_coviddeath = coviddeath/obs,
-          incidencerate_noncoviddeath = noncoviddeath/obs,
+          # incidencerate_coviddeath = coviddeath/obs,
+          # incidencerate_noncoviddeath = noncoviddeath/obs,
           incidencerate_death = death/obs,
           incidencerate_dereg = dereg/obs,
           incidencerate_outcome = outcome/obs
           
         ) %>%
-        write_csv(path=here("output", cohort, "descriptive", "model-checks", strata_var, recentpostest_period, glue("summary_{stratum}_{recentpostest_period}_{brand}_{outcome}_outcomes.csv")))
+        write_csv(
+          file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_outcomes.csv"))
+        )
       
+      septab(data_days_outcome_sample, outcome_formula, subgroup_level, outcome, brand, "outcome")
       
-      septab(data_pt_outcome_sample, outcome_formula, stratum, outcome, brand, "outcome")
+      if(removeobs) rm(data_samples_outcome, data_days, data_days_outcome_sample)
       
-      if(removeobs) rm(data_samples_outcome, data_pt, data_pt_outcome_sample)
-      
-    }
-  }
 }
