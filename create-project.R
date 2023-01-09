@@ -509,7 +509,7 @@ actions_list <- splice(
   
   action(
     name = "process_timevarying",
-    run = "r:latest analysis/single/process_timevarying.R",
+    run = "r:latest analysis/single/process/process_timevarying.R",
     needs = namelesslst(
       "process_single",
       "extract_timevarying",
@@ -522,7 +522,7 @@ actions_list <- splice(
   
   action(
     name = "process_stset",
-    run = "r:latest analysis/single/process_stset.R",
+    run = "r:latest analysis/single/process/process_stset.R",
     needs = namelesslst(
       "process_single",
       "process_timevarying"
