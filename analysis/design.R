@@ -142,7 +142,6 @@ model_subgroups <- "all"
 # where to split follow-up time after recruitment
 postbaselinecuts <- c(3,7,14,21,28,35,70)
 
-
 # maximum follow-up
 maxfup <- max(postbaselinecuts)
 
@@ -192,4 +191,31 @@ adjustment_variables_single <- c(
   adjustment_variables_sequential
 )
 
-
+# define formulas for single trial
+list_formula_single <- local({
+  
+  formula_exposure <- . ~ . + timesincevax_pw
+  adjustment_variables_single_linear <- str_c(adjustment_variables_single[!(adjustment_variables_single%in%c("age", "region"))], collapse = " + ")
+  formula_covars <- as.formula(glue(". ~ . + poly(age, degree=2, raw=TRUE) + {adjustment_variables_single_linear}"))
+  # formula_secular <- . ~ . + ns(tstop, df=5)
+  formula_secular_region <- . ~ . + ns(tstop, df=5)*region
+  formula_timedependent <- . ~ . + timesince_hospinfectiousdischarge_pw + timesince_hospnoninfectiousdischarge_pw
+  
+  formula_all_rhsvars <- update(1 ~ 1, formula_exposure) %>%
+    update(formula_covars) %>%
+    # update(formula_secular) %>%
+    update(formula_secular_region) %>%
+    update(formula_timedependent)
+  
+  list_formula <- lst(
+    formula_exposure,
+    formula_covars,
+    # formula_secular,
+    formula_secular_region,
+    formula_timedependent,
+    formula_all_rhsvars,
+  )
+  
+  return(list_formula)
+  
+})
