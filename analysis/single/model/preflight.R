@@ -27,6 +27,7 @@ source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 source(here("analysis", "functions", "survival.R"))
+source(here("analysis", "single", "process", "process_data_days.R"))
 
 # import command-line arguments ----
 
@@ -38,8 +39,8 @@ if(length(args)==0){
   removeobs <- FALSE
   brand <- "pfizer"
   subgroup <- "all"
-  outcome <- "postest"
-  ipw_sample_random_n <- 200000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
+  outcome <- "covidadmitted"
+  ipw_sample_random_n <- 150000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
   msm_sample_nonoutcomes_n <- 50000 # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
 } else {
   brand <- args[[1]]
@@ -79,7 +80,7 @@ septab <- function(data, formula, subgroup_level, brand, outcome, name){
   # }
   
   tbltab <- data %>%
-    select(all.vars(formula), subgroup_level) %>%
+    select(all.vars(formula), all_of(subgroup_level)) %>%
     select(where(~(!is.double(.)))) %>%
     select(-age) %>%
     mutate(
@@ -89,7 +90,7 @@ septab <- function(data, formula, subgroup_level, brand, outcome, name){
       )
     ) %>%
     split(.[[1]]) %>%
-    map(~.[,-1] %>% select(subgroup_level, everything())) %>%
+    map(~.[,-1] %>% select(all_of(subgroup_level), everything())) %>%
     map(
       function(data){
         map(data, redacted_summary_cat, redaction_threshold=0) %>%
@@ -135,63 +136,8 @@ for(subgroup_level in subgroup_levels){
       data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
       
       ## read and process data_days (one row per person day)
-      data_days <- read_rds(here("output", "single", "stset", "data_days.rds")) %>% 
-        mutate(all = factor("all", levels=c("all"))) %>%
-        filter(
-          .[[glue("{outcome}_status")]] == 0, # follow up ends at (day after) occurrence of outcome, ie where status not >0
-          lastfup_status == 0, # follow up ends at (day after) occurrence of censoring event (derived from lastfup = min(end_date, death, dereg))
-          vaxany1_status == .[[glue("vax{brand}1_status")]], # if brand-specific, follow up ends at (day after) occurrence of competing vaccination, ie where vax{competingbrand}_status not >0
-          vaxany2_status == 0, # censor at second dose
-          .[[glue("vax{brand}_atrisk")]] == 1, # select follow-up time where vax brand is being administered
-        ) %>%
-        left_join(data_fixed, by="patient_id") %>%
-        filter(
-          .[[subgroup]] == subgroup_level # select patients in current subgroup_level
-        ) %>%
-        mutate(
-          timesincevax_pw = timesince_cut(vaxany1_timesince, c(0,postbaselinecuts), "pre-vax"),
-          outcome = .[[outcome]],
-          vax = .[[glue("vax{brand}1")]],
-        ) %>%
-        mutate( # this step converts logical to integer so that model coefficients print nicely in gtsummary methods
-          across(where(is.logical), ~.x*1L)
-        )  %>%
-        # update vax*_atrisk based on postest_status
-        mutate(
-          # recentpostest = (replace_na(between(postest_timesince, 1, recentpostest_period), FALSE) & exclude_recentpostest),
-          vaxany1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxany_atrisk==1 & postest_status==0),
-          vaxpfizer1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxpfizer_atrisk==1 & postest_status==0),
-          vaxaz1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxaz_atrisk==1 & postest_status==0),
-          death_atrisk = (death_status==0 & lastfup_status==0),
-        ) %>%
-        mutate(
-          vax_atrisk = .[[glue("vax{brand}1_atrisk")]]
-        ) %>%
-        select(
-          "patient_id",
-          "all",
-          "tstart", "tstart",
-          "outcome",
-          "timesincevax_pw",
-          any_of(all.vars(formula_all_rhsvars)),
-          # "recentpostest",
-          "vaxany1_atrisk",
-          "vaxpfizer1_atrisk",
-          "vaxaz1_atrisk",
-          "death_atrisk",
-          "vax_atrisk",
-          "vax",
-          "death",
-          # "coviddeath",
-          # "noncoviddeath",
-          "dereg",
-          "vaxany1",
-          "vaxpfizer1",
-          "vaxaz1",
-          "vaxany1_status",
-          "vaxpfizer1_status",
-          "vaxaz1_status",
-        )
+      # see analysis/single/process/process_data_days.R for the process_data_days function
+      data_days <- process_data_days(stage = "preflight")
       
       if(removeobs) rm(data_fixed)
 
