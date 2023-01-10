@@ -49,61 +49,32 @@ if (cohort == "single") {
   data_in <- read_rds(ghere("output", "sequential", cohort, "match", "data_matched.rds")) 
 }
 
-# set variable names
-var_labels <- list(
-  N  ~ "Total N",
-  treated ~ "Status",
-  jcvi_ageband ~ "JCVI ageband",
-  sex ~ "Sex",
-  ethnicity_combined ~ "Ethnicity",
-  imd_Q5 ~ "Deprivation",
-  region ~ "Region",
-  
-  cev_cv ~ "Clinically vulnerable",
-  
-  sev_obesity ~ "Body Mass Index > 40 kg/m^2",
-  chronic_heart_disease ~ "Chronic heart disease",
-  chronic_kidney_disease ~ "Chronic kidney disease",
-  diabetes ~ "Diabetes",
-  chronic_liver_disease ~ "Chronic liver disease",
-  chronic_resp_disease ~ "Chronic respiratory disease",
-  chronic_neuro_disease ~ "Chronic neurological disease",
-  
-  multimorb ~ "Morbidity count",
-  
-  immunosuppressed ~ "Immunosuppressed",
-  learndis ~ "Learning disabilities",
-  sev_mental ~ "Serious mental illness",
-  flu_vaccine ~ "Influenza vaccination in previous 5 years"
-  
-) %>%
-  set_names(., map_chr(., all.vars))
-
-map_chr(var_labels[-c(1,2)], ~last(as.character(.)))
-
+# set variable names as factor levels
+var_levels <- map_chr(
+  var_lookup[-which(names(var_lookup) %in% c("N", "treated"))],
+  ~last(as.character(.))
+  )
 
 # use gtsummary to obtain stnadardised table 1 data
 tab_summary_baseline <-
   data_in %>%
   mutate(
     N = 1L,
-    #treated_descr = fct_recoderelevel(as.character(treated), recoder$treated),
     age = factor(age, levels=sort(unique(age)))
   ) %>%
   select(
     treated,
-    all_of(names(var_labels)),
+    any_of(names(var_lookup)),
   ) %>%
   tbl_summary(
     by = treated,
-    label = unname(var_labels[names(.)]),
+    label = unname(var_lookup[names(.)]),
     statistic = list(N = "{N}")
   ) 
 
 raw_stats <- tab_summary_baseline$meta_data %>%
   select(var_label, df_stats) %>%
   unnest(df_stats)
-
 
 raw_stats_redacted <- raw_stats %>%
   mutate(
@@ -115,7 +86,7 @@ raw_stats_redacted <- raw_stats %>%
     p_miss = N_miss/N_obs,
     N_nonmiss = roundmid_any(N_nonmiss, threshold),
     p_nonmiss = N_nonmiss/N_obs,
-    var_label = factor(var_label, levels=map_chr(var_labels[-c(1,2)], ~last(as.character(.)))),
+    var_label = factor(var_label, levels=var_levels),
     variable_levels = replace_na(as.character(variable_levels), "")
   ) 
 
