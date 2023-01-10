@@ -44,7 +44,7 @@ if(length(args)==0){
   brand <- "pfizer"
   subgroup <- "all"
   outcome <- "postest"
-  ipw_sample_random_n <- 20000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
+  ipw_sample_random_n <- 150000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
   msm_sample_nonoutcomes_n <- 5000 # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
   
 } else {
