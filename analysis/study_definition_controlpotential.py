@@ -42,7 +42,7 @@ demo_variables = generate_demo_variables(index_date="index_date")
 from variables_pre import generate_pre_variables 
 pre_variables = generate_pre_variables(index_date="index_date")
 ############################################################
-## censor additional_inclusion_variables
+## additional_inclusion_variables
 if matching_round == 1: additional_inclusion_variables = dict(
     eligible_matchinground1 = patients.all(),
 )
