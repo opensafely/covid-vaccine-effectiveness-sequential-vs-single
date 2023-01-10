@@ -5,22 +5,19 @@
 
 # Preliminaries ----
 
-## Import libraries ----
+## Import libraries
 library('tidyverse')
 library('here')
 
 ## create output directories ----
 fs::dir_create(here("lib", "design"))
 
+# Define global parameters ----
+
 ## round counts to nearest 6 for disclosure control
 threshold <- 6
 
-# number of matching rounds to perform
-
-n_matching_rounds <- 2#4
-
-
-# define key dates ----
+# Define key dates ----
 
 study_dates <- lst(
   
@@ -57,22 +54,26 @@ study_dates <- lst(
   
 )
 
-
-
+## sequential trial parameters:
+# number of matching rounds to perform
+n_matching_rounds <- 2#4
+# gap in days between matching rounds
 extract_increment <- 14
-
+# define brand-specific control_extract_dates
 for (brand in c("pfizer", "az")) {
   study_dates[[brand]]$control_extract_dates = as.Date(study_dates[[brand]]$start_date) + (1:n_matching_rounds - 1)*extract_increment  
 }
 
+# save as json file for reading into study definitions
 jsonlite::write_json(study_dates, path = here("lib", "design", "study-dates.json"), auto_unbox=TRUE, pretty =TRUE)
 
 # all as dates
 study_dates <- map_depth(study_dates, 2, as.Date, .ragged=TRUE)
 
 
-# define outcomes ----
+# lookups ----
 
+## outcomes
 events_lookup <- tribble(
   ~event, ~event_var, ~event_descr,
 
@@ -98,7 +99,7 @@ events_lookup <- tribble(
 
 model_outcomes <- c("postest", "covidadmitted", "death")
 
-# define treatments ----
+## treatments
 
 treatement_lookup <-
   tribble(
@@ -107,7 +108,7 @@ treatement_lookup <-
     "az", "ChAdOx1-S",
   )
 
-## lookups to convert coded variables to full, descriptive variables ----
+## lookups to convert coded variables to full, descriptive variables
 
 recoder <-
   lst(
@@ -136,6 +137,46 @@ recoder <-
   )
 
 model_subgroups <- "all"
+
+##
+var_lookup <- list(
+  N  ~ "Total N",
+  treated ~ "Status",
+  
+  age ~ "Age",
+  
+  jcvi_ageband ~ "JCVI ageband",
+  sex ~ "Sex",
+  ethnicity_combined ~ "Ethnicity",
+  imd_Q5 ~ "Deprivation",
+  region ~ "Region",
+  
+  cev_cv ~ "Clinically vulnerable",
+  
+  sev_obesity ~ "Body Mass Index > 40 kg/m^2",
+  chronic_heart_disease ~ "Chronic heart disease",
+  chronic_kidney_disease ~ "Chronic kidney disease",
+  diabetes ~ "Diabetes",
+  chronic_liver_disease ~ "Chronic liver disease",
+  chronic_resp_disease ~ "Chronic respiratory disease",
+  chronic_neuro_disease ~ "Chronic neurological disease",
+  
+  multimorb ~ "Morbidity count",
+  
+  immunosuppressed ~ "Immunosuppressed",
+  learndis ~ "Learning disabilities",
+  sev_mental ~ "Serious mental illness",
+  flu_vaccine ~ "Influenza vaccination in previous 5 years",
+  
+  prior_covid_infection ~ "Prior SARS-CoV-2 infection",
+  timesince_covid_cat ~ "Time since prior SARS-CoV-2 infection",
+  
+  # timevarying
+  timesince_hospinfectiousdischarge_pw ~ "Time since discharge from infectious hosp admission",
+  timesince_hospnoninfectiousdischarge_pw ~ "Time since discharge from non-infectious hosp admission"
+  
+) %>%
+  set_names(., map_chr(., all.vars))
 
 ## follow-up time ----
 
@@ -219,3 +260,7 @@ list_formula_single <- local({
   return(list_formula)
   
 })
+
+# reweight censored deaths or not? (only applies to single model approach)
+# ideally yes, but often very few events so censoring models are not stable
+reweight_death <- FALSE
