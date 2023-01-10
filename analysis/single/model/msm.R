@@ -7,9 +7,9 @@
 #
 # The script should be run via an action in the project.yaml
 # The script must be accompanied by 5 arguments:
-# 1. the stratification variable. Use "all" if no stratification
-# 2. the name of the outcome
-# 3. the name of the brand (currently "any", "az",or "pfizer")
+# 1. the name of the brand (currently "az"or "pfizer")
+# 2. the subgroup variable. Use "all" if no subgroups
+# 3. the name of the outcome
 # 4. the sample size for the vaccination models (a completely random sample of participants)
 # 5. the sample size for those who did not experience the outcome for the main MSM models (all those who did experience an outcome are included)
 # # # # # # # # # # # # # # # # # # # # #
@@ -27,9 +27,11 @@ library('gtsummary')
 library('gt')
 
 ## Import custom user functions from lib
-source(here("lib", "utility_functions.R"))
-source(here("lib", "redaction_functions.R"))
-source(here("lib", "survival_functions.R"))
+source(here("analysis", "design.R"))
+source(here("analysis", "functions", "utility.R"))
+source(here("analysis", "functions", "redaction.R"))
+source(here("analysis", "functions", "survival.R"))
+source(here("analysis", "single", "process", "process_data_days.R"))
 
 # import command-line arguments ----
 
@@ -39,21 +41,19 @@ args <- commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   # use for interactive testing
   removeobs <- FALSE
-  strata_var <- "all"
   brand <- "pfizer"
-  outcome <- "covidadmitted"
+  subgroup <- "all"
+  outcome <- "postest"
   ipw_sample_random_n <- 20000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
   msm_sample_nonoutcomes_n <- 5000 # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
   
 } else {
   removeobs <- TRUE
-  cohort <- args[[1]]
-  strata_var <- args[[2]]
-  recentpostest_period <- as.numeric(args[[3]])
-  brand <- args[[4]]
-  outcome <- args[[5]]
-  ipw_sample_random_n <- as.integer(args[[6]])
-  msm_sample_nonoutcomes_n <- as.integer(args[[7]])
+  brand <- args[[1]]
+  subgroup <- args[[2]]
+  outcome <- args[[3]]
+  ipw_sample_random_n <- as.integer(args[[4]])
+  msm_sample_nonoutcomes_n <- as.integer(args[[5]])
 }
 
 
@@ -65,38 +65,21 @@ parglmparams <- parglm.control(
   maxit = 40 # default = 25
 )
 
-
-
 # reweight censored deaths or not?
 # ideally yes, but often very few events so censoring models are not stable
-reweight_death <- read_rds(here("output", "metadata", "reweight_death.rds")) == 1
-
-## if changing treatment strategy as per Miguel's suggestion
-exclude_recentpostest <- (recentpostest_period >0)
+# reweight_death defined in design.R
 
 ### import outcomes, exposures, and covariate formulae ----
 ## these are created in data_define_cohorts.R script
-
-list_formula <- read_rds(here("output", "metadata", "list_formula.rds"))
-list2env(list_formula, globalenv())
-
-## if outcome is positive test, remove time-varying positive test info from covariate set
-if(outcome=="postest" | exclude_recentpostest){
-  formula_remove_postest <- as.formula(". ~ . - timesince_postesttdc_pw")
-} else{
-  formula_remove_postest <- as.formula(". ~ .")
-}
-
+list2env(list_formula_single, globalenv())
 formula_1 <- outcome ~ 1
-formula_remove_strata_var <- as.formula(paste0(". ~ . - ", strata_var))
+# remove subgroup variable from covariate set
+formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
 
-# create output directories ----
-fs::dir_create(here("output", cohort, strata_var, recentpostest_period, brand, outcome))
-
-
-
-
+# create output directory ----
+outdir <- here("output", "single", brand, subgroup, outcome, "msm")
+fs::dir_create(outdir)
 
 # function to calculate weights for treatment model ----
 ## if exposure is any vaccine, then create model for vaccination by any brand + model for death for censoring weights
@@ -114,7 +97,7 @@ get_ipw_weights <- function(
   ipw_formula,
   ipw_formula_fxd,
   
-  stratum
+  subgroup_level
 ){
   
   stopifnot(sample_type %in% c("random_prop", "random_n", "nonoutcomes_n"))
@@ -235,9 +218,17 @@ get_ipw_weights <- function(
   cat("warnings: ", "\n")
   print(warnings())
   
-  #write_rds(data_atrisk, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("data_atrisk_{event}.rds")), compress="gz")
-  write_rds(event_model, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model_{name}_{stratum}.rds")), compress="gz")
-  write_rds(ipw_formula, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model_formula_{name}_{stratum}.rds")), compress="gz")
+  #write_rds(data_atrisk, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("data_atrisk_{event}.rds")), compress="gz")
+  write_rds(
+    event_model, 
+    file.path(outdir, glue("model_{name}_{subgroup_level}.rds")), 
+    compress="gz"
+    )
+  write_rds(
+    ipw_formula, 
+    file.path(outdir, glue("model_formula_{name}_{subgroup_level}.rds")), 
+    compress="gz"
+    )
   
   rm("data_atrisk_sample")
   
@@ -303,31 +294,30 @@ get_ipw_weights <- function(
   weights$ipweight_stbl <- NULL
   
   return(weights)
+  
 }
 
+##  Create big loop over all subgroup_levels
 
+subgroup_levels <- recoder[[subgroup]]
 
-##  Create big loop over all strata
-
-strata <- read_rds(here("output", "metadata", "list_strata.rds"))[[strata_var]]
-
-for(stratum in strata){
+for(subgroup_level in subgroup_levels){
   
   cat("  \n")
-  cat(stratum, "  \n")
+  cat(subgroup_level, "  \n")
   cat("  \n")
   
   # Import processed data ----
-  data_fixed <- read_rds(here("output", cohort, "data", glue("data_fixed.rds")))
+  data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
   
-  data_samples <- read_rds(here("output", cohort, "data", "data_tte.rds")) %>%
+  data_samples <- read_rds(here("output", "single", "stset", "data_patients.rds")) %>%
     left_join(data_fixed, by="patient_id") %>%
     mutate(
       all = factor("all",levels=c("all")),
       tte_outcome = .[[glue("tte_{outcome}")]]
     ) %>%
     filter(
-      .[[strata_var]] == stratum # select patients in current stratum
+      .[[subgroup]] == subgroup_level # select patients in current subgroup_level
     ) %>%
     transmute(
       patient_id,
@@ -335,68 +325,18 @@ for(stratum in strata){
       sample_weights = sample_weights(!is.na(tte_outcome), sample_outcome),
     )
   
-  
-  ## read and process person-time dataset -- do this _within_ loop so that it can be deleted just before models are run, to reduce RAM use
-  data_pt_sub <- read_rds(here("output", cohort, "data", glue("data_pt.rds"))) %>% # person-time dataset (one row per patient per day)
-    left_join(data_samples, by="patient_id") %>%
-    mutate(all = factor("all",levels=c("all"))) %>%
-    filter(
-      .[[glue("{outcome}_status")]] == 0, # follow up ends at (day after) occurrence of outcome, ie where status not >0
-      lastfup_status == 0, # follow up ends at (day after) occurrence of censoring event (derived from lastfup = min(end_date, death, dereg))
-      vaxany1_status == .[[glue("vax{brand}1_status")]], # if brand-specific, follow up ends at (day after) occurrence of competing vaccination, ie where vax{competingbrand}_status not >0
-      vaxany2_status == 0, # censor at second dose
-      .[[glue("vax{brand}_atrisk")]] == 1, # select follow-up time where vax brand is being administered
-    ) %>%
-    left_join(data_fixed, by="patient_id") %>%
-    filter(
-      .[[strata_var]] == stratum # select patients in current stratum
-    ) %>%
-    mutate(
-      timesincevax_pw = timesince_cut(vaxany1_timesince, postvaxcuts, "pre-vax"),
-      outcome = .[[outcome]],
-    ) %>%
-    mutate( # this step converts logical to integer so that model coefficients print nicely in gtsummary methods
-      across(where(is.logical), ~.x*1L)
-    ) %>%
-    mutate(
-      recentpostest = (replace_na(between(postest_timesince, 1, recentpostest_period), FALSE) & exclude_recentpostest),
-      vaxany1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxany_atrisk==1 & (!recentpostest)),
-      vaxpfizer1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxpfizer_atrisk==1 & (!recentpostest)),
-      vaxaz1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxaz_atrisk==1 & (!recentpostest)),
-      death_atrisk = (death_status==0 & lastfup_status==0),
-    ) %>%
-    mutate(
-      vax_atrisk = .[[glue("vax{brand}1_atrisk")]]
-    ) %>%
-    select(
-      "patient_id",
-      "all",
-      "tstart", "tstart",
-      "outcome",
-      "timesincevax_pw",
-      any_of(all.vars(formula_all_rhsvars)),
-      "sample_weights", "sample_outcome",
-      "recentpostest",
-      "vaxany1_atrisk",
-      "vaxpfizer1_atrisk",
-      "vaxaz1_atrisk",
-      "death_atrisk",
-      "vax_atrisk",
-      "vaxany1",
-      "vaxpfizer1",
-      "vaxaz1",
-      "vaxany1_status",
-      "vaxpfizer1_status",
-      "vaxaz1_status",
-    )
+  ## read and process data_days (one row per person day)
+  # see analysis/single/process/process_data_days.R for the process_data_days function
+  # (do this _within_ loop so that it can be deleted just before models are run, to reduce RAM use)
+  data_days_sub <- process_data_days("msm")
   
   if(removeobs) rm(data_samples, data_fixed)
   
   
   ### print dataset size ----
-  cat(glue("data_pt_sub data size = ", nrow(data_pt_sub)), "\n  ")
-  cat(glue("data_pt_sub patient size = ", n_distinct(data_pt_sub$patient_id)), "\n  ")
-  cat(glue("memory usage = ", format(object.size(data_pt_sub), units="GB", standard="SI", digits=3L)), "\n  ")
+  cat(glue("data_days_sub data size = ", nrow(data_days_sub)), "\n  ")
+  cat(glue("data_days_sub patient size = ", n_distinct(data_days_sub$patient_id)), "\n  ")
+  cat(glue("memory usage = ", format(object.size(data_days_sub), units="GB", standard="SI", digits=3L)), "\n  ")
   
   
   
@@ -404,12 +344,13 @@ for(stratum in strata){
     
     # IPW model for any vaccination ----
     weights_vaxany1 <- get_ipw_weights(
-      data_pt_sub, "vaxany1", "vaxany1_status", "vaxany1_atrisk",
-      sample_type="random_n", sample_amount=ipw_sample_random_n,
-      ipw_formula =     update(vaxany1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var),
-      ipw_formula_fxd = update(vaxany1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-      stratum = stratum
+      data_days_sub, "vaxany1", "vaxany1_status", "vaxany1_atrisk",
+      sample_type = "random_n", sample_amount=ipw_sample_random_n,
+      ipw_formula = update(vaxany1 ~ 1, formula_covars) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_subgroup),
+      ipw_formula_fxd = update(vaxany1 ~ 1, formula_covars) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
+      subgroup_level = subgroup_level
     )
+    
   }
   if(brand!="any"){
     
@@ -417,56 +358,66 @@ for(stratum in strata){
     # these models are shared across brands (one is treatment model, one is censoring model)
     # these could be separated out and run only once, but it complicates the remaining workflow so leaving as is
     weights_vaxpfizer1 <- get_ipw_weights(
-      data_pt_sub, "vaxpfizer1", "vaxpfizer1_status", "vaxpfizer1_atrisk",
-      sample_type="random_n", sample_amount=ipw_sample_random_n, # select no more than n non-outcome samples
-      ipw_formula =     update(vaxpfizer1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var),
-      ipw_formula_fxd = update(vaxpfizer1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-      stratum = stratum
+      data_days_sub, "vaxpfizer1", "vaxpfizer1_status", "vaxpfizer1_atrisk",
+      sample_type = "random_n", sample_amount=ipw_sample_random_n, # select no more than n non-outcome samples
+      ipw_formula = update(vaxpfizer1 ~ 1, formula_covars) %>% 
+        update(formula_secular_region) %>%
+        update(formula_timedependent) %>%
+        update(formula_remove_subgroup),
+      ipw_formula_fxd = update(vaxpfizer1 ~ 1, formula_covars) %>%
+        update(formula_secular_region) %>% 
+        update(formula_remove_subgroup),
+      subgroup_level = subgroup_level
     )
     weights_vaxaz1 <- get_ipw_weights(
-      data_pt_sub, "vaxaz1", "vaxaz1_status", "vaxaz1_atrisk",
+      data_days_sub, "vaxaz1", "vaxaz1_status", "vaxaz1_atrisk",
       sample_type="random_n", sample_amount=ipw_sample_random_n,
-      ipw_formula =     update(vaxaz1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var),
-      ipw_formula_fxd = update(vaxaz1 ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-      stratum = stratum
+      ipw_formula = update(vaxaz1 ~ 1, formula_covars) %>% 
+        update(formula_secular_region) %>% 
+        update(formula_timedependent) %>% 
+        update(formula_remove_subgroup),
+      ipw_formula_fxd = update(vaxaz1 ~ 1, formula_covars) %>% 
+        update(formula_secular_region) %>% 
+        update(formula_remove_subgroup),
+      subgroup_level = subgroup_level
     )
   }
   
   # IPW model for death ----
   
   ## if outcome is not death, then need to account for censoring by any cause death
-  if(!(outcome %in% c("death", "coviddeath", "noncoviddeath")) & reweight_death){
-    weights_death <- get_ipw_weights(
-      data_pt_sub, "death", "death_status", "death_atrisk",
-      sample_type="nonoutcomes_n", sample_amount=ipw_sample_random_n,
-      ipw_formula =     update(death ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var),
-      ipw_formula_fxd = update(death ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-      stratum = stratum
-    )
-  }
-  ## if outcome is covid death, then need to account for censoring by non-covid deaths
-  if(outcome=="coviddeath" & reweight_death){
-    weights_death <- get_ipw_weights(
-      data_pt_sub, "noncoviddeath", "noncoviddeath_status", "death_atrisk",
-      sample_type="nonoutcomes_n", sample_amount=msm_sample_nonoutcomes_n,
-      ipw_formula =     update(noncoviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var),
-      ipw_formula_fxd = update(noncoviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-      stratum = stratum
-    )
-  }
-  ## if outcome is noncovid death, then need to account for censoring by covid deaths
-  if(outcome=="noncoviddeath" & reweight_death){
-    weights_death <- get_ipw_weights(
-      data_pt_sub, "coviddeath", "coviddeath_status", "death_atrisk",
-      sample_type="nonoutcomes_n", sample_amount=msm_sample_nonoutcomes_n,
-      ipw_formula =     update(coviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var),
-      ipw_formula_fxd = update(coviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-      stratum = stratum
-    )
-  }
+  # if(!(outcome %in% c("death", "coviddeath", "noncoviddeath")) & reweight_death){
+  #   weights_death <- get_ipw_weights(
+  #     data_days_sub, "death", "death_status", "death_atrisk",
+  #     sample_type="nonoutcomes_n", sample_amount=ipw_sample_random_n,
+  #     ipw_formula =     update(death ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
+  #     ipw_formula_fxd = update(death ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
+  #     subgroup_level = subgroup_level
+  #   )
+  # }
+  # ## if outcome is covid death, then need to account for censoring by non-covid deaths
+  # if(outcome=="coviddeath" & reweight_death){
+  #   weights_death <- get_ipw_weights(
+  #     data_days_sub, "noncoviddeath", "noncoviddeath_status", "death_atrisk",
+  #     sample_type="nonoutcomes_n", sample_amount=msm_sample_nonoutcomes_n,
+  #     ipw_formula =     update(noncoviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
+  #     ipw_formula_fxd = update(noncoviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
+  #     subgroup_level = subgroup_level
+  #   )
+  # }
+  # ## if outcome is noncovid death, then need to account for censoring by covid deaths
+  # if(outcome=="noncoviddeath" & reweight_death){
+  #   weights_death <- get_ipw_weights(
+  #     data_days_sub, "coviddeath", "coviddeath_status", "death_atrisk",
+  #     sample_type="nonoutcomes_n", sample_amount=msm_sample_nonoutcomes_n,
+  #     ipw_formula =     update(coviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
+  #     ipw_formula_fxd = update(coviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
+  #     subgroup_level = subgroup_level
+  #   )
+  # }
   ## if outcome is death, then no accounting for censoring by death is needed
   if(outcome=="death" | !reweight_death){
-    weights_death <- data_pt_sub %>%
+    weights_death <- data_days_sub %>%
       filter(death_atrisk) %>%
       transmute(
         patient_id, tstart, tstop,
@@ -476,7 +427,7 @@ for(stratum in strata){
   }
   
   if(brand=="any"){
-    data_weights <- data_pt_sub %>%
+    data_weights <- data_days_sub %>%
       filter(
         sample_outcome==1L # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
       ) %>%
@@ -502,10 +453,11 @@ for(stratum in strata){
       )
     
     if(removeobs) rm(weights_vaxany1, weights_death)
+    
   }
   if(brand != "any"){
     
-    data_weights <- data_pt_sub %>%
+    data_weights <- data_days_sub %>%
       filter(
         sample_outcome==1L # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
       ) %>%
@@ -538,7 +490,7 @@ for(stratum in strata){
   }
   
   
-  if(removeobs) rm(data_pt_sub)
+  if(removeobs) rm(data_days_sub)
   
   ## report weights ----
   summarise_weights <-
@@ -549,36 +501,43 @@ for(stratum in strata){
   
   capture.output(
     walk2(summarise_weights$value, summarise_weights$name, print_num),
-    file = here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("weights_table_{stratum}.txt")),
+    file = file.path(outdir, glue("weights_table_{subgroup_level}.txt")),
     append=FALSE
   )
   
-  ## save weights
-  weight_histogram <- data_weights %>%
+  ## plot distribution of weights
+  ipweight_histogram <- data_weights %>%
     filter(vax_atrisk==1) %>%
     ggplot() +
     geom_histogram(aes(x=ipweight_stbl)) +
-    scale_x_log10()+
+    scale_x_log10() +
     theme_bw()
   
-  ggsave(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("weights_prob_histogram_{stratum}.svg")), weight_histogram)
+  ggsave(
+    file.path(outdir, glue("weights_prob_histogram_{subgroup_level}.png")),
+    plot = ipweight_histogram
+    )
   
-  
-  weight_histogram <- data_weights %>%
+  cmlipweight_histogram <- data_weights %>%
     ggplot() +
     geom_histogram(aes(x=cmlipweight_stbl)) +
-    scale_x_log10()+
+    scale_x_log10() +
     theme_bw()
   
-  ggsave(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("weights_cmlprob_histogram_{stratum}.svg")), weight_histogram)
-  if(removeobs) rm(weight_histogram)
+  ggsave(
+    file.path(outdir, glue("weights_cmlprob_histogram_{subgroup_level}.png")), 
+    plot = cmlipweight_histogram
+    )
+  
+  if(removeobs) rm(ipweight_histogram, cmlipweight_histogram)
   
   ## output weight distribution file ----
   data_weights <- data_weights %>%
-    mutate(
-      # recode treatment variable to remove vaccines occurring after a positive test
-      timesincevax_pw = if_else(!recentpostest, timesincevax_pw, factor("pre-vax"))
-    ) %>%
+    # ELSIE: the following mutate is now done in process_data_days
+    # mutate(
+    #   # recode treatment variable to remove vaccines occurring after a positive test
+    #   timesincevax_pw = if_else(!recentpostest, timesincevax_pw, factor("pre-vax"))
+    # ) %>%
     select(
       "patient_id",
       "tstart", "tstop",
@@ -595,7 +554,11 @@ for(stratum in strata){
   cat(glue("data_weights data size = ", nrow(data_weights)), "  \n")
   cat(glue("memory usage = ", format(object.size(data_weights), units="GB", standard="SI", digits=3L)), "  \n")
   
-  write_rds(data_weights, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("data_weights_{stratum}.rds")), compress="gz")
+  write_rds(
+    data_weights, 
+    file.path(outdir, glue("data_weights_{subgroup_level}.rds")), 
+    compress="gz"
+    )
   
   
   # MSM model ----
@@ -610,7 +573,7 @@ for(stratum in strata){
   # cat("  \n")
   # cat("msmmod0 \n")
   # msmmod0_par <- parglm(
-  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_remove_strata_var),
+  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_remove_subgroup),
   #   data = data_weights,
   #   family = binomial,
   #   weights = sample_weights,
@@ -624,79 +587,79 @@ for(stratum in strata){
   #
   # cat(glue("msmmod0_par data size = ", length(msmmod0_par$y)), "\n")
   # cat(glue("memory usage = ", format(object.size(msmmod0_par), units="GB", standard="SI", digits=3L)), "\n")
-  # write_rds(msmmod0_par, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model0_{stratum}.rds")), compress="gz")
+  # write_rds(msmmod0_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model0_{subgroup_level}.rds")), compress="gz")
   # if(removeobs) rm(msmmod0_par)
   
-  ### model 1 - adjusted vaccination effect model and region/time only ----
-  cat("  \n")
-  cat("msmmod1 \n")
-  msmmod1_par <- parglm(
-    formula = formula_1 %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-    data = data_weights,
-    family = binomial,
-    weights = sample_weights,
-    control = parglmparams,
-    na.action = "na.fail",
-    model = FALSE
-  )
-  
-  msmmod1_par$data <- NULL
-  print(jtools::summ(msmmod1_par, digits =3))
-  cat("warnings: ", "\n")
-  print(warnings())
-  
-  cat(glue("msmmod1_par data size = ", length(msmmod1_par$y)), "\n")
-  cat(glue("memory usage = ", format(object.size(msmmod1_par), units="GB", standard="SI", digits=3L)), "\n")
-  write_rds(msmmod1_par, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model1_{stratum}.rds")), compress="gz")
-  if(removeobs) rm(msmmod1_par)
-  
-  
-  
-  ### model 2 - baseline, comorbs, secular trend adjusted vaccination effect model ----
-  cat("  \n")
-  cat("msmmod2 \n")
-  msmmod2_par <- parglm(
-    formula = formula_1 %>% update(formula_exposure) %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
-    data = data_weights,
-    family = binomial,
-    weights = sample_weights,
-    control = parglmparams,
-    na.action = "na.fail",
-    model = FALSE
-  )
-  msmmod2_par$data <- NULL
-  print(jtools::summ(msmmod2_par, digits =3))
-  cat("warnings: ", "\n")
-  print(warnings())
-  
-  cat(glue("msmmod2_par data size = ", length(msmmod2_par$y)), "\n")
-  cat(glue("memory usage = ", format(object.size(msmmod2_par), units="GB", standard="SI", digits=3L)), "\n")
-  write_rds(msmmod2_par, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model2_{stratum}.rds")), compress="gz")
-  
-  if(removeobs) rm(msmmod2_par)
+  # ### model 1 - adjusted vaccination effect model and region/time only ----
+  # cat("  \n")
+  # cat("msmmod1 \n")
+  # msmmod1_par <- parglm(
+  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
+  #   data = data_weights,
+  #   family = binomial,
+  #   weights = sample_weights,
+  #   control = parglmparams,
+  #   na.action = "na.fail",
+  #   model = FALSE
+  # )
+  # 
+  # msmmod1_par$data <- NULL
+  # print(jtools::summ(msmmod1_par, digits =3))
+  # cat("warnings: ", "\n")
+  # print(warnings())
+  # 
+  # cat(glue("msmmod1_par data size = ", length(msmmod1_par$y)), "\n")
+  # cat(glue("memory usage = ", format(object.size(msmmod1_par), units="GB", standard="SI", digits=3L)), "\n")
+  # write_rds(msmmod1_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model1_{subgroup_level}.rds")), compress="gz")
+  # if(removeobs) rm(msmmod1_par)
   
   
-  ### model 3 - baseline, comorbs, secular trends and time-varying (but not reweighted) adjusted vaccination effect model ----
-  cat("  \n")
-  cat("msmmod3 \n")
-  msmmod3_par <- parglm(
-    formula = formula_1 %>% update(formula_exposure) %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_strata_var),
-    data = data_weights,
-    family = binomial,
-    weights = sample_weights,
-    control = parglmparams,
-    na.action = "na.fail",
-    model = FALSE
-  )
-  msmmod3_par$data <- NULL
-  print(jtools::summ(msmmod3_par, digits =3))
-  cat("warnings: ", "\n")
-  print(warnings())
   
-  cat(glue("msmmod3_par data size = ", length(msmmod3_par$y)), "\n")
-  cat(glue("memory usage = ", format(object.size(msmmod3_par), units="GB", standard="SI", digits=3L)), "\n")
-  write_rds(msmmod3_par, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model3_{stratum}.rds")), compress="gz")
-  if(removeobs) rm(msmmod3_par)
+  # ### model 2 - baseline, comorbs, secular trend adjusted vaccination effect model ----
+  # cat("  \n")
+  # cat("msmmod2 \n")
+  # msmmod2_par <- parglm(
+  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
+  #   data = data_weights,
+  #   family = binomial,
+  #   weights = sample_weights,
+  #   control = parglmparams,
+  #   na.action = "na.fail",
+  #   model = FALSE
+  # )
+  # msmmod2_par$data <- NULL
+  # print(jtools::summ(msmmod2_par, digits =3))
+  # cat("warnings: ", "\n")
+  # print(warnings())
+  # 
+  # cat(glue("msmmod2_par data size = ", length(msmmod2_par$y)), "\n")
+  # cat(glue("memory usage = ", format(object.size(msmmod2_par), units="GB", standard="SI", digits=3L)), "\n")
+  # write_rds(msmmod2_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model2_{subgroup_level}.rds")), compress="gz")
+  # 
+  # if(removeobs) rm(msmmod2_par)
+  
+  
+  # ### model 3 - baseline, comorbs, secular trends and time-varying (but not reweighted) adjusted vaccination effect model ----
+  # cat("  \n")
+  # cat("msmmod3 \n")
+  # msmmod3_par <- parglm(
+  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
+  #   data = data_weights,
+  #   family = binomial,
+  #   weights = sample_weights,
+  #   control = parglmparams,
+  #   na.action = "na.fail",
+  #   model = FALSE
+  # )
+  # msmmod3_par$data <- NULL
+  # print(jtools::summ(msmmod3_par, digits =3))
+  # cat("warnings: ", "\n")
+  # print(warnings())
+  # 
+  # cat(glue("msmmod3_par data size = ", length(msmmod3_par$y)), "\n")
+  # cat(glue("memory usage = ", format(object.size(msmmod3_par), units="GB", standard="SI", digits=3L)), "\n")
+  # write_rds(msmmod3_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model3_{subgroup_level}.rds")), compress="gz")
+  # if(removeobs) rm(msmmod3_par)
   
   
   
@@ -704,7 +667,11 @@ for(stratum in strata){
   cat("  \n")
   cat("msmmod4 \n")
   msmmod4_par <- parglm(
-    formula = formula_1 %>% update(formula_exposure)  %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_remove_strata_var),
+    formula = formula_1 %>% 
+      update(formula_exposure) %>% 
+      update(formula_covars) %>% 
+      update(formula_secular_region) %>% 
+      update(formula_remove_subgroup),
     data = data_weights,
     weights = cmlipweight_stbl_sample,
     family = binomial,
@@ -719,7 +686,11 @@ for(stratum in strata){
   
   cat(glue("msmmod4_par data size = ", length(msmmod4_par$y)), "\n")
   cat(glue("memory usage = ", format(object.size(msmmod4_par), units="GB", standard="SI", digits=3L)), "\n")
-  write_rds(msmmod4_par, here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model4_{stratum}.rds")), compress="gz")
+  write_rds(
+    msmmod4_par, 
+    file.path(outdir, glue("model4_{subgroup_level}.rds")),
+    compress="gz"
+    )
   if(removeobs) rm(msmmod4_par)
   
   
@@ -738,7 +709,9 @@ for(stratum in strata){
       incidence_prop = outcomes/patients,
       incidence_rate = outcomes/obs
     ) %>%
-    write_csv(path=here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("summary_substantive_{stratum}.csv")))
+    write_csv(
+      file.path(outdir, glue("summary_substantive_{subgroup_level}.csv"))
+      )
   
   
   if(removeobs) rm(data_weights)
