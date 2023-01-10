@@ -8,6 +8,7 @@
 ## Import libraries
 library('tidyverse')
 library('here')
+library('glue')
 
 ## create output directories ----
 fs::dir_create(here("lib", "design"))
@@ -194,8 +195,9 @@ exact_variables <- c(
   "cev_cv",
   "region",
   "sex",
-  "timesince_covid_cat",
-  "prior_covid_infection",
+  # remove because all with prior_covid_infection excluded
+  # "timesince_covid_cat",
+  # "prior_covid_infection",
   NULL
 )
 
