@@ -16,7 +16,7 @@ from cohortextractor import (
 
 # define params
 cohort = params["cohort"]
-matching_round = params["matching_round"]
+matching_round = int(params["matching_round"])
 previousmatching_round = int(matching_round)-1
 index_date = params["index_date"]
 
@@ -41,7 +41,16 @@ demo_variables = generate_demo_variables(index_date="index_date")
 ## pre variables
 from variables_pre import generate_pre_variables 
 pre_variables = generate_pre_variables(index_date="index_date")
-
+############################################################
+## censor additional_inclusion_variables
+if matching_round == 1: additional_inclusion_variables = dict(
+    eligible_matchinground1 = patients.all(),
+)
+else: additional_inclusion_variables = dict(
+   eligible_matchinground1 = patients.which_exist_in_file(
+      f_path=f"output/sequential/{cohort}/matchround{previousmatching_round}/process/data_controlpotential.csv.gz"
+      ),
+)
 
 
 # Specify study defeinition
@@ -66,9 +75,12 @@ study = StudyDefinition(
     age31aug2020 >= 70
     AND
     NOT has_died
+    AND
+    eligible_matchinground1
     """,
     
     **inclusion_variables,    
+    **additional_inclusion_variables,
 
   ),
   
