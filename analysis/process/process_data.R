@@ -500,9 +500,9 @@ if (stage == "treated") {
 if (stage %in% c("single", "treated", "potential", "actual")) {
   
   if (stage == "single") {
-    include <- "c6"
-  } else {
     include <- "c7"
+  } else {
+    include <- "c8"
   }
   
   data_criteria <- data_processed %>%
@@ -519,7 +519,6 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
       has_imd = imd_Q5 != "Unknown",
       has_ethnicity = !is.na(ethnicity_combined),
       has_region = !is.na(region),
-      #has_msoa = !is.na(msoa),
       isnot_hscworker = !hscworker,
       isnot_carehomeresident = !care_home_combined,
       isnot_endoflife = !endoflife,
@@ -533,10 +532,11 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
       
       c2 = c1 & has_follow_up_previous_year,
       c3 = c2 & isnot_hscworker,
-      c4 = c3 & isnot_carehomeresident & isnot_endoflife & isnot_housebound,
-      c5 = c4 & has_age & has_sex & has_imd & has_ethnicity & has_region,
-      c6 = c5 & !prior_covid_infection,
-      c7 = c6 & isnot_inhospital,
+      c4 = c3 & isnot_carehomeresident & isnot_housebound,
+      c5 = c4 & isnot_endoflife,
+      c6 = c5 & has_age & has_sex & has_imd & has_ethnicity & has_region,
+      c7 = c6 & !prior_covid_infection,
+      c8 = c7 & isnot_inhospital,
       
       include = !! sym(include),
       
@@ -588,9 +588,17 @@ if (stage == "single") {
     path = ghere("output", "sequential", cohort, "matchround{matching_round}", "process", "data_controlpotential_skim.txt")
     )
   
-  write_rds(data_eligible, 
-            ghere("output", "sequential", cohort, "matchround{matching_round}", "process", "data_controlpotential.rds"),
-            compress = "gz")
+  write_rds(
+    data_eligible, 
+    ghere("output", "sequential", cohort, "matchround{matching_round}", "process", "data_controlpotential.rds"),
+    compress = "gz"
+    )
+  
+  if (matching_round == 1) {
+    data_eligible %>%
+      distinct(patient_id) %>%
+      write_csv(ghere("output", "sequential", cohort, "matchround{matching_round}", "process", "data_controlpotential.csv.gz"))
+  }
   
 }
 
