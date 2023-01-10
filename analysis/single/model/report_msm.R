@@ -7,7 +7,7 @@
 # outputs plots showing model-estimated spatio-temporal trends
 #
 # The script should only be run via an action in the project.yaml only
-# The script must be accompanied by five arguments: cohort, outcome, brand, recentpostest_period, and stratum
+# The script must be accompanied by five arguments: cohort, outcome, brand, recentpostest_period, and subgroup_level
 # # # # # # # # # # # # # # # # # # # # #
 
 # Preliminaries ----
@@ -24,104 +24,93 @@ library('gtsummary')
 library("sandwich")
 library("lmtest")
 
-## Import custom user functions from lib
-source(here("lib", "utility_functions.R"))
-source(here("lib", "redaction_functions.R"))
-source(here("lib", "survival_functions.R"))
+## Import custom user functions
+source(here("analysis", "design.R"))
+source(here("analysis", "functions", "utility.R"))
+source(here("analysis", "functions", "redaction.R"))
+source(here("analysis", "functions", "survival.R"))
 
 # import command-line arguments ----
 
 args <- commandArgs(trailingOnly=TRUE)
+# import command-line arguments ----
 
+args <- commandArgs(trailingOnly=TRUE)
 
 if(length(args)==0){
   # use for interactive testing
-  cohort <- "over80s"
-  strata_var <- "all"
-  recentpostest_period <- as.numeric("Inf")
-  brand <- "any"
-  outcome <- "postest"
   removeobs <- FALSE
+  brand <- "pfizer"
+  outcome <- "postest"
+  subgroup <- "all"
 } else {
-  cohort <- args[[1]]
-  strata_var <- args[[2]]
-  recentpostest_period <- as.numeric(args[[3]])
-  brand <- args[[4]]
-  outcome <- args[[5]]
   removeobs <- TRUE
+  brand <- args[[1]]
+  outcome <- args[[2]]
+  subgroup <- args[[3]]
 }
 
-
-
-# import global vars ----
-gbl_vars <- jsonlite::fromJSON(
-  txt="./analysis/global-variables.json"
-)
+# create output directory ----
+indir <- here("output", "single", brand, subgroup, outcome, "msm") 
+outdir <- file.path(indir, "report_ipw")
+fs::dir_create(outdir)
 
 # Import metadata for outcome ----
 ## these are created in data_define_cohorts.R script
+metadata_outcomes <- events_lookup %>% 
+  filter(event %in% model_outcomes) %>%
+  pull(event_descr)
 
-metadata_outcomes <- read_rds(here("output", "metadata", "metadata_outcomes.rds"))
-stopifnot("outcome does not exist" = (outcome %in% metadata_outcomes[["outcome"]]))
-metadata_outcomes <- metadata_outcomes[metadata_outcomes[["outcome"]]==outcome, ]
-
-list2env(metadata_outcomes, globalenv())
-
-### import outcomes, exposures, and covariate formulae ----
-## these are created in data_define_cohorts.R script
-
-list_formula <- read_rds(here("output", "metadata", "list_formula.rds"))
-list2env(list_formula, globalenv())
-
+# extract formulas
+list2env(list_formula_single, globalenv())
 formula_1 <- outcome ~ 1
-formula_remove_strata_var <- as.formula(paste0(". ~ . - ",strata_var))
+formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
 ##  Create big loop over all categories
 
-strata <- read_rds(here("output", "metadata", "list_strata.rds"))[[strata_var]]
-strata_descr <- read_rds(here("output", "metadata", "list_strata_descr.rds"))[[strata_var]]
-strata_names <- paste0("strata_",strata)
-summary_list <- vector("list", length(strata))
-names(summary_list) <- strata_names
+subgroup_levels <- recoder[[subgroup]]
+subgroup_level <- "all"
 
-for(stratum in strata){
-  stratum_name <- strata_names[which(strata==stratum)]
-  stratum_descr <- strata_descr[which(strata==stratum)]
+summary_list <- vector("list", length(subgroup_levels))
+names(summary_list) <- subgroup_levels
+
+for(subgroup_level in subgroup_levels){
+
   # Import processed data ----
   
-  data_weights <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("data_weights_{stratum}.rds")))
+  data_weights <- read_rds(file.path(indir, glue("data_weights_{subgroup_level}.rds")))
   
   # import models ----
   
-  #msmmod0 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model0_{stratum}.rds")))
-  msmmod1 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model1_{stratum}.rds")))
-  msmmod2 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model2_{stratum}.rds")))
-  #msmmod3 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model3_{stratum}.rds")))
-  msmmod4 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model4_{stratum}.rds")))
+  #msmmod0 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model0_{subgroup_level}.rds")))
+  # msmmod1 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model1_{subgroup_level}.rds")))
+  # msmmod2 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model2_{subgroup_level}.rds")))
+  #msmmod3 <- read_rds(here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("model3_{subgroup_level}.rds")))
+  msmmod4 <- read_rds(file.path(indir, glue("model4_{subgroup_level}.rds")))
   
   ## report models ----
   
   #robust0 <- tidy_plr(msmmod0, cluster=data_weights$patient_id)
-  robust1 <- tidy_plr(msmmod1, cluster=data_weights$patient_id)
-  robust2 <- tidy_plr(msmmod2, cluster=data_weights$patient_id)
+  # robust1 <- tidy_plr(msmmod1, cluster=data_weights$patient_id)
+  # robust2 <- tidy_plr(msmmod2, cluster=data_weights$patient_id)
   #robust3 <- tidy_plr(msmmod3, cluster=data_weights$patient_id)
   robust4 <- tidy_plr(msmmod4, cluster=data_weights$patient_id)
   
   robust_summary <- bind_rows(
     list(
       #"0"=mutate(robust0,, model_descr="unadjusted"),
-      "1"=mutate(robust1, model_descr="Region-stratified Cox model, with no further adjustment"),
-      "2"=mutate(robust2, model_descr="Region-stratified Cox model, with adjustment for baseline confounders"),
+      # "1"=mutate(robust1, model_descr="Region-stratified Cox model, with no further adjustment"),
+      # "2"=mutate(robust2, model_descr="Region-stratified Cox model, with adjustment for baseline confounders"),
       #"3"=mutate(robust3, model_descr="Region-stratified Cox model, with adjustment for baseline and time-varying confounders"),
       "4"=mutate(robust4, model_descr="Region-stratified marginal structural Cox model, with adjustment for baseline and time-varying confounders")
     ),
     .id = "model"
   ) %>%
     mutate(
-      stratum=stratum_descr,
+      subgroup_level=subgroup_level,
     )
   
-  summary_list[[stratum_name]] <- robust_summary
+  summary_list[[subgroup_level]] <- robust_summary
   
 }
 
@@ -132,10 +121,10 @@ summary_df <- summary_list %>% bind_rows %>%
     model_descr_wrap = fct_inorder(str_wrap(model_descr, 30)),
   ) %>%
   select(
-    stratum, model, model_descr, model_descr_wrap, term, estimate, conf.low, conf.high, std.error, statistic, p.value, or, or.ll, or.ul
+    subgroup_level, model, model_descr, model_descr_wrap, term, estimate, conf.low, conf.high, std.error, statistic, p.value, or, or.ll, or.ul
   )
 
-write_csv(summary_df, path = here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("estimates.csv")))
+write_csv(summary_df, file.path(outdir, "estimates.csv"))
 
 # create plot
 msmmod_effect_data <- summary_df %>%
@@ -164,10 +153,10 @@ msmmod_effect_data <- summary_df %>%
   ) %>%
   ungroup()
 
-write_csv(msmmod_effect_data, path = here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("estimates_timesincevax.csv")))
+write_csv(msmmod_effect_data, file.path(outdir, "estimates_timesincevax.csv"))
 
 msmmod_effect <-
-  ggplot(data = msmmod_effect_data, aes(colour=as.factor(stratum))) +
+  ggplot(data = msmmod_effect_data, aes(colour=as.factor(subgroup_level))) +
   geom_point(aes(y=or, x=term_midpoint), position = position_dodge(width = 0.6))+
   geom_linerange(aes(ymin=or.ll, ymax=or.ul, x=term_midpoint), position = position_dodge(width = 0.6))+
   geom_hline(aes(yintercept=1), colour='grey')+
@@ -208,5 +197,13 @@ msmmod_effect <-
   )
 
 ## save plot
-ggsave(filename=here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("VE_plot.svg")), msmmod_effect, width=20, height=18, units="cm")
-ggsave(filename=here("output", cohort, strata_var, recentpostest_period, brand, outcome, glue("VE_plot.png")), msmmod_effect, width=20, height=18, units="cm")
+ggsave(
+  filename=file.path(outdir, glue("VE_plot.svg")),
+  msmmod_effect, 
+  width=20, height=18, units="cm"
+  )
+ggsave(
+  filename=here(outdir, glue("VE_plot.png")), 
+  msmmod_effect, 
+  width=20, height=18, units="cm"
+  )
