@@ -306,7 +306,7 @@ cohort_seqtrial <- function(cohort) {
             "# # # # # # # # # # # # # # # # # # #"),
     
     comment("# # # # # # # # # # # # # # # # # # #",
-            "Extract and match",
+            "Extract, process and match control data",
             "# # # # # # # # # # # # # # # # # # #"),
     
     action_extract_and_match(cohort, n_matching_rounds),
@@ -340,28 +340,58 @@ cohort_seqtrial <- function(cohort) {
     comment("# # # # # # # # # # # # # # # # # # #",
             "Model",
             "# # # # # # # # # # # # # # # # # # #"),
-    unlist(
-      lapply(
-        model_subgroups,
-        function(x) {
-          unlist(
-            lapply(
-              model_outcomes,
-              function(y) {
-                splice(
-                  action_km(cohort, x, y)
-                )
-              }
-            ),
-            recursive = FALSE
-          )
-        }
-      ),
-      recursive = FALSE
-    ),
+    
+    
+    expand_grid(
+      subgroup=model_subgroups,
+      outcome=model_outcomes,
+    ) %>%
+      pmap(
+        function(brand, subgroup, outcome) action_km(cohort, subgroup, outcome)
+      ) %>%
+      unlist(recursive = FALSE),
     
     action_km_combine(cohort)
     
+  )
+  
+}
+
+
+model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n) {
+  
+  splice(
+    
+    action(
+      name = glue("preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
+      run = "r:latest analysis/single/model/preflight.R",
+      arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
+      needs = namelesslst(
+        "process_stset"
+      ),
+      moderately_sensitive = lst(
+        csv = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/*.csv"),
+        html = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/*.html")
+      )
+    ),
+    
+    action(
+      name = glue("msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
+      run = "r:latest analysis/single/model/msm.R",
+      arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
+      needs = namelesslst(
+        "process_stset",
+        glue("preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
+      ),
+      highly_sensitive = lst(
+        rds = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.rds")
+      ),
+      moderately_sensitive = lst(
+        csv = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.csv"),
+        png = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.png"),
+        txt = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.txt")
+      )
+    )
   )
   
 }
@@ -447,6 +477,8 @@ actions_list <- splice(
   comment("# # # # # # # # # # # # # # # # # # #", 
           "SINGLE TRIAL APPROACH", 
           "# # # # # # # # # # # # # # # # # # #"),
+  comment("Extract and process data", 
+          "# # # # # # # # # # # # # # # # # # #"),
   
   action(
     name = "process_single",
@@ -531,6 +563,20 @@ actions_list <- splice(
       processed = "output/single/stset/*.rds"
     )
   ),
+  
+  comment("# # # # # # # # # # # # # # # # # # #", 
+          "Model", 
+          "# # # # # # # # # # # # # # # # # # #"),
+  
+  expand_grid(
+    brand=treatement_lookup$treatment,
+    subgroup=model_subgroups,
+    outcome=model_outcomes,
+  ) %>%
+    pmap(
+      function(brand, subgroup, outcome) model_single(brand, subgroup, outcome, 150000, 50000)
+    ) %>%
+    unlist(recursive = FALSE),
   
   comment("# # # # # # # # # # # # # # # # # # #", 
           "REPORT", 

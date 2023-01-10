@@ -57,7 +57,7 @@ actions:
   ## pfizer cohort 
   ## # # # # # # # # # # # # # # # # # # # 
   ## # # # # # # # # # # # # # # # # # # # 
-  ## Extract and match 
+  ## Extract, process and match control data 
   ## # # # # # # # # # # # # # # # # # # # 
 
   extract_controlpotential_pfizer_1:
@@ -280,7 +280,7 @@ actions:
   ## az cohort 
   ## # # # # # # # # # # # # # # # # # # # 
   ## # # # # # # # # # # # # # # # # # # # 
-  ## Extract and match 
+  ## Extract, process and match control data 
   ## # # # # # # # # # # # # # # # # # # # 
 
   extract_controlpotential_az_1:
@@ -502,6 +502,8 @@ actions:
   ## # # # # # # # # # # # # # # # # # # # 
   ## SINGLE TRIAL APPROACH 
   ## # # # # # # # # # # # # # # # # # # # 
+  ## Extract and process data 
+  ## # # # # # # # # # # # # # # # # # # # 
 
   process_single:
     run: r:latest analysis/process/process_data.R single
@@ -545,7 +547,7 @@ actions:
         dummydata: output/single/dummydata/*.feather
 
   process_timevarying:
-    run: r:latest analysis/single/process_timevarying.R
+    run: r:latest analysis/single/process/process_timevarying.R
     needs:
     - process_single
     - extract_timevarying
@@ -555,13 +557,150 @@ actions:
         processed: output/single/process/*.rds
 
   process_stset:
-    run: r:latest analysis/single/process_stset.R
+    run: r:latest analysis/single/process/process_stset.R
     needs:
     - process_single
     - process_timevarying
     outputs:
       highly_sensitive:
         processed: output/single/stset/*.rds
+
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Model 
+  ## # # # # # # # # # # # # # # # # # # # 
+
+  preflight_pfizer_all_postest_150000_50000:
+    run: r:latest analysis/single/model/preflight.R pfizer all postest 150000 50000
+    needs:
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/single/pfizer/all/postest/preflight/*.csv
+        html: output/single/pfizer/all/postest/preflight/*.html
+
+  msm_pfizer_all_postest_150000_50000:
+    run: r:latest analysis/single/model/msm.R pfizer all postest 150000 50000
+    needs:
+    - process_stset
+    - preflight_pfizer_all_postest_150000_50000
+    outputs:
+      highly_sensitive:
+        rds: output/single/pfizer/all/postest/msm/*.rds
+      moderately_sensitive:
+        csv: output/single/pfizer/all/postest/msm/*.csv
+        png: output/single/pfizer/all/postest/msm/*.png
+        txt: output/single/pfizer/all/postest/msm/*.txt
+
+  preflight_pfizer_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/preflight.R pfizer all covidadmitted 150000
+      50000
+    needs:
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/single/pfizer/all/covidadmitted/preflight/*.csv
+        html: output/single/pfizer/all/covidadmitted/preflight/*.html
+
+  msm_pfizer_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/msm.R pfizer all covidadmitted 150000 50000
+    needs:
+    - process_stset
+    - preflight_pfizer_all_covidadmitted_150000_50000
+    outputs:
+      highly_sensitive:
+        rds: output/single/pfizer/all/covidadmitted/msm/*.rds
+      moderately_sensitive:
+        csv: output/single/pfizer/all/covidadmitted/msm/*.csv
+        png: output/single/pfizer/all/covidadmitted/msm/*.png
+        txt: output/single/pfizer/all/covidadmitted/msm/*.txt
+
+  preflight_pfizer_all_death_150000_50000:
+    run: r:latest analysis/single/model/preflight.R pfizer all death 150000 50000
+    needs:
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/single/pfizer/all/death/preflight/*.csv
+        html: output/single/pfizer/all/death/preflight/*.html
+
+  msm_pfizer_all_death_150000_50000:
+    run: r:latest analysis/single/model/msm.R pfizer all death 150000 50000
+    needs:
+    - process_stset
+    - preflight_pfizer_all_death_150000_50000
+    outputs:
+      highly_sensitive:
+        rds: output/single/pfizer/all/death/msm/*.rds
+      moderately_sensitive:
+        csv: output/single/pfizer/all/death/msm/*.csv
+        png: output/single/pfizer/all/death/msm/*.png
+        txt: output/single/pfizer/all/death/msm/*.txt
+
+  preflight_az_all_postest_150000_50000:
+    run: r:latest analysis/single/model/preflight.R az all postest 150000 50000
+    needs:
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/single/az/all/postest/preflight/*.csv
+        html: output/single/az/all/postest/preflight/*.html
+
+  msm_az_all_postest_150000_50000:
+    run: r:latest analysis/single/model/msm.R az all postest 150000 50000
+    needs:
+    - process_stset
+    - preflight_az_all_postest_150000_50000
+    outputs:
+      highly_sensitive:
+        rds: output/single/az/all/postest/msm/*.rds
+      moderately_sensitive:
+        csv: output/single/az/all/postest/msm/*.csv
+        png: output/single/az/all/postest/msm/*.png
+        txt: output/single/az/all/postest/msm/*.txt
+
+  preflight_az_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/preflight.R az all covidadmitted 150000 50000
+    needs:
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/single/az/all/covidadmitted/preflight/*.csv
+        html: output/single/az/all/covidadmitted/preflight/*.html
+
+  msm_az_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/msm.R az all covidadmitted 150000 50000
+    needs:
+    - process_stset
+    - preflight_az_all_covidadmitted_150000_50000
+    outputs:
+      highly_sensitive:
+        rds: output/single/az/all/covidadmitted/msm/*.rds
+      moderately_sensitive:
+        csv: output/single/az/all/covidadmitted/msm/*.csv
+        png: output/single/az/all/covidadmitted/msm/*.png
+        txt: output/single/az/all/covidadmitted/msm/*.txt
+
+  preflight_az_all_death_150000_50000:
+    run: r:latest analysis/single/model/preflight.R az all death 150000 50000
+    needs:
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/single/az/all/death/preflight/*.csv
+        html: output/single/az/all/death/preflight/*.html
+
+  msm_az_all_death_150000_50000:
+    run: r:latest analysis/single/model/msm.R az all death 150000 50000
+    needs:
+    - process_stset
+    - preflight_az_all_death_150000_50000
+    outputs:
+      highly_sensitive:
+        rds: output/single/az/all/death/msm/*.rds
+      moderately_sensitive:
+        csv: output/single/az/all/death/msm/*.csv
+        png: output/single/az/all/death/msm/*.png
+        txt: output/single/az/all/death/msm/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## REPORT 
