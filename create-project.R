@@ -70,6 +70,17 @@ action_1matchround <- function(cohort, matching_round){
   
   control_extract_date <- study_dates[[cohort]][[glue("control_extract_dates")]][matching_round]
   
+  if (matching_round == 1) {
+    process_controlpotential_hsoutputs <- lst(
+      rds = glue("output/sequential/{cohort}/matchround{matching_round}/process/*.rds"),
+      csv = glue("output/sequential/{cohort}/matchround{matching_round}/process/*.csv.gz")
+    )
+  } else {
+    process_controlpotential_hsoutputs <- lst(
+      rds = glue("output/sequential/{cohort}/matchround{matching_round}/process/*.rds")
+    )
+  }
+  
   splice(
     action(
       name = glue("extract_controlpotential_{cohort}_{matching_round}"),
@@ -83,7 +94,11 @@ action_1matchround <- function(cohort, matching_round){
       ),
       needs = c(
         "design",
-        if(matching_round>1) {glue("process_controlactual_{cohort}_{matching_round-1}")} else {NULL}
+        if(matching_round>1) {
+          c(glue("process_controlpotential_{cohort}_{matching_round-1}"),glue("process_controlactual_{cohort}_{matching_round-1}"))
+        } else {
+            NULL
+          }
       ) %>% as.list,
       highly_sensitive = lst(
         cohort = glue("output/sequential/{cohort}/matchround{matching_round}/extract/input_controlpotential.feather")
@@ -97,9 +112,7 @@ action_1matchround <- function(cohort, matching_round){
       needs = namelesslst(
         glue("extract_controlpotential_{cohort}_{matching_round}"),
       ),
-      highly_sensitive = lst(
-        rds = glue("output/sequential/{cohort}/matchround{matching_round}/process/*.rds")
-      ),
+      highly_sensitive = process_controlpotential_hsoutputs,
       moderately_sensitive = lst(
         input_controlpotential_skim = glue("output/sequential/{cohort}/matchround{matching_round}/extract/potential/*.txt"),
         data_processed_skim = glue("output/sequential/{cohort}/matchround{matching_round}/potential/*.txt"),

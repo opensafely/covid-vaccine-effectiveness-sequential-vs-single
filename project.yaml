@@ -77,6 +77,7 @@ actions:
     outputs:
       highly_sensitive:
         rds: output/sequential/pfizer/matchround1/process/*.rds
+        csv: output/sequential/pfizer/matchround1/process/*.csv.gz
       moderately_sensitive:
         input_controlpotential_skim: output/sequential/pfizer/matchround1/extract/potential/*.txt
         data_processed_skim: output/sequential/pfizer/matchround1/potential/*.txt
@@ -125,6 +126,7 @@ actions:
       --param cohort=pfizer --param matching_round=2 --param index_date=2020-12-22
     needs:
     - design
+    - process_controlpotential_pfizer_1
     - process_controlactual_pfizer_1
     outputs:
       highly_sensitive:
@@ -300,6 +302,7 @@ actions:
     outputs:
       highly_sensitive:
         rds: output/sequential/az/matchround1/process/*.rds
+        csv: output/sequential/az/matchround1/process/*.csv.gz
       moderately_sensitive:
         input_controlpotential_skim: output/sequential/az/matchround1/extract/potential/*.txt
         data_processed_skim: output/sequential/az/matchround1/potential/*.txt
@@ -348,6 +351,7 @@ actions:
       --param cohort=az --param matching_round=2 --param index_date=2021-01-18
     needs:
     - design
+    - process_controlpotential_az_1
     - process_controlactual_az_1
     outputs:
       highly_sensitive:
