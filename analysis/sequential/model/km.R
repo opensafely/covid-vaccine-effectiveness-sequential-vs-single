@@ -24,8 +24,8 @@ library('survival')
 ## import local functions and parameters ---
 
 source(here("analysis", "design.R"))
-source(here("lib", "functions", "utility.R"))
-source(here("lib", "functions", "survival.R"))
+source(here("analysis", "functions", "utility.R"))
+source(here("analysis", "functions", "survival.R"))
 
 
 # import command-line arguments ----
@@ -54,31 +54,25 @@ subgroup_sym <- sym(subgroup)
 
 # create output directories ----
 
-output_dir <- ghere("output", cohort, "models", "km", subgroup, outcome)
-fs::dir_create(output_dir)
+outdir <- ghere("output", "sequential", cohort, "models", "km", subgroup, outcome)
+fs::dir_create(outdir)
 
 
-data_matched <- read_rds(ghere("output", cohort, "match", "data_matched.rds"))
+data_matched <- read_rds(ghere("output", "sequential", cohort, "match", "data_matched.rds"))
 
 ## import baseline data, restrict to matched individuals and derive time-to-event variables
 data_matched <- 
   data_matched %>%
-  group_by(match_id, trial_date, matching_round) %>% 
-  mutate(uniquematch_id = cur_group_id()) %>% 
-  ungroup() %>%
-  group_by(uniquematch_id) %>%
-  mutate(
-    # nopriorcovid = (
-    #   (is.na(positive_test_0_date) | positive_test_0_date > study_dates[[cohort]][["start_date"]]) &
-    #   (is.na(primary_care_covid_case_0_date) | primary_care_covid_case_0_date > study_dates[[cohort]][["start_date"]]) &
-    #   (is.na(admitted_covid_0_date) | admitted_covid_0_date > study_dates[[cohort]][["start_date"]])
-    # ),
-    # nopriorcovid_pair = all(nopriorcovid),
-    nopriorcovid_pair = !any(prior_covid_infection),
-  ) %>%
-  ungroup() %>%
-  filter(nopriorcovid_pair) %>%
-  select(-uniquematch_id) %>%
+  # group_by(match_id, trial_date, matching_round) %>% 
+  # mutate(uniquematch_id = cur_group_id()) %>% 
+  # ungroup() %>%
+  # group_by(uniquematch_id) %>%
+  # mutate(
+  #   nopriorcovid_pair = !any(prior_covid_infection),
+  # ) %>%
+  # ungroup() %>%
+  # filter(nopriorcovid_pair) %>%
+  # select(-uniquematch_id) %>%
   mutate(all="all") %>%
   group_by(patient_id, match_id, matching_round, treated) %>% 
   mutate(new_id = cur_group_id()) %>% 
@@ -88,8 +82,8 @@ data_matched <-
     patient_id, treated, trial_date, match_id, new_id,
     controlistreated_date,
     vax1_date,
-    death_date, dereg_date, coviddeath_date, noncoviddeath_date, vax2_date,
-    all_of(c(glue("{outcome}_date"), subgroup, adjustment_variables))
+    death_date, dereg_date, vax2_date,
+    all_of(c(glue("{outcome}_date"), subgroup, adjustment_variables_sequential))
   ) %>%
   
   mutate(
@@ -124,35 +118,31 @@ table(
 )
 # should be c(0, 0, nrow(data_matched)) in each row
 
-# check if it's outcomes or censor events causing zero or negative event times
-check_outcomes <- data_matched %>%
-  filter(tte_outcome <= 0) %>%
-  select(patient_id, treated, trial_date, outcome_date, matchcensor_date, tte_outcome) %>%
-  mutate(trial_date = trial_date-1) %>%
-  pivot_longer(
-    cols = ends_with("date"),
-    values_drop_na = TRUE
-  ) 
+# # check if it's outcomes or censor events causing zero or negative event times
+# check_outcomes <- data_matched %>%
+#   filter(tte_outcome <= 0) %>%
+#   select(patient_id, treated, trial_date, outcome_date, matchcensor_date, tte_outcome) %>%
+#   mutate(trial_date = trial_date-1) %>%
+#   pivot_longer(
+#     cols = ends_with("date"),
+#     values_drop_na = TRUE
+#   ) 
+# 
+# if (nrow(check_outcomes)>0) {
+#   
+#   check_outcomes %>%
+#     group_by(patient_id) %>%
+#     mutate(min_date=min(value)) %>%
+#     ungroup() %>%
+#     filter(value==min_date) %>%
+#     group_by(name) %>%
+#     summarise(n = n(), tte_outcome = min(tte_outcome)) %>%
+#     print(n=3)
+#   
+#   stop("tte_outcome <= 0 for some samples")
+#   
+# }  
 
-if (nrow(check_outcomes)>0) {
-  
-  check_outcomes %>%
-    group_by(patient_id) %>%
-    mutate(min_date=min(value)) %>%
-    ungroup() %>%
-    filter(value==min_date) %>%
-    group_by(name) %>%
-    summarise(n = n(), tte_outcome = min(tte_outcome)) %>%
-    print(n=3)
-  
-  stop("tte_outcome <= 0 for some samples")
-  
-}  
-
-
-## redaction threshold ----
-
-threshold <- 6
 
 ## competing risks cumulative risk differences ----
 
@@ -233,8 +223,8 @@ data_surv <-
 data_surv_unrounded <- km_process(data_surv, 1)
 data_surv_rounded <- km_process(data_surv, threshold)
 
-write_rds(data_surv_unrounded, fs::path(output_dir, "km_estimates_unrounded.rds"))
-write_rds(data_surv_rounded, fs::path(output_dir, "km_estimates_rounded.rds"))
+write_rds(data_surv_unrounded, fs::path(outdir, "km_estimates_unrounded.rds"))
+write_rds(data_surv_rounded, fs::path(outdir, "km_estimates_rounded.rds"))
 
 
 km_plot <- function(.data) {
@@ -286,8 +276,8 @@ km_plot <- function(.data) {
 km_plot_unrounded <- km_plot(data_surv_unrounded)
 km_plot_rounded <- km_plot(data_surv_rounded)
 
-ggsave(filename=fs::path(output_dir, "km_plot_unrounded.png"), km_plot_unrounded, width=20, height=15, units="cm")
-ggsave(filename=fs::path(output_dir, "km_plot_rounded.png"), km_plot_rounded, width=20, height=15, units="cm")
+ggsave(filename=fs::path(outdir, "km_plot_unrounded.png"), km_plot_unrounded, width=20, height=15, units="cm")
+ggsave(filename=fs::path(outdir, "km_plot_rounded.png"), km_plot_rounded, width=20, height=15, units="cm")
 
 ## calculate quantities relating to cumulative incidence curve and their ratio / difference / etc
 
@@ -451,25 +441,23 @@ kmcontrasts <- function(data, cuts=NULL){
 }
 
 
-maxfup_data <-
-  data_surv_rounded %>%
-  ungroup() %>%
-  summarise(
-    maxfup=max(time[!is.na(surv)])
-  )  %>%
-  pull(maxfup)
+# maxfup_data <-
+#   data_surv_rounded %>%
+#   ungroup() %>%
+#   summarise(
+#     maxfup=max(time[!is.na(surv)])
+#   )  %>%
+#   pull(maxfup)
+# 
+# postbaselinecuts[length(postbaselinecuts)] <- maxfup_data
 
-postbaselinecuts[length(postbaselinecuts)] <- maxfup_data
-
-contrasts_km_rounded_daily <- kmcontrasts(data_surv_rounded)
+# contrasts_km_rounded_daily <- kmcontrasts(data_surv_rounded)
 contrasts_km_rounded_cuts <- kmcontrasts(data_surv_rounded, c(0,postbaselinecuts))
-contrasts_km_rounded_overall <- kmcontrasts(data_surv_rounded, c(0,maxfup_data))
+# contrasts_km_rounded_overall <- kmcontrasts(data_surv_rounded, c(0,maxfup_data))
 
-data_surv_rounded
-
-write_rds(contrasts_km_rounded_daily, fs::path(output_dir, "contrasts_km_daily_rounded.rds"))
-write_rds(contrasts_km_rounded_cuts, fs::path(output_dir, "contrasts_km_cuts_rounded.rds"))
-write_rds(contrasts_km_rounded_overall, fs::path(output_dir, "contrasts_km_overall_rounded.rds"))
+# write_rds(contrasts_km_rounded_daily, fs::path(outdir, "contrasts_km_daily_rounded.rds"))
+write_rds(contrasts_km_rounded_cuts, fs::path(outdir, "contrasts_km_cuts_rounded.rds"))
+# write_rds(contrasts_km_rounded_overall, fs::path(outdir, "contrasts_km_overall_rounded.rds"))
 
 
 ## cox models ----
@@ -529,7 +517,7 @@ coxcontrast <- function(data, cuts=NULL){
     eval(
       paste(
         "Surv(tstart, tstop, ind_outcome) ~", treatment_term, "+",
-        paste0(adjustment_variables, collapse=" + ")
+        paste0(adjustment_variables_sequential, collapse=" + ")
       )
     )
   )
@@ -573,8 +561,8 @@ coxcontrast <- function(data, cuts=NULL){
 
 # no rounding necessary as HRs are a safe statistic
 contrasts_cox_cuts <- coxcontrast(data_matched, c(0,postbaselinecuts))
-contrasts_cox_overall <- coxcontrast(data_matched, c(0,maxfup_data))
+# contrasts_cox_overall <- coxcontrast(data_matched, c(0,maxfup_data))
 
-write_rds(contrasts_cox_cuts, fs::path(output_dir, "contrasts_cox_cuts.rds"))
-write_rds(contrasts_cox_overall, fs::path(output_dir, "contrasts_cox_overall.rds"))
+write_rds(contrasts_cox_cuts, fs::path(outdir, "contrasts_cox_cuts.rds"))
+# write_rds(contrasts_cox_overall, fs::path(outdir, "contrasts_cox_overall.rds"))
 
