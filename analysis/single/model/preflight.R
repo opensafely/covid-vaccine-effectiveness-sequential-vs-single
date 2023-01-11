@@ -244,8 +244,7 @@ for(subgroup_level in subgroup_levels){
         ungroup() %>%
         transmute(
           patient_id,
-          sample = sample_nonoutcomes_n(had_death, patient_id, ipw_sample_random_n),
-          sample_weights_death = sample_weights(had_death, sample) # not used in this script
+          sample = sample_nonoutcomes_n(had_death, patient_id, ipw_sample_random_n)
         )
       
       data_days_death_sample <- data_days_death %>%

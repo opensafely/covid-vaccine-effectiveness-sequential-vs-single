@@ -61,9 +61,6 @@ metadata_outcomes <- events_lookup %>%
 
 # list2env(metadata_outcomes, globalenv())
 
-# reweight censored deaths or not?
-# reweight_death defined in design.R
-
 # extract formulas
 list2env(list_formula_single, globalenv())
 formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
@@ -324,25 +321,6 @@ for(subgroup_level in subgroup_levels){
     
   }
   
-  
-  # if(outcome!="death" & reweight_death){
-  #   model_death <- read_rds(here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model_death_{subgroup_level}.rds")))
-  #   ipw_formula <- read_rds(here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model_formula_death_{subgroup_level}.rds")))
-  #   assign(as.character(model_death$call$data), model_death$data)
-  #   
-  #   
-  #   ## output model coefficients
-  #   broom_death <- broom_model_summary(model_death, model_death$data$patient_id, subgroup_level)
-  #   write_rds(broom_death, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("broom_death_{subgroup_level}.rds")))
-  #   write_csv(broom_death, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("broom_death_{subgroup_level}.csv")))
-  #   
-  #   if(removeobs)
-  #     rm(list= c(
-  #       as.character(model_death$call$data),
-  #       "ipw_formula", "model_death",
-  #       "tab_death", "plot_death", "ggsecular_death"
-  #     ))
-  # }
   
 }
 
