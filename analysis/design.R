@@ -100,14 +100,16 @@ events_lookup <- tribble(
 
 model_outcomes <- c("postest", "covidadmitted", "death")
 
-## treatments
-
-treatement_lookup <-
+## brands
+brand_lookup <-
   tribble(
-    ~treatment, ~treatment_descr,
+    ~brand, ~brand_descr,
     "pfizer", "BNT162b2",
-    "az", "ChAdOx1-S",
+    "az", "ChAdOx1",
+    "any", "Any vaccine brand"
   )
+
+model_brands <- c("pfizer", "az")
 
 ## lookups to convert coded variables to full, descriptive variables
 
