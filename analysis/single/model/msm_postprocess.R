@@ -1,6 +1,6 @@
-
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # This script:
+# 
 # imports fitted IPW models from `msm.R`
 # calculates robust CIs taking into account patient-level clustering
 # 
@@ -10,12 +10,13 @@
 # outputs plots showing model-estimated spatio-temporal trends
 #
 # The script should only be run via an action in the project.yaml only
-# The script must be accompanied by five arguments: brand, outcome, subgroup
-# # # # # # # # # # # # # # # # # # # # #
+# The script must be accompanied by three arguments: brand, outcome, subgroup
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # Preliminaries ----
 
-## Import libraries ----
+# import libraries
 library('tidyverse')
 library('here')
 library('glue')
@@ -23,23 +24,18 @@ library('lubridate')
 library('survival')
 library('splines')
 library('parglm')
-# library('gtsummary')
-# library('gt')
 library("sandwich")
 library("lmtest")
 
-## Import custom user functions
+# import custom user functions and metadata
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 source(here("analysis", "functions", "survival.R"))
 
-# import command-line arguments ----
-
+# import command-line arguments
 args <- commandArgs(trailingOnly=TRUE)
-
 if(length(args)==0){
-  # use for interactive testing
   removeobs <- FALSE
   brand <- "pfizer"
   subgroup <- "all"
@@ -51,7 +47,7 @@ if(length(args)==0){
   outcome <- args[[3]]
 }
 
-# create output directory ----
+# create output directory
 indir <- here("output", "single", brand, subgroup, outcome, "msm") 
 outdir <- here("output", "single", brand, subgroup, outcome, "postprocess") 
 fs::dir_create(outdir)
@@ -61,7 +57,8 @@ list2env(list_formula_single, globalenv())
 formula_1 <- outcome ~ 1
 formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
-## define functions ----
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# define broom_model_summary fumnction§ ----
 broom_model_summary <- function(model, cluster, subgroup_level) {
   
   tbl_reg <- broom.helpers::tidy_plus_plus(
@@ -76,14 +73,13 @@ broom_model_summary <- function(model, cluster, subgroup_level) {
   
 }
 
-##  create loop over all subgroup_levels
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# create loop over all subgroup_levels
 
 subgroup_levels <- recoder[[subgroup]]
 
 summary_list <- vector("list", length(subgroup_levels))
 names(summary_list) <- subgroup_levels
-
-# subgroup_level <- "all"
 
 for(subgroup_level in subgroup_levels) {
   
@@ -91,7 +87,7 @@ for(subgroup_level in subgroup_levels) {
   cat(subgroup_level, "  \n")
   cat("  \n")
   
-  # IPW
+  # IPW ----
   # pfizer
   # import models
   model_vaxbrand1 <- read_rds(file.path(indir, glue("model_vax{brand}1_{subgroup_level}.rds")))
@@ -99,15 +95,13 @@ for(subgroup_level in subgroup_levels) {
   assign(as.character(model_vaxbrand1$call$data), model_vaxbrand1$data)
   # calculate robust CIs taking into account patient-level clustering
   broom_vaxbrand1 <- broom_model_summary(model_vaxbrand1, model_vaxbrand1$data$patient_id, subgroup_level)
-  # warnings()
   # save outputs
   write_rds(broom_vaxbrand1, file.path(outdir, glue("broom_vax{brand}1_{subgroup_level}.rds")))
   write_csv(broom_vaxbrand1, file.path(outdir, glue("broom_vax{brand}1_{subgroup_level}.csv")))
   
   if(removeobs) rm(list= c(as.character(model_vaxbrand1$call$data), "ipw_formula", "model_vaxbrand1", "broom_vaxbrand1"))
   
-  
-  # MSM
+  # MSM ----
   data_weights <- read_rds(file.path(indir, glue("data_weights_{subgroup_level}.rds")))
   msmmod4 <- read_rds(file.path(indir, glue("model4_{subgroup_level}.rds")))
   robust4 <- tidy_plr(msmmod4, cluster=data_weights$patient_id)
@@ -135,7 +129,7 @@ summary_df <- summary_list %>% bind_rows %>%
 
 write_csv(summary_df, file.path(outdir, "estimates.csv"))
 
-# create plot
+# create and save plots
 msmmod_effect_data <- summary_df %>%
   filter(str_detect(term, "timesincevax")) %>%
   mutate(
@@ -166,26 +160,21 @@ write_csv(msmmod_effect_data, file.path(outdir, "estimates_timesincevax.csv"))
 
 msmmod_effect <-
   ggplot(data = msmmod_effect_data, aes(colour=as.factor(subgroup_level))) +
-  geom_point(aes(y=or, x=term_midpoint), position = position_dodge(width = 0.6))+
-  geom_linerange(aes(ymin=or.ll, ymax=or.ul, x=term_midpoint), position = position_dodge(width = 0.6))+
-  geom_hline(aes(yintercept=1), colour='grey')+
-  facet_grid(rows=vars(model_descr_wrap), switch="y")+
-  scale_y_log10(
-    #breaks=c(0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5),
-    #sec.axis = sec_axis(~(1-.), name="Effectiveness", breaks = c(-4, -1, 0, 0.5, 0.80, 0.9, 0.95, 0.98, 0.99), labels = scales::label_percent(1))
-  )+
-  scale_x_continuous(breaks=unique(msmmod_effect_data$term_left))+
-  scale_colour_brewer(type="qual", palette="Set2")+#, guide=guide_legend(reverse = TRUE))+
-  #coord_cartesian(ylim=c(max(c(0.005, min(msmmod_effect_data$or.ll))), max(c(1, msmmod_effect_data$or.ul)))) +
+  geom_point(aes(y=or, x=term_midpoint), position = position_dodge(width = 0.6)) +
+  geom_linerange(aes(ymin=or.ll, ymax=or.ul, x=term_midpoint), position = position_dodge(width = 0.6)) +
+  geom_hline(aes(yintercept=1), colour='grey') +
+  facet_grid(rows=vars(model_descr_wrap), switch="y") +
+  scale_y_log10() +
+  scale_x_continuous(breaks=unique(msmmod_effect_data$term_left)) +
+  scale_colour_brewer(type="qual", palette="Set2") +
   labs(
     y="Hazard ratio, versus no vaccination",
     x="Time since first dose",
-    colour=NULL#,
-    #title=glue("{outcome_descr} by time since first {brand} vaccine"),
-    #subtitle=cohort_descr
+    colour=NULL
   ) +
-  theme_bw()+
+  theme_bw() +
   theme(
+    
     panel.border = element_blank(),
     axis.line.y = element_line(colour = "black"),
     
@@ -203,18 +192,11 @@ msmmod_effect <-
     plot.caption = element_text(hjust = 0, face= "italic"),
     
     legend.position = "right"
+    
   )
 
-## save plot
-# ggsave(
-#   filename=file.path(outdir, glue("VE_plot.svg")),
-#   msmmod_effect, 
-#   width=20, height=18, units="cm"
-# )
 ggsave(
   filename=here(outdir, glue("VE_plot.svg")), 
   msmmod_effect, 
   width=20, height=18, units="cm"
 )
-
-

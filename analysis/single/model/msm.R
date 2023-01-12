@@ -1,22 +1,22 @@
-
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # This script:
-# fits some marginal structural models for vaccine effectiveness, with different adjustment sets
+# fits marginal structural models (msm) for vaccine effectiveness, with different adjustment sets
 # saves model summaries (tables and figures)
 # "tte" = "time-to-event"
 #
 # The script should be run via an action in the project.yaml
 # The script must be accompanied by 5 arguments:
-# 1. the name of the brand (currently "az"or "pfizer")
+# 1. the name of the brand
 # 2. the subgroup variable. Use "all" if no subgroups
 # 3. the name of the outcome
 # 4. the sample size for the vaccination models (a completely random sample of participants)
-# 5. the sample size for those who did not experience the outcome for the main MSM models (all those who did experience an outcome are included)
-# # # # # # # # # # # # # # # # # # # # #
+# 5. the sample size for those who did not experience the outcome for the main MSM models 
+#    (all those who did experience an outcome are included)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # Preliminaries ----
 
-## Import libraries ----
+# import libraries
 library('tidyverse')
 library('here')
 library('glue')
@@ -26,26 +26,24 @@ library('parglm')
 library('gtsummary')
 library('gt')
 
-## Import custom user functions from lib
+# import custom user functions from lib
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 source(here("analysis", "functions", "survival.R"))
 source(here("analysis", "single", "process", "process_data_days.R"))
 
-# import command-line arguments ----
-
+# import command-line arguments
 args <- commandArgs(trailingOnly=TRUE)
-
-
 if(length(args)==0){
-  # use for interactive testing
   removeobs <- FALSE
   brand <- "pfizer"
   subgroup <- "all"
   outcome <- "postest"
-  ipw_sample_random_n <- 150000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
-  msm_sample_nonoutcomes_n <- 5000 # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
+  # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
+  ipw_sample_random_n <- 150000 
+  # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
+  msm_sample_nonoutcomes_n <- 5000
   
 } else {
   removeobs <- TRUE
@@ -56,9 +54,7 @@ if(length(args)==0){
   msm_sample_nonoutcomes_n <- as.integer(args[[5]])
 }
 
-
-### define parglm optimisation parameters ----
-
+# define parglm optimisation parameters
 parglmparams <- parglm.control(
   method = "LINPACK",
   nthreads = 8,
@@ -66,7 +62,7 @@ parglmparams <- parglm.control(
 )
 
 
-### import outcomes, exposures, and covariate formulae ----
+# import formulae 
 ## these are created in data_define_cohorts.R script
 list2env(list_formula_single, globalenv())
 formula_1 <- outcome ~ 1
@@ -74,14 +70,16 @@ formula_1 <- outcome ~ 1
 formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
 
-# create output directory ----
+# create output directory
 outdir <- here("output", "single", brand, subgroup, outcome, "msm")
 fs::dir_create(outdir)
 
+# # # # # # # # # # # # # # # # # # # # ## # # # # # # # # # # # # # # # # # # # 
 # function to calculate weights for treatment model ----
 ## if exposure is any vaccine, then create model for vaccination by any brand + model for death for censoring weights
 ## if exposure is pfizer vaccine, then create model for vaccination by pfizer + model for az and model for death for censoring weights
 ## if exposure is az vaccine, then create model for vaccination by az + model for pfizer and model death for censoring weights
+
 get_ipw_weights <- function(
   data,
   event,
@@ -168,11 +166,9 @@ get_ipw_weights <- function(
   
   rm("data_sample")
   
-  
-  ### with time-updating covariates
+  # with time-updating covariates
   cat("  \n")
   cat(glue("{event}  \n"))
-  
   event_model <- parglm(
     formula = ipw_formula,
     data = data_atrisk_sample,
@@ -183,19 +179,12 @@ get_ipw_weights <- function(
     model = FALSE
   )
   
-  #apply jeffrey's prior to fitted model
-  #library('brglm2')
-  #event_model <- update(event_model, method = "brglmFit", type = "MPL_Jeffreys")
-  
-  #event_model$data <- NULL
-  
   cat(glue("{event} data size = ", length(event_model$y)), "\n")
   cat(glue("memory usage = ", format(object.size(event_model), units="GB", standard="SI", digits=3L)), "\n")
   cat("warnings: ", "\n")
   print(warnings())
   
-  ### without time-updating covariates ----
-  
+  # without time-updating covariates
   cat("  \n")
   cat(glue("{event}_fxd  \n"))
   event_model_fxd <- parglm(
@@ -208,14 +197,12 @@ get_ipw_weights <- function(
     model = FALSE
   )
   
-  #event_model_fxd$data <- NULL
-  
   cat(glue("{event}_fxd data size = ", length(event_model_fxd$y)), "\n")
   cat(glue("memory usage = ", format(object.size(event_model_fxd), units="GB", standard="SI", digits=3L)), "\n")
   cat("warnings: ", "\n")
   print(warnings())
   
-  #write_rds(data_atrisk, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("data_atrisk_{event}.rds")), compress="gz")
+  # save outputs
   write_rds(
     event_model, 
     file.path(outdir, glue("model_{name}_{subgroup_level}.rds")), 
@@ -229,8 +216,7 @@ get_ipw_weights <- function(
   
   rm("data_atrisk_sample")
   
-  ## get predictions from model ----
-  
+  # get predictions from model
   data_atrisk <- data_atrisk %>%
     transmute(
       patient_id,
@@ -251,11 +237,6 @@ get_ipw_weights <- function(
         event==1L ~ pred_event,
         TRUE ~ NA_real_
       ),
-      # cumulative product of status probabilities
-      #cmlprobevent_realised = cumprod(probevent_realised),
-      # inverse probability weights
-      #cmlipweight = 1/cmlprobevent_realised,
-      
       
       # get probability of occurrence of realised event status (non-time varying model)
       probevent_realised_fxd = case_when(
@@ -263,19 +244,12 @@ get_ipw_weights <- function(
         event==1L ~ pred_event_fxd,
         TRUE ~ NA_real_
       ),
-      # cumulative product of status probabilities
-      #cmlprobevent_realised_fxd = cumprod(probevent_realised_fxd),
-      # inverse probability weights
-      #cmlipweight_fxd = 1/cmlprobevent_realised_fxd,
       
       # stabilised inverse probability weights
-      ipweight_stbl = probevent_realised_fxd/probevent_realised,
+      ipweight_stbl = probevent_realised_fxd/probevent_realised
       
-      # stabilised inverse probability weights (cumulative)
-      #cmlipweight_stbl = cmlprobevent_realised_fxd/cmlprobevent_realised,
     ) %>%
     ungroup()
-  
   
   stopifnot("probs should all be non-null" = all(!is.na(data_atrisk$probevent_realised)))
   stopifnot("probs (fxd) should all be non-null" = all(!is.na(data_atrisk$probevent_realised_fxd)))
@@ -294,7 +268,8 @@ get_ipw_weights <- function(
   
 }
 
-##  Create big loop over all subgroup_levels
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Loop over all subgroup_levels ----
 
 subgroup_levels <- recoder[[subgroup]]
 
@@ -304,9 +279,13 @@ for(subgroup_level in subgroup_levels){
   cat(subgroup_level, "  \n")
   cat("  \n")
   
-  # Import processed data ----
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  # data processing ----
+  
+  # import processed data
   data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
   
+  # generate data_samples
   data_samples <- read_rds(here("output", "single", "stset", "data_patients.rds")) %>%
     left_join(data_fixed, by="patient_id") %>%
     mutate(
@@ -314,7 +293,8 @@ for(subgroup_level in subgroup_levels){
       tte_outcome = .[[glue("tte_{outcome}")]]
     ) %>%
     filter(
-      .[[subgroup]] == subgroup_level # select patients in current subgroup_level
+      # select patients in current subgroup_level
+      .[[subgroup]] == subgroup_level 
     ) %>%
     transmute(
       patient_id,
@@ -329,17 +309,17 @@ for(subgroup_level in subgroup_levels){
   
   if(removeobs) rm(data_samples, data_fixed)
   
-  
-  ### print dataset size ----
+  #print dataset size
   cat(glue("data_days_sub data size = ", nrow(data_days_sub)), "\n  ")
   cat(glue("data_days_sub patient size = ", n_distinct(data_days_sub$patient_id)), "\n  ")
   cat(glue("memory usage = ", format(object.size(data_days_sub), units="GB", standard="SI", digits=3L)), "\n  ")
   
-  
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  # IPW model ----
   
   if(brand=="any"){
     
-    # IPW model for any vaccination ----
+    # IPW model for any vaccination
     weights_vaxany1 <- get_ipw_weights(
       data_days_sub, "vaxany1", "vaxany1_status", "vaxany1_atrisk",
       sample_type = "random_n", sample_amount=ipw_sample_random_n,
@@ -349,14 +329,17 @@ for(subgroup_level in subgroup_levels){
     )
     
   }
+  
   if(brand!="any"){
     
-    # IPW model for pfizer / az vaccination ----
+    # IPW model for pfizer / az vaccination
     # these models are shared across brands (one is treatment model, one is censoring model)
     # these could be separated out and run only once, but it complicates the remaining workflow so leaving as is
     weights_vaxpfizer1 <- get_ipw_weights(
       data_days_sub, "vaxpfizer1", "vaxpfizer1_status", "vaxpfizer1_atrisk",
-      sample_type = "random_n", sample_amount=ipw_sample_random_n, # select no more than n non-outcome samples
+      # select no more than n non-outcome samples
+      sample_type = "random_n", 
+      sample_amount=ipw_sample_random_n, 
       ipw_formula = update(vaxpfizer1 ~ 1, formula_covars) %>% 
         update(formula_secular_region) %>%
         update(formula_timedependent) %>%
@@ -378,13 +361,16 @@ for(subgroup_level in subgroup_levels){
         update(formula_remove_subgroup),
       subgroup_level = subgroup_level
     )
+    
   }
   
   
   if(brand=="any"){
+    
     data_weights <- data_days_sub %>%
       filter(
-        sample_outcome==1L # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
+        # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
+        sample_outcome==1L 
       ) %>%
       left_join(weights_vaxany1, by=c("patient_id", "tstart", "tstop")) %>%
       replace_na(list(
@@ -407,15 +393,18 @@ for(subgroup_level in subgroup_levels){
     if(removeobs) rm(weights_vaxany1)
     
   }
+  
   if(brand != "any"){
     
     data_weights <- data_days_sub %>%
       filter(
-        sample_outcome==1L # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
+        # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
+        sample_outcome==1L 
       ) %>%
       left_join(weights_vaxpfizer1, by=c("patient_id", "tstart", "tstop")) %>%
       left_join(weights_vaxaz1, by=c("patient_id", "tstart", "tstop")) %>%
-      replace_na(list( # weight is 1 if patient is not yet at risk or has already been vaccinated / censored
+      replace_na(list( 
+        # weight is 1 if patient is not yet at risk or has already been vaccinated / censored
         ipweight_stbl_vaxpfizer1 = 1,
         ipweight_stbl_vaxaz1 = 1
       )) %>%
@@ -435,13 +424,15 @@ for(subgroup_level in subgroup_levels){
         cmlipweight_stbl = cmlipweight_stbl_vaxpfizer1 * cmlipweight_stbl_vaxaz1,
         cmlipweight_stbl_sample = cmlipweight_stbl * sample_weights,
       )
+    
     if(removeobs) rm(weights_vaxpfizer1, weights_vaxaz1)
+    
   }
   
   
   if(removeobs) rm(data_days_sub)
   
-  ## report weights ----
+  # report weights
   summarise_weights <-
     data_weights %>%
     select(contains("ipweight")) %>%
@@ -454,7 +445,7 @@ for(subgroup_level in subgroup_levels){
     append=FALSE
   )
   
-  ## plot distribution of weights
+  # plot and save distribution of weights
   ipweight_histogram <- data_weights %>%
     filter(vax_atrisk==1) %>%
     ggplot() +
@@ -480,13 +471,8 @@ for(subgroup_level in subgroup_levels){
   
   if(removeobs) rm(ipweight_histogram, cmlipweight_histogram)
   
-  ## output weight distribution file ----
+  # output weight distribution file
   data_weights <- data_weights %>%
-    # ELSIE: the following mutate is now done in process_data_days
-    # mutate(
-    #   # recode treatment variable to remove vaccines occurring after a positive test
-    #   timesincevax_pw = if_else(!recentpostest, timesincevax_pw, factor("pre-vax"))
-    # ) %>%
     select(
       "patient_id",
       "tstart", "tstop",
@@ -509,110 +495,11 @@ for(subgroup_level in subgroup_levels){
     compress="gz"
     )
   
-  
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   # MSM model ----
   
-  # do not use time-dependent covariates as these are accounted for with the weights
-  # use cluster standard errors
-  # use quasibinomial to suppress "non-integer #successes in a binomial glm!" warning (not possible with parglm)
-  # use interaction with time terms?
-  
-  ### model 0 - unadjusted vaccination effect model ----
-  ## no adjustment variables
-  # cat("  \n")
-  # cat("msmmod0 \n")
-  # msmmod0_par <- parglm(
-  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_remove_subgroup),
-  #   data = data_weights,
-  #   family = binomial,
-  #   weights = sample_weights,
-  #   control = parglmparams,
-  #   na.action = "na.fail",
-  #   model = FALSE
-  # )
-  #
-  # msmmod0_par$data <- NULL
-  # print(jtools::summ(msmmod0_par, digits =3))
-  #
-  # cat(glue("msmmod0_par data size = ", length(msmmod0_par$y)), "\n")
-  # cat(glue("memory usage = ", format(object.size(msmmod0_par), units="GB", standard="SI", digits=3L)), "\n")
-  # write_rds(msmmod0_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model0_{subgroup_level}.rds")), compress="gz")
-  # if(removeobs) rm(msmmod0_par)
-  
-  # ### model 1 - adjusted vaccination effect model and region/time only ----
-  # cat("  \n")
-  # cat("msmmod1 \n")
-  # msmmod1_par <- parglm(
-  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
-  #   data = data_weights,
-  #   family = binomial,
-  #   weights = sample_weights,
-  #   control = parglmparams,
-  #   na.action = "na.fail",
-  #   model = FALSE
-  # )
-  # 
-  # msmmod1_par$data <- NULL
-  # print(jtools::summ(msmmod1_par, digits =3))
-  # cat("warnings: ", "\n")
-  # print(warnings())
-  # 
-  # cat(glue("msmmod1_par data size = ", length(msmmod1_par$y)), "\n")
-  # cat(glue("memory usage = ", format(object.size(msmmod1_par), units="GB", standard="SI", digits=3L)), "\n")
-  # write_rds(msmmod1_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model1_{subgroup_level}.rds")), compress="gz")
-  # if(removeobs) rm(msmmod1_par)
-  
-  
-  
-  # ### model 2 - baseline, comorbs, secular trend adjusted vaccination effect model ----
-  # cat("  \n")
-  # cat("msmmod2 \n")
-  # msmmod2_par <- parglm(
-  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
-  #   data = data_weights,
-  #   family = binomial,
-  #   weights = sample_weights,
-  #   control = parglmparams,
-  #   na.action = "na.fail",
-  #   model = FALSE
-  # )
-  # msmmod2_par$data <- NULL
-  # print(jtools::summ(msmmod2_par, digits =3))
-  # cat("warnings: ", "\n")
-  # print(warnings())
-  # 
-  # cat(glue("msmmod2_par data size = ", length(msmmod2_par$y)), "\n")
-  # cat(glue("memory usage = ", format(object.size(msmmod2_par), units="GB", standard="SI", digits=3L)), "\n")
-  # write_rds(msmmod2_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model2_{subgroup_level}.rds")), compress="gz")
-  # 
-  # if(removeobs) rm(msmmod2_par)
-  
-  
-  # ### model 3 - baseline, comorbs, secular trends and time-varying (but not reweighted) adjusted vaccination effect model ----
-  # cat("  \n")
-  # cat("msmmod3 \n")
-  # msmmod3_par <- parglm(
-  #   formula = formula_1 %>% update(formula_exposure) %>% update(formula_demog) %>% update(formula_comorbs) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
-  #   data = data_weights,
-  #   family = binomial,
-  #   weights = sample_weights,
-  #   control = parglmparams,
-  #   na.action = "na.fail",
-  #   model = FALSE
-  # )
-  # msmmod3_par$data <- NULL
-  # print(jtools::summ(msmmod3_par, digits =3))
-  # cat("warnings: ", "\n")
-  # print(warnings())
-  # 
-  # cat(glue("msmmod3_par data size = ", length(msmmod3_par$y)), "\n")
-  # cat(glue("memory usage = ", format(object.size(msmmod3_par), units="GB", standard="SI", digits=3L)), "\n")
-  # write_rds(msmmod3_par, here("output", cohort, subgroup, recentpostest_period, brand, outcome, glue("model3_{subgroup_level}.rds")), compress="gz")
-  # if(removeobs) rm(msmmod3_par)
-  
-  
-  
-  ### model 4 - baseline, comorbs, secular trend adjusted vaccination effect model + IP-weighted + do not use time-dependent covariates ----
+  # model 4 
+  # baseline, comorbs, secular trend adjusted vaccination effect model + IP-weighted + do not use time-dependent covariates ----
   cat("  \n")
   cat("msmmod4 \n")
   msmmod4_par <- parglm(
@@ -642,13 +529,11 @@ for(subgroup_level in subgroup_levels){
     )
   if(removeobs) rm(msmmod4_par)
   
-  
   ## print warnings
   cat("warnings: ", "\n")
   print(warnings())
   cat("  \n")
   print(gc(reset=TRUE))
-  
   
   data_weights %>%
     summarise(
@@ -662,7 +547,7 @@ for(subgroup_level in subgroup_levels){
       file.path(outdir, glue("summary_substantive_{subgroup_level}.csv"))
       )
   
-  
   if(removeobs) rm(data_weights)
+  
 }
 

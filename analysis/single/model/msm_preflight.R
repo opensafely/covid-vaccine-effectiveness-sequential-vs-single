@@ -1,47 +1,45 @@
-
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # ## # # # # # # # # # # # # # # # # # # # 
 # This script:
-# imports processed data and restricts it to patients in "cohort"
+# imports processed data 
 # checks that there are no separation issues between covariates and outcomes
 #
 # The script should be run via an action in the project.yaml
 # The script must be accompanied by 3 arguments,
 # 1. brand
-# 2. the subgroup variable. Use "all" if no sunbgroups
+# 2. the subgroup variable. Use "all" if no subgroups
 # 3. outcome
 # 4. ipw_sample_random_n
 # 5. msm_sample_nonoutcomes_n
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # ## # # # # # # # # # # # # # # # # # # # 
 
+# # # # # # # # # # # # # # # # # # # # ## # # # # # # # # # # # # # # # # # # # 
 # Preliminaries ----
 
-## Import libraries ----
+# import libraries 
 library('tidyverse')
 library('here')
 library('glue')
 library('gt')
 library('gtsummary')
 
-## Import custom user functions from lib
+# import custom user functions and metadata
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 source(here("analysis", "functions", "survival.R"))
 source(here("analysis", "single", "process", "process_data_days.R"))
 
-# import command-line arguments ----
-
+# import command-line arguments
 args <- commandArgs(trailingOnly=TRUE)
-
-
 if(length(args)==0){
-  # use for interactive testing
   removeobs <- FALSE
   brand <- "pfizer"
   subgroup <- "all"
   outcome <- "covidadmitted"
-  ipw_sample_random_n <- 150000 # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
-  msm_sample_nonoutcomes_n <- 50000 # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
+  # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
+  ipw_sample_random_n <- 150000 
+  # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
+  msm_sample_nonoutcomes_n <- 50000 
 } else {
   brand <- args[[1]]
   subgroup <- args[[2]]
@@ -51,33 +49,22 @@ if(length(args)==0){
   removeobs <- TRUE
 }
 
-# create output directory ----
+# create output directory
 outdir <- here("output", "single", brand, subgroup, outcome, "preflight")
 fs::dir_create(outdir)
 
-## if changing treatment strategy as per Miguel's suggestion
-# exclude_recentpostest <- recentpostest_period > 0
-
-# save formulas to global environment ----
+# save formulas to global environment
 # defined in analysis/design.R
 list2env(list_formula_single, globalenv())
 formula_1 <- outcome ~ 1
 # remove subgroup variable from covariate set
 formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
-# define septab function (checks that there are no separation issues between covariates and outcomes)
+# # # # # # # # # # # # # # # # # # # # ## # # # # # # # # # # # # # # # # # # # 
+# define septab function  ----
+# (checks that there are no separation issues between covariates and outcomes)
+
 septab <- function(data, formula, subgroup_level, brand, outcome, name){
-  
-  # if(FALSE){
-  #   #this function is a quicker alternative to the following gtsummary option:
-  #   gttab <- data.matrix() %>%
-  #     select(all.vars(formula)) %>%
-  #     tbl_summary(
-  #       by=as.character(formula[2]),
-  #       missing = "ifany"
-  #     ) %>%
-  #     as_gt()
-  # }
   
   tbltab <- data %>%
     select(all.vars(formula), all_of(subgroup_level)) %>%
@@ -124,6 +111,9 @@ septab <- function(data, formula, subgroup_level, brand, outcome, name){
     )
 }
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Loop over all subgroup_levels ----
+
 subgroup_levels <- recoder[[subgroup]]
 
 for(subgroup_level in subgroup_levels){
@@ -132,10 +122,10 @@ for(subgroup_level in subgroup_levels){
       cat(subgroup_level, "  \n")
       cat("  \n")
       
-      ## import processed data
+      # import processed data
       data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
       
-      ## read and process data_days (one row per person day)
+      # read and process data_days (one row per person day)
       # see analysis/single/process/process_data_days.R for the process_data_days function
       data_days <- process_data_days(stage = "preflight")
       
@@ -167,11 +157,12 @@ for(subgroup_level in subgroup_levels){
         update(formula_remove_subgroup)
       
       
-      ## vaccination models
-      
+      # vaccination models
       data_days_vax <- data_days %>%
-        filter(vax_atrisk) # select follow-up time where vax brand is being administered
+        # select follow-up time where vax brand is being administered
+        filter(vax_atrisk) 
       
+      # generate data_samples_vax, summarise and save summary
       data_samples_vax <- data_days_vax %>%
         group_by(patient_id) %>%
         summarise(
@@ -205,14 +196,14 @@ for(subgroup_level in subgroup_levels){
           file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_vaccinations.csv"))
           )
       
+      # apply septab function
       septab(data_days_vax_sample, treatment_any, subgroup_level, outcome, brand, "vaxany1")
       septab(data_days_vax_sample, treatment_pfizer, subgroup_level, outcome, brand, "vaxpfizer1")
       septab(data_days_vax_sample, treatment_az, subgroup_level, outcome, brand, "vaxaz1")
       
       if(removeobs) rm(data_samples_vax, data_days_vax, data_days_vax_sample)
       
-      ## outcome models
-      
+      # outcome models
       data_samples_outcome <- data_days %>%
         group_by(patient_id) %>%
         summarise(
@@ -234,20 +225,14 @@ for(subgroup_level in subgroup_levels){
           obs = n(),
           patients = n_distinct(patient_id),
           
-          # coviddeath = sum(coviddeath),
-          # noncoviddeath = sum(noncoviddeath),
           death = sum(death),
           dereg = sum(dereg),
           outcome = sum(outcome),
           
-          # rate_coviddeath = coviddeath/patients,
-          # rate_noncoviddeath = noncoviddeath/patients,
           rate_death = death/patients,
           rate_dereg = dereg/patients,
           rate_outcome = outcome/patients,
           
-          # incidencerate_coviddeath = coviddeath/obs,
-          # incidencerate_noncoviddeath = noncoviddeath/obs,
           incidencerate_death = death/obs,
           incidencerate_dereg = dereg/obs,
           incidencerate_outcome = outcome/obs

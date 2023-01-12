@@ -1,34 +1,30 @@
-######################################
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # This script:
 # imports data extracted by the cohort extractor (or dummy data)
 # fills in unknown ethnicity from GP records with ethnicity from SUS (secondary care)
 # tidies missing values
 # standardises some variables (eg convert to factor) and derives some new ones
 # organises vaccination date data to "vax X type", "vax X date" (rather than "pfizer X date", "az X date", ...)
-######################################
+#  ...
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # Preliminaries ----
 
-## Import libraries ----
+# Import libraries
 library('tidyverse')
 library('lubridate')
 library('arrow')
 library('here')
 library('glue')
 
-## import local functions and parameters ---
-
+# import local functions and parameters
 source(here("analysis", "design.R"))
-
 source(here("analysis", "functions", "utility.R"))
-
 source(here("analysis", "process", "process_functions.R"))
 
-## import command-line arguments ----
-
+# import command-line arguments
 args <- commandArgs(trailingOnly = TRUE)
-
 if (length(args) == 0) {
   # use for interactive testing
   # stage <- "single"
@@ -64,7 +60,7 @@ if (length(args) == 0) {
   }
 } 
 
-## get cohort-specific parameters study dates and parameters ---- 
+# get cohort-specific parameters study dates and parameters
 if (stage == "single") {
   matching_round <- 1
   cohort <- "pfizer"
@@ -73,7 +69,7 @@ if (stage %in% c("single", "potential")) {
   matching_round_date <- study_dates[[cohort]]$control_extract_dates[matching_round]
 }
 
-## create output directory ----
+# create output directory
 if (stage == "single") {
   fs::dir_create(here("output", "single", "eligible"))
   fs::dir_create(here("output", "single", "process"))
@@ -93,7 +89,7 @@ if (stage == "single") {
   fs::dir_create(ghere("output", "sequential", cohort, "match"))
 }
 
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # import data ----
 
 if (stage == "actual") {
@@ -107,7 +103,7 @@ if (stage == "actual") {
 # check variables are as they should be
 if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   
-  ## set seed so results on dummy data are reproducible ---
+  # set seed so results on dummy data are reproducible
   set.seed(10)
   
   # ideally in future this will check column existence and types from metadata,
@@ -195,35 +191,23 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
 } else {
   
   if (stage == "treated") {
-    
-    data_extract <- read_feather(ghere("output", "sequential", "treated", "extract", "input_treated.feather")) %>%
-      #because date types are not returned consistently by cohort extractor
-      mutate(across(ends_with("_date"),  as.Date))
-    
+    data_extract <- read_feather(ghere("output", "sequential", "treated", "extract", "input_treated.feather")) 
   } else if (stage %in% c("single", "potential")) {
-    
-    data_extract <- read_feather(ghere("output", "sequential", cohort, "matchround{matching_round}", "extract", "input_controlpotential.feather")) %>%
-      # because date types are not returned consistently by cohort extractor
-      mutate(across(ends_with("_date"), as.Date))
-    
+    data_extract <- read_feather(ghere("output", "sequential", cohort, "matchround{matching_round}", "extract", "input_controlpotential.feather")) 
   } else if (stage == "actual") {
-    
-    data_extract <- read_feather(ghere("output", "sequential", cohort, "matchround{matching_round}", "extract", glue("input_controlactual.feather"))) %>%
-      #because date types are not returned consistently by cohort extractor
-      mutate(across(ends_with("_date"),  as.Date)) 
-    
+    data_extract <- read_feather(ghere("output", "sequential", cohort, "matchround{matching_round}", "extract", glue("input_controlactual.feather"))) 
   } else if (stage == "final") {
-    
-    data_extract <- read_feather(ghere("output", "sequential", cohort, "extract", "input_controlfinal.feather")) %>%
-      #because date types are not returned consistently by cohort extractor
-      mutate(across(ends_with("_date"),  as.Date))
-    
+    data_extract <- read_feather(ghere("output", "sequential", cohort, "extract", "input_controlfinal.feather")) 
   }
+  
+  data_extract <- data_extract %>%
+    # because date types are not returned consistently by cohort extractor
+    mutate(across(ends_with("_date"),  as.Date))
   
 }
 
-
-# process the final dataset ----
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# process the dataset ----
 if (stage == "final") {
   
   # summarise extracted data
@@ -273,7 +257,7 @@ if (stage == "final") {
   data_matched <-
     bind_rows(
       data_treated,
-      data_control #%>% process_outcome() # process the post-baseline variables (done previously for data_treated)
+      data_control 
     ) 
   
   write_rds(data_matched, here("output", "sequential", cohort, "match", "data_matched.rds"), compress="gz")
@@ -320,13 +304,13 @@ if (stage == "final") {
   
 } 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # script stops here when stage = "final"
 # make sure all code beyond this point wrapped in `if` statements conditional on `stage`
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-
-# process data -----
-
-## define index data ----
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# summarise and define index_date ----
 if (stage == "single") {
   
   # no need to summarise as had already been summarised when stage="potential" and matching round=1
@@ -356,7 +340,7 @@ if (stage == "single") {
   data_extract <- data_extract %>%
     mutate(index_date = matching_round_date) 
   
-} else if(stage == "actual"){
+} else if(stage == "actual") {
   
   # add certain matching variables when stage=actual
   data_extract <- data_extract %>%
@@ -381,6 +365,8 @@ if (stage == "single") {
   
 }
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# process jcvi, demo and pre variables ----
 if (stage %in% c("single", "treated", "potential", "actual")) {
   data_processed <- data_extract %>%
     process_jcvi() %>%
@@ -388,13 +374,8 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
     process_pre() 
 }
 
-# if (stage == "treated") {
-#   data_processed <- data_processed %>%
-#     process_outcome()
-# }
-
-## process vaccination data ----
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# process vaccination data ----
 if (stage %in% c("single", "treated", "potential")) {
   
   data_processed <- data_processed %>%
@@ -416,7 +397,8 @@ if (stage %in% c("single", "treated", "potential")) {
   
 }
 
-# summarise processed data
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# summarise processed data ----
 if (stage %in% c("single", "treated", "potential", "actual")) {
   if (stage %in% "single") {
     skim_path <- here("output", "single", "process", "data_processed_skim.txt")
@@ -428,14 +410,18 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
   my_skim(data_processed, path = skim_path)
 }
 
-####################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# apply eligibility criteria ----
 
 if (stage == "treated") {
+  
   selection_stage <- rlang::quos(
     
     has_expectedvax1type = vax1_type %in% c("pfizer", "az"),
     
-    has_vaxgap12 = vax2_date >= (vax1_date+17) | is.na(vax2_date), # at least 17 days between first and second vaccinations. this is post-baseline conditioning but is essentially just removing a small number of people with unreliable vaccination data
+    # At least 17 days between first and second vaccinations. 
+    # This is post-baseline conditioning but is essentially just removing a small number of people with unreliable vaccination data.
+    has_vaxgap12 = vax2_date >= (vax1_date+17) | is.na(vax2_date),
     
     vax1_notbeforestartdate = case_when(
       (vax1_type=="pfizer") & (vax1_date < study_dates$pfizer$start_date) ~ FALSE,
@@ -496,7 +482,6 @@ if (stage == "treated") {
   
 } 
 
-# Define selection criteria ----
 if (stage %in% c("single", "treated", "potential", "actual")) {
   
   if (stage == "single") {
@@ -550,6 +535,7 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
   
 }
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # save cohort-specific datasets ----
 if (stage == "single") {
   
@@ -602,7 +588,7 @@ if (stage == "single") {
   
 }
 
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # create flowchart (only when stage="treated" or "single") ----
 if (stage %in% c("single", "treated")) {
   
@@ -684,7 +670,7 @@ if (stage %in% c("single", "treated")) {
   
 }
 
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # check matching (only when stage="actual") ----
 if (stage == "actual") { 
   

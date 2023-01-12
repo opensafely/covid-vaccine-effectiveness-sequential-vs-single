@@ -1,6 +1,9 @@
-# this function is to be used in:
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# this function applies some data processing to avoid code replication
+# is to be used in:
 # analysis/model/preflight.R with stage = preflight
 # analysis/model/msm.R with stage = msm
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 process_data_days <- function(stage) {
   
@@ -22,14 +25,21 @@ process_data_days <- function(stage) {
   data_days1 <- data_days0 %>%
     mutate(all = factor("all",levels=c("all"))) %>%
     filter(
-      .[[glue("{outcome}_status")]] == 0, # follow up ends at (day after) occurrence of outcome, ie where status not >0
-      vaxany1_status == .[[glue("vax{brand}1_status")]], # if brand-specific, follow up ends at (day after) occurrence of competing vaccination, ie where vax{competingbrand}_status not >0
-      vaxany2_status == 0, # censor at second dose
-      .[[glue("vax{brand}_atrisk")]] == 1, # select follow-up time where vax brand is being administered
+      # follow up ends at (day after) occurrence of outcome, ie where status not >0
+      .[[glue("{outcome}_status")]] == 0, 
+      # if brand-specific, follow up ends at (day after) occurrence of competing vaccination, 
+      # ie where vax{competingbrand}_status not >0
+      vaxany1_status == .[[glue("vax{brand}1_status")]], 
+      # censor at second dose
+      vaxany2_status == 0, 
+      # select follow-up time where vax brand is being administered
+      .[[glue("vax{brand}_atrisk")]] == 1, 
     ) %>%
+    # join fixed covariates
     left_join(data_fixed, by="patient_id") %>%
     filter(
-      .[[subgroup]] == subgroup_level # select patients in current subgroup_level
+      # select patients in current subgroup_level
+      .[[subgroup]] == subgroup_level 
     ) %>%
     mutate( 
       # this step converts logical to integer so that model coefficients print nicely in gtsummary methods
@@ -43,11 +53,12 @@ process_data_days <- function(stage) {
     mutate(postest_when_unvax = TRUE)
     
   data_days1 %>%
+    # join those who had a positive test while unvaccinated
     left_join(postest_when_unvax, by = "patient_id") %>%
     replace_na(list(postest_when_unvax = FALSE)) %>%
-    # vax*1_atrisk FALSE after a positive test:
-    # (important to keep these as logical as used for filtering when calculating in `get_ipw_weights`)
     mutate(
+      # vax*1_atrisk FALSE after a positive test:
+      # (important to keep these as logical as used for filtering when calculating in `get_ipw_weights`)
       vaxany1_atrisk = (vaxany1_status==0 & vaxany_atrisk==1 & postest_status==0),
       vaxpfizer1_atrisk = (vaxany1_status==0 & vaxpfizer_atrisk==1 & postest_status==0),
       vaxaz1_atrisk = (vaxany1_status==0 & vaxaz_atrisk==1 & postest_status==0),

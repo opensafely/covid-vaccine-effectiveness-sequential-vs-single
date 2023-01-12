@@ -1,22 +1,20 @@
-######################################
-
-# What this script does:
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# This script:
 # imports data created by the `data_process.R` script
-# converts hospitalisation and infection episodes into long format
+# converts hospitalisation episodes into long format
 # saves as a one-row-per-event dataset
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-# don't include probable or suspected covid in time since, as this is not included for seqtrials timesince
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Preliminaries ----
 
-######################################
-
-# Import libraries 
+# import libraries 
 library('tidyverse')
 library('here')
 library('glue')
 library('arrow')
 
-## import local functions and parameters ---
-
+# import local functions and parameters
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 
@@ -24,6 +22,10 @@ source(here("analysis", "functions", "utility.R"))
 outdir <- here("output", "single", "process")
 fs::dir_create(outdir)
 
+# import eligible data 
+data_eligible <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds"))
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # use externally created dummy data if not running in the server
 # check variables are as they should be
 if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
@@ -81,8 +83,8 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   
 }
 
-# import eligible data 
-data_eligible <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds"))
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# data processing ----
 
 # select and save outcomes
 data_outcomes <- data_extract %>%
@@ -106,9 +108,7 @@ data_timevarying <- data_extract %>%
     by = "patient_id"
   )
 
-## create one-row-per-event datasets ----
-# for vaccination, positive test, hospitalisation/discharge, covid in primary care, death
-
+# create one-row-per-event datasets for hospital admissions and discharges
 data_admissions <- data_timevarying %>%
   select(
     patient_id,
@@ -154,43 +154,7 @@ data_admissions_noninfectious <- anti_join(
   by = c("patient_id", "admitted_date", "discharged_date")
 )
 
-
-# data_pr_suspected_covid <- data_processed %>%
-#   select(patient_id, matches("^primary_care_suspected_covid\\_\\d+\\_date")) %>%
-#   pivot_longer(
-#     cols = -patient_id,
-#     names_to = c(NA, "suspected_index"),
-#     names_pattern = "^(.*)_(\\d+)_date",
-#     values_to = "date",
-#     values_drop_na = TRUE
-#   ) %>%
-#   arrange(patient_id, date)
-# 
-# data_pr_probable_covid <- data_processed %>%
-#   select(patient_id, matches("^primary_care_probable_covid\\_\\d+\\_date")) %>%
-#   pivot_longer(
-#     cols = -patient_id,
-#     names_to = c(NA, "probable_index"),
-#     names_pattern = "^(.*)_(\\d+)_date",
-#     values_to = "date",
-#     values_drop_na = TRUE
-#   ) %>%
-#   arrange(patient_id, date)
-# 
-# data_postest <- data_timevarying %>%
-#   select(
-#     patient_id, 
-#     matches("^positive\\_test\\_\\d+\\_date")
-#     ) %>%
-#   pivot_longer(
-#     cols = -patient_id,
-#     names_to = c(NA, "postest_index"),
-#     names_pattern = "^(.*)_(\\d+)_date",
-#     values_to = "date",
-#     values_drop_na = TRUE
-#   ) %>%
-#   arrange(patient_id, date)
-
+# save datasets
 write_rds(
   data_admissions, 
   file.path(outdir, "data_long_admission_dates.rds"),
@@ -206,18 +170,3 @@ write_rds(
   file.path(outdir, "data_long_admission_noninfectious_dates.rds"),
   compress="gz"
   )
-# write_rds(
-#   data_pr_probable_covid, 
-#   file.path(outdir, "data_long_pr_probable_covid_dates.rds"), 
-#   compress="gz"
-#   )
-# write_rds(
-#   data_pr_suspected_covid, 
-#   file.path(outdir, "data_long_pr_suspected_covid_dates.rds"), 
-#   compress="gz"
-#   )
-# write_rds(
-#   data_postest, 
-#   file.path(outdir, "data_long_postest_dates.rds"), 
-#   compress="gz"
-#   )

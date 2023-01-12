@@ -1,6 +1,6 @@
-
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # This script:
+# 
 # imports fitted IPW models from `msm.R`
 # calculates robust CIs taking into account patient-level clustering
 # 
@@ -10,12 +10,11 @@
 # outputs plots showing model-estimated spatio-temporal trends
 #
 # The script should only be run via an action in the project.yaml only
-# The script must be accompanied by five arguments: brand, outcome, subgroup
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # Preliminaries ----
 
-## Import libraries ----
+# import libraries
 library('tidyverse')
 library('here')
 library('glue')
@@ -26,7 +25,7 @@ library('parglm')
 library("sandwich")
 library("lmtest")
 
-## Import custom user functions
+# import custom user functions and metadata
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
@@ -37,13 +36,15 @@ indir <- here("output", "single")
 outdir <- here("output", "single", "combine") 
 fs::dir_create(outdir)
 
-
-model_key <- expand_grid(
+# define metaparams
+metaparams <- expand_grid(
   brand=model_brands,
   subgroup=model_subgroups,
   outcome=model_outcomes
 )
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# define function to add descriptive variables ----
 add_descr <- function(.data) {
   
   brand_descr <- brand_lookup %>% filter(brand %in% model_brands) %>% pull(brand_descr)
@@ -62,17 +63,11 @@ add_descr <- function(.data) {
   
 }
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# IPW ----
 
-## IPW ----
+# define forest_from_broomstack function
 forest_from_broomstack <- function(broomstack, title){
-  
-  #jtools::plot_summs(ipwvaxany1)
-  #modelsummary::modelplot(ipwvaxany1, coef_omit = 'Interc|tstop', conf.type="wald", exponentiate=TRUE)
-  #sjPlot::plot_model(ipwvaxany1)
-  #all these methods use broom::tidy to get the coefficients. but tidy.glm only uses profile CIs, not Wald. (yTHO??)
-  #profile CIs will take forever on large datasets.
-  #so need to write custom function for plotting wald CIs. grr
-  
   
   plot_data <- broomstack %>%
     filter(
@@ -123,7 +118,6 @@ forest_from_broomstack <- function(broomstack, title){
       x="Hazard ratio",
       colour=NULL,
       title=title
-      #subtitle=cohort_descr
     ) +
     theme_minimal() +
     theme(
@@ -137,8 +131,8 @@ forest_from_broomstack <- function(broomstack, title){
     )
 }
 
-# broomstack
-broomstack <- model_key %>%
+# generate broomstack ----
+broomstack <- metaparams %>%
   filter(outcome=="postest", brand=="pfizer") %>%
   mutate(
     subgroup_level =  pmap(
@@ -193,9 +187,11 @@ ggsave(
   units="cm", width=30, height=25
 )
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 ## MSM ----
 
-estimates <- model_key %>%
+# combine all estimates
+estimates <- metaparams %>%
   filter(outcome=="postest", brand=="pfizer") %>%
   mutate(
     estimates = pmap(
@@ -208,27 +204,6 @@ estimates <- model_key %>%
   ) %>%
   add_descr() 
   
-  # metadata_outcomes %>%
-  # mutate(
-  #   outcome = fct_inorder(outcome),
-  #   outcome_descr = fct_inorder(map_chr(outcome_descr, ~paste(stringi::stri_wrap(., width=14, simplify=TRUE, whitespace_only=TRUE), collapse="\n")))
-  # ) %>%
-  # crossing(
-  #   tibble(
-  #     brand = fct_inorder(c("any", "pfizer", "az")),
-  #     brand_descr = fct_inorder(c("Any vaccine", "BNT162b2", "ChAdOx1"))
-  #   )
-  # ) %>%
-  # mutate(
-  #   brand = fct_inorder(brand),
-  #   brand_descr = fct_inorder(brand_descr),
-  #   estimates = map2(brand, outcome, ~read_csv(here("output", cohort, strata_var, recent_postestperiod, .x, .y, glue("estimates_timesincevax.csv"))))
-  # ) %>%
-  # unnest(estimates) %>%
-  # mutate(
-  #   model_descr = fct_inorder(model_descr),
-  # )
-
 estimates_formatted <- estimates %>%
   transmute(
     outcome_descr,
@@ -246,15 +221,6 @@ estimates_formatted <- estimates %>%
     HR_ECI = paste0(HR, " ", HR_CI),
     VE_ECI = paste0(VE, " ", VE_CI),
   )
-
-# if(subgroup!="all"){
-#   estimates_formatted <- estimates_formatted %>%
-#     mutate(
-#       diff = scales::label_number(accuracy = .01, trim=TRUE)(diff),
-#       diff_CI = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(diff.ll), "-", scales::label_number(accuracy = .01, trim=TRUE)(diff.ul), ")"),
-#       diff_ECI = paste0(diff, " ", diff_CI),
-#     )
-# }
 
 estimates_formatted_wide <- estimates_formatted %>%
   select(outcome_descr, brand_descr, subgroup_descr, model, term, HR_ECI, VE_ECI) %>%
@@ -390,7 +356,6 @@ msmmod_effect_plot <- function(subgroup_level, scales_option) {
         legend.position = "bottom"
       )
     
-    ## save plot
     ggsave(
       filename=file.path(outdir, glue("VE_plot_{subgroup_level}_{scales_option}.svg")), 
       msmmod_effect, 
@@ -409,6 +374,3 @@ for (subgroup_level in unique(msmmod_effect_data$subgroup_level)) {
   msmmod_effect_plot(subgroup_level, "fixed")
   msmmod_effect_plot(subgroup_level, "free_y")
 }
-
-
-  
