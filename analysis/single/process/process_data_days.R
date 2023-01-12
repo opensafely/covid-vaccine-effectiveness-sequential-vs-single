@@ -45,7 +45,6 @@ process_data_days <- function(stage) {
     
   data_days1 %>%
     left_join(postest_when_unvax, by = "patient_id") %>%
-    #mutate(across(postest_when_unvax, replace_na, FALSE)) %>%
     replace_na(list(postest_when_unvax = FALSE)) %>%
     # vax*1_atrisk FALSE after a positive test:
     # (important to keep these as logical as used for filtering when calculating in `get_ipw_weights`)
@@ -56,6 +55,9 @@ process_data_days <- function(stage) {
       death_atrisk = (death_status==0 & lastfup_status==0),
     ) %>%
     # update vax1 and vax variables to be always zero for patients who have a positive test when unvaccinated
+    # this enables estimation of the "modified estimand":
+    # compare all vaccinated people with no previous record of SARS-CoV-02 infection with everybody else (including people vaccinated after infection)
+    # this is implemented by ensuring that the vaccination status never changes after first documented infection
     mutate(
       across(
         c(
