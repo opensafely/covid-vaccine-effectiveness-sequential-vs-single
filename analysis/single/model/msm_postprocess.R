@@ -61,26 +61,22 @@ list2env(list_formula_single, globalenv())
 formula_1 <- outcome ~ 1
 formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
-var_lookup$age <- `age, degree = 2` ~ "Age"
-covar_labels <- unname(var_lookup)
-
 ## define functions ----
 broom_model_summary <- function(model, cluster, subgroup_level) {
   
   tbl_reg <- broom.helpers::tidy_plus_plus(
     model = model,
     tidy_fun = partial(tidy_plr, cluster = cluster),
-    include = -contains("ns(tstop")#,
-    # variable_labels = covar_labels
+    include = -contains("ns(tstop")
   ) %>%
     add_column(
-      subgroup=subgroup_level,
+      subgroup_level=subgroup_level,
       .before=1
     )
   
 }
 
-##  Create big loop over all categories
+##  create loop over all subgroup_levels
 
 subgroup_levels <- recoder[[subgroup]]
 
@@ -216,7 +212,7 @@ msmmod_effect <-
 #   width=20, height=18, units="cm"
 # )
 ggsave(
-  filename=here(outdir, glue("VE_plot.png")), 
+  filename=here(outdir, glue("VE_plot.svg")), 
   msmmod_effect, 
   width=20, height=18, units="cm"
 )
