@@ -252,64 +252,48 @@ action_extract_and_match <- function(cohort, n_matching_rounds){
 # action_extract_and_match("pfizer", 2)
 
 
-action_km <- function(cohort, subgroup, outcome){
+action_kmcox <- function(cohort, subgroup, outcome){
   action(
-    name = glue("km_{cohort}_{subgroup}_{outcome}"),
-    run = glue("r:latest analysis/sequential/model/km.R"),
+    name = glue("kmcox_{cohort}_{subgroup}_{outcome}"),
+    run = glue("r:latest analysis/sequential/model/kmcox.R"),
     arguments = c(cohort, subgroup, outcome),
     needs = namelesslst(
       glue("process_controlfinal_{cohort}"),
     ),
     moderately_sensitive= lst(
       #csv= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.csv"),
-      rds= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.rds"),
-      png= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.png"),
-    )
-  )
-}
-
-action_coxcmlinc <- function(cohort, subgroup, outcome){
-  action(
-    name = glue("coxcmlinc_{cohort}_{subgroup}_{outcome}"),
-    run = glue("r:latest analysis/sequential/model/coxcmlinc.R"),
-    arguments = c(cohort, subgroup, outcome),
-    needs = namelesslst(
-      glue("process_controlfinal_{cohort}"),
-    ),
-    moderately_sensitive= lst(
-      #csv= glue("output/sequential/{cohort}/models/km/{subgroup}/{outcome}/*.csv"),
-      rds= glue("output/sequential/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.rds"),
-      png= glue("output/sequential/{cohort}/models/coxcmlinc/{subgroup}/{outcome}/*.png"),
+      rds= glue("output/sequential/{cohort}/model/{subgroup}/{outcome}/*.rds"),
+      png= glue("output/sequential/{cohort}/model/{subgroup}/{outcome}/*.png"),
     )
   )
 }
 
 ## model action function ----
-action_km_combine <- function(
-    cohort
-){
-
-  action(
-    name = glue("combine_km_{cohort}"),
-    run = glue("r:latest analysis/sequential/model/km_combine.R"),
-    arguments = c(cohort),
-    needs = splice(
-      as.list(
-        glue_data(
-          .x=expand_grid(
-            subgroup=model_subgroups,
-            outcome=model_outcomes,
-          ),
-          "km_{cohort}_{subgroup}_{outcome}"
-        )
-      )
-    ),
-    moderately_sensitive = lst(
-      rds = glue("output/sequential/{cohort}/models/km/combined/*.csv"),
-      png = glue("output/sequential/{cohort}/models/km/combined/*.png"),
-    )
-  )
-}
+# action_kmcox_combine <- function(
+#     cohort
+# ){
+# 
+#   action(
+#     name = glue("combine_kmcox_{cohort}"),
+#     run = glue("r:latest analysis/sequential/model/kmcox_combine.R"),
+#     arguments = c(cohort),
+#     needs = splice(
+#       as.list(
+#         glue_data(
+#           .x=expand_grid(
+#             subgroup=model_subgroups,
+#             outcome=model_outcomes,
+#           ),
+#           "kmcox_{cohort}_{subgroup}_{outcome}"
+#         )
+#       )
+#     ),
+#     moderately_sensitive = lst(
+#       rds = glue("output/sequential/{cohort}/model/combine/*.csv"),
+#       png = glue("output/sequential/{cohort}/model/combine/*.png"),
+#     )
+#   )
+# }
 
 cohort_seqtrial <- function(cohort) {
   
@@ -360,11 +344,11 @@ cohort_seqtrial <- function(cohort) {
       outcome=model_outcomes,
     ) %>%
       pmap(
-        function(brand, subgroup, outcome) action_km(cohort, subgroup, outcome)
+        function(brand, subgroup, outcome) action_kmcox(cohort, subgroup, outcome)
       ) %>%
-      unlist(recursive = FALSE),
+      unlist(recursive = FALSE)#,
     
-    action_km_combine(cohort)
+    # action_kmcox_combine(cohort)
     
   )
   
@@ -375,9 +359,13 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
   
   splice(
     
+    comment("# # # # # # # # # # # # # # # # # # #", 
+            glue("Model: {brand}; {subgroup}; {outcome};"), 
+            "# # # # # # # # # # # # # # # # # # #"),
+    
     action(
-      name = glue("preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
-      run = "r:latest analysis/single/model/preflight.R",
+      name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
+      run = "r:latest analysis/single/model/msm_preflight.R",
       arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
       needs = namelesslst(
         "process_stset"
@@ -394,17 +382,34 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
       needs = namelesslst(
         "process_stset",
-        glue("preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
+        glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
       ),
       highly_sensitive = lst(
         rds = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.rds")
       ),
       moderately_sensitive = lst(
         csv = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.csv"),
-        png = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.png"),
+        png = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.svg"),
         txt = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.txt")
       )
+    ),
+    
+    action(
+      name = glue("msm_postprocess_{brand}_{subgroup}_{outcome}"),
+      run = "r:latest analysis/single/model/msm_postprocess.R",
+      arguments = c(brand, subgroup, outcome),
+      needs = namelesslst(
+        glue("msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
+      ),
+      highly_sensitive = lst(
+        rds = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.rds")
+      ),
+      moderately_sensitive = lst(
+        csv = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.csv"),
+        png = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.svg")
+      )
     )
+
   )
   
 }
@@ -486,6 +491,27 @@ actions_list <- splice(
 
   cohort_seqtrial("pfizer"),
   cohort_seqtrial("az"),
+  
+  action(
+    name = glue("combine_kmcox"),
+    run = glue("r:latest analysis/sequential/model/kmcox_combine.R"),
+    needs = splice(
+      as.list(
+        glue_data(
+          .x=expand_grid(
+            cohort=model_brands,
+            subgroup=model_subgroups,
+            outcome=model_outcomes,
+          ),
+          "kmcox_{cohort}_{subgroup}_{outcome}"
+        )
+      )
+    ),
+    moderately_sensitive = lst(
+      rds = "output/sequential/combine/*.csv",
+      png = "output/sequential/combine/*.png"
+    )
+  ),
   
   comment("# # # # # # # # # # # # # # # # # # #", 
           "SINGLE TRIAL APPROACH", 
@@ -577,19 +603,40 @@ actions_list <- splice(
     )
   ),
   
-  comment("# # # # # # # # # # # # # # # # # # #", 
-          "Model", 
-          "# # # # # # # # # # # # # # # # # # #"),
-  
+  # model actions
   expand_grid(
-    brand=treatement_lookup$treatment,
+    brand=model_brands,
     subgroup=model_subgroups,
     outcome=model_outcomes,
   ) %>%
     pmap(
-      function(brand, subgroup, outcome) model_single(brand, subgroup, outcome, 150000, 50000)
+      function(brand, subgroup, outcome) model_single(brand, subgroup, outcome, 3000, 1000)#150000, 50000)
     ) %>%
     unlist(recursive = FALSE),
+  
+  comment("# # # # # # # # # # # # # # # # # # #", 
+          "Combine model outputs",
+          "# # # # # # # # # # # # # # # # # # #"),
+  action(
+    name = "msm_combine",
+    run = glue("r:latest analysis/model/msm_combine.R"),
+    needs = splice(
+      as.list(
+        glue_data(
+          .x=expand_grid(
+            brand=model_brands,
+            subgroup=model_subgroups,
+            outcome=model_outcomes,
+          ),
+          "msm_postprocess_{brand}_{subgroup}_{outcome}"
+        )
+      )
+    ),
+    moderately_sensitive = lst(
+      csv = "output/single/combine/*.csv",
+      svg = "output/single/combine/*.svg"
+    )
+  ),
   
   comment("# # # # # # # # # # # # # # # # # # #", 
           "REPORT", 
