@@ -514,7 +514,7 @@ for(subgroup_level in subgroup_levels){
     theme_bw()
   
   ggsave(
-    file.path(outdir, glue("weights_prob_histogram_{subgroup_level}.png")),
+    file.path(outdir, glue("weights_prob_histogram_{subgroup_level}.svg")),
     plot = ipweight_histogram
     )
   
@@ -525,7 +525,7 @@ for(subgroup_level in subgroup_levels){
     theme_bw()
   
   ggsave(
-    file.path(outdir, glue("weights_cmlprob_histogram_{subgroup_level}.png")), 
+    file.path(outdir, glue("weights_cmlprob_histogram_{subgroup_level}.svg")), 
     plot = cmlipweight_histogram
     )
   
