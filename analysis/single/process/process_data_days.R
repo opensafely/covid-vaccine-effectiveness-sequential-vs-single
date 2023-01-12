@@ -23,7 +23,6 @@ process_data_days <- function(stage) {
     mutate(all = factor("all",levels=c("all"))) %>%
     filter(
       .[[glue("{outcome}_status")]] == 0, # follow up ends at (day after) occurrence of outcome, ie where status not >0
-      lastfup_status == 0, # follow up ends at (day after) occurrence of censoring event (derived from lastfup = min(end_date, death, dereg))
       vaxany1_status == .[[glue("vax{brand}1_status")]], # if brand-specific, follow up ends at (day after) occurrence of competing vaccination, ie where vax{competingbrand}_status not >0
       vaxany2_status == 0, # censor at second dose
       .[[glue("vax{brand}_atrisk")]] == 1, # select follow-up time where vax brand is being administered
@@ -45,16 +44,19 @@ process_data_days <- function(stage) {
     
   data_days1 %>%
     left_join(postest_when_unvax, by = "patient_id") %>%
-    mutate(across(postest_when_unvax, replace_na, FALSE)) %>%
+    replace_na(list(postest_when_unvax = FALSE)) %>%
     # vax*1_atrisk FALSE after a positive test:
     # (important to keep these as logical as used for filtering when calculating in `get_ipw_weights`)
     mutate(
-      vaxany1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxany_atrisk==1 & postest_status==0),
-      vaxpfizer1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxpfizer_atrisk==1 & postest_status==0),
-      vaxaz1_atrisk = (vaxany1_status==0 & lastfup_status==0 & vaxaz_atrisk==1 & postest_status==0),
-      death_atrisk = (death_status==0 & lastfup_status==0),
+      vaxany1_atrisk = (vaxany1_status==0 & vaxany_atrisk==1 & postest_status==0),
+      vaxpfizer1_atrisk = (vaxany1_status==0 & vaxpfizer_atrisk==1 & postest_status==0),
+      vaxaz1_atrisk = (vaxany1_status==0 & vaxaz_atrisk==1 & postest_status==0),
+      death_atrisk = (death_status==0),
     ) %>%
     # update vax1 and vax variables to be always zero for patients who have a positive test when unvaccinated
+    # this enables estimation of the "modified estimand":
+    # compare all vaccinated people with no previous record of SARS-CoV-02 infection with everybody else (including people vaccinated after infection)
+    # this is implemented by ensuring that the vaccination status never changes after first documented infection
     mutate(
       across(
         c(
@@ -80,7 +82,8 @@ process_data_days <- function(stage) {
     select(
       "patient_id",
       "all",
-      "tstart", "tstart",
+      "tstart", 
+      "tstop",
       "outcome",
       "timesincevax_pw",
       any_of(all.vars(formula_all_rhsvars)),

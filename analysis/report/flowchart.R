@@ -64,12 +64,12 @@ flowchart_matching_function <- function(brand) {
   # categorise individuals
   data_match_flow  <- data_singleeligible %>%
     left_join(data_matched, by = "patient_id") %>%
-    mutate(across(c(treated, control), ~ if_else(is.na(.x), FALSE, TRUE))) %>%
+    mutate(across(c(treated, control), ~ replace_na(.x, replace=FALSE))) %>%
     mutate(
       crit = case_when(
         # those who are vaccinated on day 1 of recruitment
-        vax1_type == brand & vax1_date == study_dates[[brand]]$start_date & !treated & !control ~ "A",
-        vax1_type == brand & vax1_date == study_dates[[brand]]$start_date & treated & !control ~ "B",
+        vax1_type == brand & vax1_date == study_dates[[brand]]$start_date & !control & !treated ~ "A",
+        vax1_type == brand & vax1_date == study_dates[[brand]]$start_date & !control & treated ~ "B",
         # those who are vaccinated during the recruitment period but not on day 1
         vax1_type == brand & vax1_date <= study_dates$global$studyend_date & !control & !treated ~ "C",
         vax1_type == brand & vax1_date <= study_dates$global$studyend_date & !control & treated ~ "D",

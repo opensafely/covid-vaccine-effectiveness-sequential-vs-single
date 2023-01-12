@@ -264,7 +264,3 @@ list_formula_single <- local({
   return(list_formula)
   
 })
-
-# reweight censored deaths or not? (only applies to single model approach)
-# ideally yes, but often very few events so censoring models are not stable
-reweight_death <- FALSE

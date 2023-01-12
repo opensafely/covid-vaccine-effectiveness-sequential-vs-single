@@ -65,9 +65,6 @@ parglmparams <- parglm.control(
   maxit = 40 # default = 25
 )
 
-# reweight censored deaths or not?
-# ideally yes, but often very few events so censoring models are not stable
-# reweight_death defined in design.R
 
 ### import outcomes, exposures, and covariate formulae ----
 ## these are created in data_define_cohorts.R script
@@ -383,48 +380,6 @@ for(subgroup_level in subgroup_levels){
     )
   }
   
-  # IPW model for death ----
-  
-  ## if outcome is not death, then need to account for censoring by any cause death
-  # if(!(outcome %in% c("death", "coviddeath", "noncoviddeath")) & reweight_death){
-  #   weights_death <- get_ipw_weights(
-  #     data_days_sub, "death", "death_status", "death_atrisk",
-  #     sample_type="nonoutcomes_n", sample_amount=ipw_sample_random_n,
-  #     ipw_formula =     update(death ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
-  #     ipw_formula_fxd = update(death ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
-  #     subgroup_level = subgroup_level
-  #   )
-  # }
-  # ## if outcome is covid death, then need to account for censoring by non-covid deaths
-  # if(outcome=="coviddeath" & reweight_death){
-  #   weights_death <- get_ipw_weights(
-  #     data_days_sub, "noncoviddeath", "noncoviddeath_status", "death_atrisk",
-  #     sample_type="nonoutcomes_n", sample_amount=msm_sample_nonoutcomes_n,
-  #     ipw_formula =     update(noncoviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
-  #     ipw_formula_fxd = update(noncoviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
-  #     subgroup_level = subgroup_level
-  #   )
-  # }
-  # ## if outcome is noncovid death, then need to account for censoring by covid deaths
-  # if(outcome=="noncoviddeath" & reweight_death){
-  #   weights_death <- get_ipw_weights(
-  #     data_days_sub, "coviddeath", "coviddeath_status", "death_atrisk",
-  #     sample_type="nonoutcomes_n", sample_amount=msm_sample_nonoutcomes_n,
-  #     ipw_formula =     update(coviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_timedependent) %>% update(formula_remove_postest) %>% update(formula_remove_subgroup),
-  #     ipw_formula_fxd = update(coviddeath ~ 1, formula_demog) %>% update(formula_comorbs) %>% update(formula_exposure) %>% update(formula_secular_region) %>% update(formula_remove_subgroup),
-  #     subgroup_level = subgroup_level
-  #   )
-  # }
-  ## if outcome is death, then no accounting for censoring by death is needed
-  if(outcome=="death" | !reweight_death){
-    weights_death <- data_days_sub %>%
-      filter(death_atrisk) %>%
-      transmute(
-        patient_id, tstart, tstop,
-        ipweight_stbl_death=1,
-        cmlipweight_stbl_death=1,
-      )
-  }
   
   if(brand=="any"){
     data_weights <- data_days_sub %>%
@@ -432,27 +387,24 @@ for(subgroup_level in subgroup_levels){
         sample_outcome==1L # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
       ) %>%
       left_join(weights_vaxany1, by=c("patient_id", "tstart", "tstop")) %>%
-      left_join(weights_death, by=c("patient_id", "tstart", "tstop")) %>%
       replace_na(list(
         # weight is 1 if patient is not yet at risk or has already been vaccinated / censored
-        ipweight_stbl_vaxany1 = 1,
-        ipweight_stbl_death = 1
+        ipweight_stbl_vaxany1 = 1
       )) %>%
       arrange(patient_id, tstop) %>%
       group_by(patient_id) %>%
       mutate(
         cmlipweight_stbl_vaxany1 = cumprod(ipweight_stbl_vaxany1),
-        cmlipweight_stbl_death = cumprod(ipweight_stbl_death),
       ) %>%
       ungroup() %>%
       mutate(
-        ipweight_stbl = ipweight_stbl_vaxany1 * ipweight_stbl_death,
+        ipweight_stbl = ipweight_stbl_vaxany1,
         ipweight_stbl_sample = ipweight_stbl * sample_weights,
-        cmlipweight_stbl = cmlipweight_stbl_vaxany1 * cmlipweight_stbl_death,
+        cmlipweight_stbl = cmlipweight_stbl_vaxany1,
         cmlipweight_stbl_sample = cmlipweight_stbl * sample_weights,
       )
     
-    if(removeobs) rm(weights_vaxany1, weights_death)
+    if(removeobs) rm(weights_vaxany1)
     
   }
   if(brand != "any"){
@@ -463,30 +415,27 @@ for(subgroup_level in subgroup_levels){
       ) %>%
       left_join(weights_vaxpfizer1, by=c("patient_id", "tstart", "tstop")) %>%
       left_join(weights_vaxaz1, by=c("patient_id", "tstart", "tstop")) %>%
-      left_join(weights_death, by=c("patient_id", "tstart", "tstop")) %>%
       replace_na(list( # weight is 1 if patient is not yet at risk or has already been vaccinated / censored
         ipweight_stbl_vaxpfizer1 = 1,
-        ipweight_stbl_vaxaz1 = 1,
-        ipweight_stbl_death = 1
+        ipweight_stbl_vaxaz1 = 1
       )) %>%
       arrange(patient_id, tstop) %>%
       group_by(patient_id) %>%
       mutate(
         cmlipweight_stbl_vaxpfizer1 = cumprod(ipweight_stbl_vaxpfizer1),
-        cmlipweight_stbl_vaxaz1 = cumprod(ipweight_stbl_vaxaz1),
-        cmlipweight_stbl_death = cumprod(ipweight_stbl_death),
+        cmlipweight_stbl_vaxaz1 = cumprod(ipweight_stbl_vaxaz1)
       ) %>%
       ungroup() %>%
       mutate(
         ## COMBINE WEIGHTS
         # take product of all weights
-        ipweight_stbl = ipweight_stbl_vaxpfizer1 * ipweight_stbl_vaxaz1 * ipweight_stbl_death,
+        ipweight_stbl = ipweight_stbl_vaxpfizer1 * ipweight_stbl_vaxaz1,
         ipweight_stbl_sample = ipweight_stbl * sample_weights,
         
-        cmlipweight_stbl = cmlipweight_stbl_vaxpfizer1 * cmlipweight_stbl_vaxaz1 * cmlipweight_stbl_death,
+        cmlipweight_stbl = cmlipweight_stbl_vaxpfizer1 * cmlipweight_stbl_vaxaz1,
         cmlipweight_stbl_sample = cmlipweight_stbl * sample_weights,
       )
-    if(removeobs) rm(weights_vaxpfizer1, weights_vaxaz1, weights_death)
+    if(removeobs) rm(weights_vaxpfizer1, weights_vaxaz1)
   }
   
   
