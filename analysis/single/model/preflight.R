@@ -158,25 +158,7 @@ for(subgroup_level in subgroup_levels){
         update(formula_timedependent) %>% 
         update(formula_remove_subgroup)
       
-      # treatment_coviddeath <- 
-      #   update(coviddeath ~ 1, formula_covars) %>%
-      #   update(formula_exposure) %>% 
-      #   update(formula_secular_region) %>% 
-      #   update(formula_timedependent) %>% 
-      #   update(formula_remove_subgroup)
-      # treatment_noncoviddeath <- 
-      #   update(noncoviddeath ~ 1, formula_covars) %>%
-      #   update(formula_exposure) %>%
-      #   update(formula_secular_region) %>% 
-      #   update(formula_timedependent) %>% 
-      #   update(formula_remove_subgroup)
-      treatment_death <-  
-        update(death ~ 1, formula_covars) %>% 
-        update(formula_exposure) %>% 
-        update(formula_secular_region) %>%
-        update(formula_timedependent) %>% 
-        update(formula_remove_subgroup)
-      
+
       outcome_formula <- formula_1 %>% 
         update(formula_exposure) %>% 
         update(formula_covars) %>%
@@ -228,52 +210,6 @@ for(subgroup_level in subgroup_levels){
       septab(data_days_vax_sample, treatment_az, subgroup_level, outcome, brand, "vaxaz1")
       
       if(removeobs) rm(data_samples_vax, data_days_vax, data_days_vax_sample)
-      
-      ## death models
-      
-      data_days_death <- data_days %>%
-        filter(
-          .[[glue("death_atrisk")]] == 1 # select follow-up time where vax brand is being administered
-        )
-      
-      data_samples_death <- data_days_death %>%
-        group_by(patient_id) %>%
-        summarise(
-          had_death = any(death>0),
-        ) %>%
-        ungroup() %>%
-        transmute(
-          patient_id,
-          sample = sample_nonoutcomes_n(had_death, patient_id, ipw_sample_random_n)
-        )
-      
-      data_days_death_sample <- data_days_death %>%
-        left_join(data_samples_death, by="patient_id") %>%
-        filter(sample)
-      
-      data_days_death_sample %>%
-        summarise(
-          obs = n(),
-          patients = n_distinct(patient_id),
-          death = sum(death),
-          # coviddeath = sum(coviddeath),
-          # noncoviddeath = sum(noncoviddeath),
-          rate_death = death/patients,
-          # rate_coviddeath = coviddeath/patients,
-          # rate_noncoviddeath = noncoviddeath/patients,
-          incidencerate_death = death/obs,
-          # incidencerate_coviddeath = coviddeath/obs,
-          # incidencerate_noncoviddeath = noncoviddeath/obs
-        ) %>%
-        write_csv(
-          file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_deaths.csv"))
-        )
-      
-      # septab(data_days_death_sample, treatment_coviddeath, subgroup_level, outcome, brand, "coviddeath")
-      # septab(data_days_death_sample, treatment_noncoviddeath, subgroup_level,  outcome, brand, "noncoviddeath")
-      septab(data_days_death_sample, treatment_death, subgroup_level, outcome, brand, "death")
-      
-      if(removeobs) rm(data_samples_death, data_days_death, data_days_death_sample)
       
       ## outcome models
       
