@@ -20,7 +20,6 @@ fs::dir_create(outdir)
 
 ## Import data_days and carry out some further processing ----
 data_days <- read_rds(here("output", "single", "stset", "data_days.rds")) %>%
-  filter(lastfup_status==0) %>% # only keep person-days when person is at risk (i.e. have not died or deregistered)
   transmute(
     
     patient_id,
@@ -28,12 +27,10 @@ data_days <- read_rds(here("output", "single", "stset", "data_days.rds")) %>%
     # this was tstop but I think should be tstart?
     date = as.Date(study_dates$global$index_date) + tstart,
     
-    lastfup_status,
     dereg_status,
     death_status,
 
     vaxbrand12_status = fct_case_when(
-      # lastfup_status==1 ~ "Died or deregistered",
       vaxpfizer_status==0 & vaxaz_status==0  ~ "Not vaccinated",
       vaxpfizer_status==1  ~ "BNT162b2\ndose 1",
       vaxpfizer_status==2  ~ "BNT162b2\ndose 2",

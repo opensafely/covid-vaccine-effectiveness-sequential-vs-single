@@ -86,8 +86,8 @@ data_patients <- data_eligible %>%
     # coviddeath_date,
     death_date,
     
-    #composite of death, deregistration and end date
-    lastfup_date = pmin(start_date + maxfup, death_date, end_date, dereg_date, na.rm=TRUE),
+    #composite of death, deregistration, end date, and no more than maxfup days after vaccination
+    lastfup_date = pmin(vax1_date + maxfup, death_date, end_date, dereg_date, na.rm=TRUE),
     
     
     
@@ -236,7 +236,6 @@ data_events0 <- tmerge(
   # noncoviddeath_status = tdc(tte_noncoviddeath),
   death_status = tdc(tte_death),
   dereg_status= tdc(tte_dereg),
-  lastfup_status = tdc(tte_lastfup),
 
   vaxany1 = event(tte_vaxany1),
   vaxany2 = event(tte_vaxany2),
@@ -255,8 +254,7 @@ data_events0 <- tmerge(
   lastfup = event(tte_lastfup),
   
   tstart = 0L,
-  tstop = tte_enddate # use enddate not lastfup because it's useful for status over time plots
-  
+  tstop = tte_lastfup 
 ) 
 
 # if not at risk of vax, not at risk of brand (use base R rather than dplyr to preserve tmerge class)
@@ -334,7 +332,6 @@ cols_to_convert <-   c("vaxany1",
                        # "coviddeath",
                        # "noncoviddeath",
                        "death",
-                       "lastfup",
                        "hospinfectious_status",
                        "hospnoninfectious_status",
                        "hospinfectiousdischarge",
@@ -487,7 +484,6 @@ data_days <- tmerge(
               # "noncoviddeath",
               "death",
               "dereg",
-              "lastfup",
               "hospinfectious_status",
               "hospnoninfectious_status",
               "hospinfectiousdischarge",
