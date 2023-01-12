@@ -259,3 +259,12 @@ tidy_plr <- function(model, conf.int=TRUE, conf.level=0.95, exponentiate=FALSE, 
 }
 
 
+formatpercent100 <- function(x,accuracy){
+  formatx <- scales::label_percent(accuracy)(x)
+  
+  if_else(
+    formatx==scales::label_percent(accuracy)(1),
+    paste0(">",scales::label_percent(1)((100-accuracy)/100)),
+    formatx
+  )
+}
