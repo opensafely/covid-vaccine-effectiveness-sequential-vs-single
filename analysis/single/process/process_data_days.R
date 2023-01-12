@@ -45,7 +45,8 @@ process_data_days <- function(stage) {
     
   data_days1 %>%
     left_join(postest_when_unvax, by = "patient_id") %>%
-    mutate(across(postest_when_unvax, replace_na, FALSE)) %>%
+    #mutate(across(postest_when_unvax, replace_na, FALSE)) %>%
+    replace_na(list(postest_when_unvax = FALSE)) %>%
     # vax*1_atrisk FALSE after a positive test:
     # (important to keep these as logical as used for filtering when calculating in `get_ipw_weights`)
     mutate(
@@ -80,7 +81,8 @@ process_data_days <- function(stage) {
     select(
       "patient_id",
       "all",
-      "tstart", "tstart",
+      "tstart", 
+      "tstop",
       "outcome",
       "timesincevax_pw",
       any_of(all.vars(formula_all_rhsvars)),
