@@ -66,13 +66,13 @@ process_data_days <- function(stage) {
         ~ if_else(postest_when_unvax, 0L, .x)
       )
     ) %>%
-    # update vaxanyday1 to be always missing for patients who have a positive test when unvaccinated
-    mutate(
-      across(
-        vaxanyday1, 
-        ~if_else(postest_when_unvax, NA_integer_, .x)
-        )
-      ) %>%
+    # # update vaxanyday1 to be always missing for patients who have a positive test when unvaccinated
+    # mutate(
+    #   across(
+    #     vaxanyday1, 
+    #     ~if_else(postest_when_unvax, NA_integer_, .x)
+    #     )
+    #   ) %>%
     mutate(
       timesincevax_pw = timesince_cut(vaxany1_timesince, c(0,postbaselinecuts), "pre-vax"),
       outcome = .[[outcome]],

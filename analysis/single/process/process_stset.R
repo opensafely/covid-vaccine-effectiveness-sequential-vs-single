@@ -501,9 +501,9 @@ stopifnot("dummy 'alltimes' should be equal to tstop" = all(data_days$alltimes =
 
 # remove unused columns
 data_days <- data_days %>%
-  mutate(
-    vaxanyday1 = tte_vaxany1
-  ) %>%
+  # mutate(
+  #   vaxanyday1 = tte_vaxany1
+  # ) %>%
   select(
     -starts_with("tte_"),
     -ends_with("_date")
