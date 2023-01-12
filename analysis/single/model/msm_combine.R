@@ -23,8 +23,6 @@ library('lubridate')
 library('survival')
 library('splines')
 library('parglm')
-# library('gtsummary')
-# library('gt')
 library("sandwich")
 library("lmtest")
 
@@ -34,29 +32,11 @@ source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 source(here("analysis", "functions", "survival.R"))
 
-# # import command-line arguments ----
-# 
-# args <- commandArgs(trailingOnly=TRUE)
-# 
-# if(length(args)==0){
-#   # use for interactive testing
-#   removeobs <- FALSE
-#   brand <- "pfizer"
-# } else {
-#   removeobs <- TRUE
-#   brand <- args[[1]]
-# }
-
 # create output directory 
 indir <- here("output", "single") 
 outdir <- here("output", "single", "combine") 
 fs::dir_create(outdir)
 
-
-# extract formulas
-list2env(list_formula_single, globalenv())
-formula_1 <- outcome ~ 1
-# formula_remove_subgroup <- as.formula(paste0(". ~ . - ", subgroup))
 
 model_key <- expand_grid(
   brand=model_brands,
@@ -152,7 +132,8 @@ forest_from_broomstack <- function(broomstack, title){
       strip.text.y.left = element_text(angle = 0, hjust=1),
       panel.grid.major.y = element_blank(),
       panel.grid.minor.y = element_blank(),
-      panel.spacing = unit(0, "lines")
+      panel.spacing = unit(0, "lines"),
+      legend.position = "bottom"
     )
 }
 
@@ -202,7 +183,7 @@ broomstack_formatted_wide <- broomstack_formatted %>%
   )
 
 write_csv(broomstack_formatted, file.path(outdir, "tab_vax1.csv"))
-write_csv(broomstack_formatted_wide, file.path(oudir, "tab_vax1_wide.csv"))
+write_csv(broomstack_formatted_wide, file.path(outdir, "tab_vax1_wide.csv"))
 
 # plot broomstack
 plot_vax <- forest_from_broomstack(broomstack, "Vaccination model")
@@ -225,7 +206,7 @@ estimates <- model_key %>%
   mutate(
     outcome = factor(outcome, levels = model_outcomes),
   ) %>%
-  add_descr()
+  add_descr() 
   
   # metadata_outcomes %>%
   # mutate(
@@ -266,14 +247,14 @@ estimates_formatted <- estimates %>%
     VE_ECI = paste0(VE, " ", VE_CI),
   )
 
-if(subgroup!="all"){
-  estimates_formatted <- estimates_formatted %>%
-    mutate(
-      diff = scales::label_number(accuracy = .01, trim=TRUE)(diff),
-      diff_CI = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(diff.ll), "-", scales::label_number(accuracy = .01, trim=TRUE)(diff.ul), ")"),
-      diff_ECI = paste0(diff, " ", diff_CI),
-    )
-}
+# if(subgroup!="all"){
+#   estimates_formatted <- estimates_formatted %>%
+#     mutate(
+#       diff = scales::label_number(accuracy = .01, trim=TRUE)(diff),
+#       diff_CI = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(diff.ll), "-", scales::label_number(accuracy = .01, trim=TRUE)(diff.ul), ")"),
+#       diff_ECI = paste0(diff, " ", diff_CI),
+#     )
+# }
 
 estimates_formatted_wide <- estimates_formatted %>%
   select(outcome_descr, brand_descr, subgroup_descr, model, term, HR_ECI, VE_ECI) %>%
@@ -288,3 +269,146 @@ write_csv(estimates, file.path(outdir, glue("estimates_timesincevax.csv")))
 write_csv(estimates_formatted, file.path(outdir, glue("estimates_formatted_timesincevax.csv")))
 write_csv(estimates_formatted_wide, file.path(outdir, glue("estimates_formatted_wide_timesincevax.csv")))
 
+# create forest plot for each subgroup_level
+msmmod_effect_data <- estimates %>%
+  mutate(
+    term=str_replace(term, pattern="timesincevax\\_pw", ""),
+    term=fct_inorder(term),
+    term_left = as.numeric(str_extract(term, "\\d+"))-1,
+    term_right = as.numeric(str_extract(term, "\\d+$")),
+    term_right = if_else(is.na(term_right), 63, term_right),
+    term_midpoint = term_left + (term_right-term_left)/2,
+    #stratum = if_else(stratum=="all", "", stratum)
+  )
+
+msmmod_effect_plot <- function(subgroup_level, scales_option) {
+  
+  msmmod_effect_data_plot <- msmmod_effect_data %>%
+    filter(
+      or !=Inf, or !=0, 
+      subgroup_level %in% subgroup_level
+      ) %>%
+    mutate(across(model_descr, ~str_wrap(.x, width = 120)))
+  
+  plot_function <- function(scales_option) {
+    
+    if (scales_option == "fixed") {
+      
+      y_intercept <- 1
+      
+      scale_y_custom <- function() {
+          scale_y_log10(
+            breaks = c(0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5),
+            limits = c(0.05, max(c(1, msmmod_effect_data_plot$or.ul))),
+            oob = scales::oob_keep,
+            sec.axis = sec_axis(
+              ~(1-.),
+              name="Effectiveness",
+              breaks = c(-4, -1, 0, 0.5, 0.80, 0.9, 0.95, 0.98, 0.99),
+              labels = function(x){formatpercent100(x, 1)}
+            )
+          )
+      }
+      
+    }
+    
+    if (scales_option == "free_y") {
+      
+      msmmod_effect_data_plot <- msmmod_effect_data_plot %>%
+        mutate(across(c(or, or.ll, or.ul), log))
+      
+      y_intercept <- 0
+      
+      scale_y_custom <- function() {
+        scale_y_continuous(
+          labels = function(x){scales::label_number(0.001)(exp(x))},
+          breaks = function(x){log(scales::breaks_log(n=6, base=10)(exp(x)))},
+          sec.axis = sec_axis(
+            ~(1-exp(.)),
+            name="Effectiveness",
+            breaks = function(x){1-(scales::breaks_log(n=6, base=10)(1-x))},
+            labels = function(x){formatpercent100(x, 1)}
+          )
+        )
+      }
+      
+    }
+    
+    msmmod_effect <-
+      msmmod_effect_data_plot %>%
+      ggplot(aes(colour = model_descr)) +
+      geom_hline(aes(yintercept = y_intercept), colour='grey') +
+      geom_point(
+        aes(y = or, x = term_midpoint), 
+        position = position_dodge(width = 1.5), 
+        size = 0.8
+        ) +
+      geom_linerange(
+        aes(ymin = or.ll, ymax = or.ul, x = term_midpoint),
+        position = position_dodge(width = 1.5)
+        ) +
+      facet_grid(
+        rows = vars(outcome_descr), 
+        cols = vars(brand_descr), 
+        switch = "y",
+        scales = scales_option
+        ) +
+      scale_y_custom() +
+      scale_x_continuous(
+        breaks=c(0, postbaselinecuts), 
+        expand=expansion(mult=c(0, NA)),
+        limits=c(0,max(postbaselinecuts))
+      ) +
+      scale_colour_brewer(
+        type="qual", 
+        palette="Set2", 
+        guide=guide_legend(ncol=1)
+        ) +
+      coord_cartesian() +
+      labs(
+        y="Hazard ratio, versus no vaccination",
+        x="Days since first dose",
+        colour=NULL
+      ) +
+      theme_bw(base_size=12)+
+      theme(
+        panel.border = element_blank(),
+        axis.line.y = element_line(colour = "black"),
+        
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        strip.background = element_blank(),
+        strip.placement = "outside",
+        
+        panel.spacing = unit(1, "lines"),
+        
+        plot.title = element_text(hjust = 0),
+        plot.title.position = "plot",
+        plot.caption.position = "plot",
+        plot.caption = element_text(hjust = 0, face= "italic"),
+        
+        legend.position = "bottom"
+      )
+    
+    ## save plot
+    ggsave(
+      filename=file.path(outdir, glue("VE_plot_{subgroup_level}_{scales_option}.svg")), 
+      msmmod_effect, 
+      width=20, height=20, units="cm"
+    )
+    
+    return(msmmod_effect)
+    
+  }
+  
+  plot_function(scales_option)
+  
+}
+
+for (subgroup_level in unique(msmmod_effect_data$subgroup_level)) {
+  msmmod_effect_plot(subgroup_level, "fixed")
+  msmmod_effect_plot(subgroup_level, "free_y")
+}
+
+
+  
