@@ -15,7 +15,7 @@ from cohortextractor import (
 )
 
 # define params
-cohort = params["cohort"]
+brand = params["brand"]
 matching_round = params["matching_round"]
 
 
@@ -62,14 +62,26 @@ study = StudyDefinition(
     prematched
     """,
     
-    prematched = patients.which_exist_in_file(f_path=f"output/{cohort}/matchround{matching_round}/potential/potential_matchedcontrols.csv.gz"),
+    prematched = patients.which_exist_in_file(
+      f_path=f"output/sequential/{brand}/matchround{matching_round}/potential/potential_matchedcontrols.csv.gz"
+      ),
+
     **inclusion_variables,    
 
   ),
 
-  trial_date = patients.with_value_from_file(f_path=f"output/{cohort}/matchround{matching_round}/potential/potential_matchedcontrols.csv.gz", returning="trial_date", returning_type="date", date_format='YYYY-MM-DD'),
+  trial_date = patients.with_value_from_file(
+    f_path=f"output/sequential/{brand}/matchround{matching_round}/potential/potential_matchedcontrols.csv.gz", 
+    returning="trial_date",
+    returning_type="date", 
+    date_format='YYYY-MM-DD'
+    ),
   
-  match_id = patients.with_value_from_file(f_path=f"output/{cohort}/matchround{matching_round}/potential/potential_matchedcontrols.csv.gz", returning="match_id", returning_type="int"),
+  match_id = patients.with_value_from_file(
+    f_path=f"output/sequential/{brand}/matchround{matching_round}/potential/potential_matchedcontrols.csv.gz", 
+    returning="match_id", 
+    returning_type="int"
+    ),
     
   ###############################################################################
   # jcvi variables

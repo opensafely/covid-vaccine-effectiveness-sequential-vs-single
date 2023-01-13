@@ -1,7 +1,7 @@
-################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # functions for processing each of the variable groups in analysis/process_data.R
 
-################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 process_jcvi <- function(.data) {
   .data %>%
     mutate(
@@ -10,8 +10,15 @@ process_jcvi <- function(.data) {
       care_home_combined = care_home_tpp | care_home_code, 
       
       # clinically at-risk group
-      cv = immunosuppressed | chronic_kidney_disease | chronic_resp_disease | diabetes | chronic_liver_disease |
-        chronic_neuro_disease | chronic_heart_disease | asplenia | learndis | sev_mental,
+      cv = immunosuppressed | 
+        chronic_kidney_disease | 
+        chronic_resp_disease | 
+        diabetes | 
+        chronic_liver_disease |
+        chronic_neuro_disease | 
+        chronic_heart_disease | 
+        learndis | 
+        sev_mental,
       
       cev_cv = fct_case_when(
         cev ~ "Clinically extremely vulnerable",
@@ -20,23 +27,18 @@ process_jcvi <- function(.data) {
       ) %>% fct_rev(),
       
       multimorb =
-        (sev_obesity) +
-        (chronic_heart_disease) +
-        (chronic_kidney_disease)+
-        (diabetes) +
-        (chronic_liver_disease)+
-        (chronic_resp_disease | asthma)+
-        (chronic_neuro_disease)#+
-      #(learndis)+
-      #(sev_mental),
-      ,
+        sev_obesity +
+        chronic_heart_disease +
+        chronic_kidney_disease +
+        diabetes +
+        chronic_liver_disease +
+        chronic_resp_disease +
+        chronic_neuro_disease,
       multimorb = cut(multimorb, breaks = c(0, 1, 2, Inf), labels=c("0", "1", "2+"), right=FALSE),
-      immuno = immunosuppressed | asplenia,
-      
       
       # original priority groups https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1007737/Greenbook_chapter_14a_30July2021.pdf#page=15
       # new priority groups https://www.england.nhs.uk/coronavirus/wp-content/uploads/sites/52/2021/07/C1327-covid-19-vaccination-autumn-winter-phase-3-planning.pdf
-      # group 10 split into 16-39 and 40-49 because of earlier roll-out in 40+ from 15 Nov https://www.gov.uk/government/news/jcvi-issues-advice-on-covid-19-booster-vaccines-for-those-aged-40-to-49-and-second-doses-for-16-to-17-year-olds
+      # group 10 split into 18-39 and 40-49 because of earlier roll-out in 40+ from 15 Nov https://www.gov.uk/government/news/jcvi-issues-advice-on-covid-19-booster-vaccines-for-those-aged-40-to-49-and-second-doses-for-16-to-17-year-olds
       
       jcvi_ageband = cut(
         age31aug2020,
@@ -45,12 +47,12 @@ process_jcvi <- function(.data) {
         right=FALSE
       ),
       
-      
       jcvi_group = fct_case_when(
         care_home_combined | hscworker  ~ "1",
         age31aug2020>=80 ~ "2",
         age31aug2020>=75 ~ "3",
         age31aug2020>=70 | (cev & (age31aug2020>=16)) ~ "4",
+        # the rest of the jcvi groups are not relevant for this study, but leave for reference
         age31aug2020>=65 ~ "5",
         between(age31aug2020, 16, 64.999) & cv ~ "6",
         age31aug2020>=60 ~ "7",
@@ -77,11 +79,13 @@ process_jcvi <- function(.data) {
       
     ) %>%
     select(-care_home_type, -care_home_tpp, -care_home_code)
+  
 }
 
 
-################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 process_demo <- function(.data) {
+  
   .data %>%
     mutate(
       ageband = cut(
@@ -129,36 +133,57 @@ process_demo <- function(.data) {
         `South West` = "South West"
       ),
       
-      imd_Q5 = factor(imd_Q5, levels = c("1 (most deprived)", "2", "3", "4", "5 (least deprived)", "Unknown")),
-      
-      rural_urban_group = fct_case_when(
-        rural_urban %in% c(1,2) ~ "Urban conurbation",
-        rural_urban %in% c(3,4) ~ "Urban city or town",
-        rural_urban %in% c(5,6,7,8) ~ "Rural town or village",
-        TRUE ~ NA_character_
-      ),
+      imd_Q5 = factor(imd_Q5, levels = c("1 (most deprived)", "2", "3", "4", "5 (least deprived)", "Unknown"))
       
     ) %>%
     select(-ethnicity, -ethnicity_6_sus)
+  
 }
 
-################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 process_pre <- function(.data) {
   
   .data %>%
     mutate(
-      prior_tests_cat = cut(prior_covid_test_frequency, breaks=c(0, 1, 2, 3, Inf), labels=c("0", "1", "2", "3+"), right=FALSE),
+      
+      prior_tests_cat = cut(
+        prior_covid_test_frequency, 
+        breaks=c(0, 1, 2, 3, Inf), 
+        labels=c("0", "1", "2", "3+"),
+        right=FALSE
+        ),
+      
       # any covid event before study start
-      prior_covid_infection = (!is.na(positive_test_0_date)) | (!is.na(covidemergency_0_date))| (!is.na(admitted_covid_0_date)) | (!is.na(primary_care_covid_case_0_date)),
+      prior_covid_infection = (
+        !is.na(positive_test_0_date)) | 
+        (!is.na(covidemergency_0_date))| 
+        (!is.na(admitted_covid_0_date)) |
+        (!is.na(primary_care_covid_case_0_date)
+         ),
+      
       # date of latest covid event before study start
-      anycovid_0_date = pmax(positive_test_0_date, covidemergency_0_date, admitted_covid_0_date, na.rm=TRUE), # do not use primary care covid here as unreliable event time
+      anycovid_0_date = pmax(
+        positive_test_0_date, 
+        covidemergency_0_date,
+        admitted_covid_0_date,
+        # do not use primary care covid here as unreliable event time
+        na.rm=TRUE
+        ),
+      
       timesince_covid = as.numeric(index_date - anycovid_0_date),
-      timesince_covid_cat = cut(coalesce(timesince_covid, -Inf), breaks = c(-Inf, 0, 30, 90, Inf), labels=c("Never", "<30 days", "30-90 days", "90+ days"), right=FALSE)
+      
+      timesince_covid_cat = cut(
+        coalesce(timesince_covid, -Inf),
+        breaks = c(-Inf, 0, 30, 90, Inf),
+        labels=c("Never", "<30 days", "30-90 days", "90+ days"), 
+        right=FALSE
+        )
+      
     )
   
 }
 
-################################################################################
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 process_vax <- function(.data, stage) {
   
   data_vax <- local({
@@ -185,7 +210,6 @@ process_vax <- function(.data, stage) {
       ) %>%
       arrange(patient_id, date)
     
-
     data_vax <-
       data_vax_pfizer %>%
       full_join(data_vax_az, by=c("patient_id", "date")) %>%
@@ -230,9 +254,8 @@ process_vax <- function(.data, stage) {
       
       vax2_date = covid_vax_2_date,
       
-      vax2_day = as.integer(floor((vax2_date - study_dates$global$index_date))+1), # day 0 is the day before "start_date"
-      
-      vax2_week = as.integer(floor((vax2_date - study_dates$global$index_date)/7)+1), # week 1 is days 1-7.
+      # day 0 is the day before "start_date"
+      vax2_day = as.integer(floor((vax2_date - study_dates$global$index_date)) + 1)
       
     )
   } else if (stage == "potential") {
@@ -253,9 +276,8 @@ process_vax <- function(.data, stage) {
       ),
       vax1_date = covid_vax_1_date,
      
-      vax1_day = as.integer(floor((vax1_date - study_dates$global$index_date))+1), # day 0 is the day before "start_date"
-      
-      vax1_week = as.integer(floor((vax1_date - study_dates$global$index_date)/7)+1), # week 1 is days 1-7.
+      # day 0 is the day before "start_date"
+      vax1_day = as.integer(floor((vax1_date - study_dates$global$index_date)) + 1),
        
       !!! vax2_vars
       
@@ -264,24 +286,4 @@ process_vax <- function(.data, stage) {
       -starts_with("covid_vax_"),
     ) 
   
-}
-
-################################################################################
-process_outcome <- function(.data) {
-  
-  .data %>%
-    mutate(
-      
-      # earliest covid event after study start
-      anycovid_date = pmin(postest_date, covidemergency_date, covidadmitted_date, covidcritcare_date, coviddeath_date, na.rm=TRUE),
-      
-      noncoviddeath_date = if_else(!is.na(death_date) & is.na(coviddeath_date), death_date, as.Date(NA_character_)),
-      
-      cause_of_death = fct_case_when(
-        !is.na(coviddeath_date) ~ "covid-related",
-        !is.na(death_date) ~ "not covid-related",
-        TRUE ~ NA_character_
-      ),
-      
-    )
 }

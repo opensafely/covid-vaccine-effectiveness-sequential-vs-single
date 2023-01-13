@@ -12,17 +12,6 @@ def generate_pre_variables(index_date):
   ## Pre-study event dates
   ################################################################################################
 
-  # any covid test 
-  covid_test_0_date=patients.with_test_result_in_sgss(
-    pathogen="SARS-CoV-2",
-    test_result="any",
-    on_or_before=f"{index_date} - 1 day",
-    returning="date",
-    date_format="YYYY-MM-DD",
-    find_last_match_in_period=True,
-    restrict_to_earliest_specimen_date=False,
-  ),
-
   # positive covid test
   positive_test_0_date=patients.with_test_result_in_sgss(
       pathogen="SARS-CoV-2",

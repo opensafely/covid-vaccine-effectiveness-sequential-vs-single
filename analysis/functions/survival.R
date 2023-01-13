@@ -154,3 +154,30 @@ tidy_surv <-
 
     return(output)
   }
+
+
+timesince_cut <- function(time_since, breaks, prelabel="pre", prefix=""){
+  
+  # this function defines post-vaccination time-periods at `time_since`,
+  # delimited by `breaks`
+  
+  # note, intervals are open on the left and closed on the right
+  # so at the exact time point the vaccination occurred, it will be classed as "pre-dose".
+  
+  time_since <- as.numeric(time_since)
+  time_since <- if_else(!is.na(time_since), time_since, Inf)
+  
+  breaks_aug <- unique(c(-Inf, breaks, Inf))
+  
+  lab_left <- breaks+1
+  lab_right <- lead(breaks)
+  label <- paste0(lab_left, "-", lab_right)
+  label <- str_replace(label,"-NA", "+")
+  labels <- paste0(prefix, c(prelabel, label))
+  
+  #labels0 <- cut(c(breaks, Inf), breaks_aug)
+  #labels <- paste0(prefix, c(prelabel, as.character(labels0[-1])))
+  period <- cut(time_since, breaks=breaks_aug, labels=labels, include.lowest=TRUE)
+  
+  period
+}

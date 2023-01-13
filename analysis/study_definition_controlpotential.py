@@ -15,8 +15,8 @@ from cohortextractor import (
 )
 
 # define params
-cohort = params["cohort"]
-matching_round = params["matching_round"]
+brand = params["brand"]
+matching_round = int(params["matching_round"])
 previousmatching_round = int(matching_round)-1
 index_date = params["index_date"]
 
@@ -24,7 +24,7 @@ index_date = params["index_date"]
 ############################################################
 ## inclusion variables
 from variables_vax import generate_vax_variables 
-vax_variables = generate_vax_variables(index_date="1900-01-01", n=3)
+vax_variables = generate_vax_variables(index_date="1900-01-01", n=2)
 ############################################################
 # vax variables
 from variables_inclusion import generate_inclusion_variables 
@@ -41,7 +41,16 @@ demo_variables = generate_demo_variables(index_date="index_date")
 ## pre variables
 from variables_pre import generate_pre_variables 
 pre_variables = generate_pre_variables(index_date="index_date")
-
+############################################################
+## additional_inclusion_variables
+if matching_round == 1: additional_inclusion_variables = dict(
+    eligible_matchinground1 = patients.all(),
+)
+else: additional_inclusion_variables = dict(
+   eligible_matchinground1 = patients.which_exist_in_file(
+      f_path=f"output/sequential/{brand}/matchround{previousmatching_round}/process/data_controlpotential.csv.gz"
+      ),
+)
 
 
 # Specify study defeinition
@@ -66,9 +75,12 @@ study = StudyDefinition(
     age31aug2020 >= 70
     AND
     NOT has_died
+    AND
+    eligible_matchinground1
     """,
     
     **inclusion_variables,    
+    **additional_inclusion_variables,
 
   ),
   
