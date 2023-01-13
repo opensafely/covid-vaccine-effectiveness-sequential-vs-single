@@ -37,9 +37,9 @@ source(here("analysis", "functions", "survival.R"))
 args <- commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   removeobs <- FALSE
-  brand <- "pfizer"
+  brand <- "az"
   subgroup <- "all"
-  outcome <- "postest"
+  outcome <- "covidadmitted"
 } else {
   removeobs <- TRUE
   brand <- args[[1]]
@@ -196,7 +196,7 @@ msmmod_effect <-
   )
 
 ggsave(
-  filename=here(outdir, glue("VE_plot.svg")), 
+  filename=file.path(outdir, "VE_plot.svg"), 
   msmmod_effect, 
   width=20, height=18, units="cm"
 )
