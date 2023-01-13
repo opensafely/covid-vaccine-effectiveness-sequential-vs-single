@@ -359,7 +359,7 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       ),
       moderately_sensitive = lst(
         csv = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.csv"),
-        png = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.svg"),
+        svg = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.svg"),
         txt = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.txt")
       )
     ),
@@ -376,7 +376,7 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       ),
       moderately_sensitive = lst(
         csv = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.csv"),
-        png = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.svg")
+        svg = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.svg")
       )
     )
 

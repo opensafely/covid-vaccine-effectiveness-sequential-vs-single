@@ -592,7 +592,7 @@ actions:
         rds: output/single/pfizer/all/postest/msm/*.rds
       moderately_sensitive:
         csv: output/single/pfizer/all/postest/msm/*.csv
-        png: output/single/pfizer/all/postest/msm/*.svg
+        svg: output/single/pfizer/all/postest/msm/*.svg
         txt: output/single/pfizer/all/postest/msm/*.txt
 
   msm_postprocess_pfizer_all_postest:
@@ -604,7 +604,7 @@ actions:
         rds: output/single/pfizer/all/postest/postprocess/*.rds
       moderately_sensitive:
         csv: output/single/pfizer/all/postest/postprocess/*.csv
-        png: output/single/pfizer/all/postest/postprocess/*.svg
+        svg: output/single/pfizer/all/postest/postprocess/*.svg
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model: pfizer; all; covidadmitted; 
@@ -630,7 +630,7 @@ actions:
         rds: output/single/pfizer/all/covidadmitted/msm/*.rds
       moderately_sensitive:
         csv: output/single/pfizer/all/covidadmitted/msm/*.csv
-        png: output/single/pfizer/all/covidadmitted/msm/*.svg
+        svg: output/single/pfizer/all/covidadmitted/msm/*.svg
         txt: output/single/pfizer/all/covidadmitted/msm/*.txt
 
   msm_postprocess_pfizer_all_covidadmitted:
@@ -642,7 +642,7 @@ actions:
         rds: output/single/pfizer/all/covidadmitted/postprocess/*.rds
       moderately_sensitive:
         csv: output/single/pfizer/all/covidadmitted/postprocess/*.csv
-        png: output/single/pfizer/all/covidadmitted/postprocess/*.svg
+        svg: output/single/pfizer/all/covidadmitted/postprocess/*.svg
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model: pfizer; all; death; 
@@ -667,7 +667,7 @@ actions:
         rds: output/single/pfizer/all/death/msm/*.rds
       moderately_sensitive:
         csv: output/single/pfizer/all/death/msm/*.csv
-        png: output/single/pfizer/all/death/msm/*.svg
+        svg: output/single/pfizer/all/death/msm/*.svg
         txt: output/single/pfizer/all/death/msm/*.txt
 
   msm_postprocess_pfizer_all_death:
@@ -679,7 +679,7 @@ actions:
         rds: output/single/pfizer/all/death/postprocess/*.rds
       moderately_sensitive:
         csv: output/single/pfizer/all/death/postprocess/*.csv
-        png: output/single/pfizer/all/death/postprocess/*.svg
+        svg: output/single/pfizer/all/death/postprocess/*.svg
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model: az; all; postest; 
@@ -704,7 +704,7 @@ actions:
         rds: output/single/az/all/postest/msm/*.rds
       moderately_sensitive:
         csv: output/single/az/all/postest/msm/*.csv
-        png: output/single/az/all/postest/msm/*.svg
+        svg: output/single/az/all/postest/msm/*.svg
         txt: output/single/az/all/postest/msm/*.txt
 
   msm_postprocess_az_all_postest:
@@ -716,7 +716,7 @@ actions:
         rds: output/single/az/all/postest/postprocess/*.rds
       moderately_sensitive:
         csv: output/single/az/all/postest/postprocess/*.csv
-        png: output/single/az/all/postest/postprocess/*.svg
+        svg: output/single/az/all/postest/postprocess/*.svg
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model: az; all; covidadmitted; 
@@ -742,7 +742,7 @@ actions:
         rds: output/single/az/all/covidadmitted/msm/*.rds
       moderately_sensitive:
         csv: output/single/az/all/covidadmitted/msm/*.csv
-        png: output/single/az/all/covidadmitted/msm/*.svg
+        svg: output/single/az/all/covidadmitted/msm/*.svg
         txt: output/single/az/all/covidadmitted/msm/*.txt
 
   msm_postprocess_az_all_covidadmitted:
@@ -754,7 +754,7 @@ actions:
         rds: output/single/az/all/covidadmitted/postprocess/*.rds
       moderately_sensitive:
         csv: output/single/az/all/covidadmitted/postprocess/*.csv
-        png: output/single/az/all/covidadmitted/postprocess/*.svg
+        svg: output/single/az/all/covidadmitted/postprocess/*.svg
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model: az; all; death; 
@@ -779,7 +779,7 @@ actions:
         rds: output/single/az/all/death/msm/*.rds
       moderately_sensitive:
         csv: output/single/az/all/death/msm/*.csv
-        png: output/single/az/all/death/msm/*.svg
+        svg: output/single/az/all/death/msm/*.svg
         txt: output/single/az/all/death/msm/*.txt
 
   msm_postprocess_az_all_death:
@@ -791,7 +791,7 @@ actions:
         rds: output/single/az/all/death/postprocess/*.rds
       moderately_sensitive:
         csv: output/single/az/all/death/postprocess/*.csv
-        png: output/single/az/all/death/postprocess/*.svg
+        svg: output/single/az/all/death/postprocess/*.svg
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Combine model outputs 
