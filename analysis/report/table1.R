@@ -1,54 +1,49 @@
-# table 1 style baseline characteristics ----
-
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # Purpose: describe baseline characteristics
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # Preliminaries ----
 
-## Import libraries ----
+# Import libraries
 library('tidyverse')
-# library('lubridate')
 library('here')
 library('glue')
-# library('arrow')
 library('gt')
 library('gtsummary')
 
-## import local functions and parameters ---
-
+# import local functions and parameters
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 
-# import command-line arguments ----
-
+# import command-line arguments
 args <- commandArgs(trailingOnly=TRUE)
-
 if(length(args)==0){
   # use for interactive testing
-  removeobjects <- FALSE
-  cohort <- "pfizer"
-  # cohort <- "az"
-  # cohort <- "single"
+  approach <- "single"
+  brand <- "any"
+  # approach <- "sequential"
+  # brand <- "pfizer"
 } else {
-  #FIXME replace with actual eventual action variables
-  removeobjects <- TRUE
-  cohort <- args[[1]]
+  approach <- args[[1]]
+  brand <- args[[2]]
 }
 
-# create output directory ----
+# create output directory
 outdir <- here("output", "report", "table1")
 fs::dir_create(outdir)
 
-# read in data ----
-if (cohort == "single") {
+# read data
+if (approach == "single") {
   data_in <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds")) %>%
     mutate(treated = "single")
 } else {
-  data_in <- read_rds(ghere("output", "sequential", cohort, "match", "data_matched.rds")) 
+  data_in <- read_rds(ghere("output", "sequential", brand, "match", "data_matched.rds")) 
 }
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# create table 1 ----
 # set variable names as factor levels
 var_levels <- map_chr(
   var_lookup[-which(names(var_lookup) %in% c("N", "treated"))],
@@ -90,4 +85,4 @@ raw_stats_redacted <- raw_stats %>%
     variable_levels = replace_na(as.character(variable_levels), "")
   ) 
 
-write_csv(raw_stats_redacted, fs::path(outdir, glue("table1_{cohort}.csv")))
+write_csv(raw_stats_redacted, fs::path(outdir, glue("table1_{approach}_{brand}.csv")))

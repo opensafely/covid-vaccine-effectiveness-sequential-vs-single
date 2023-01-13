@@ -14,7 +14,7 @@ from cohortextractor import (
   params
 )
 
-cohort = params["cohort"]
+brand = params["brand"]
 n_matching_rounds = params["n_matching_rounds"]
 
 ############################################################
@@ -38,18 +38,18 @@ study = StudyDefinition(
   
   # This line defines the study population
   population = patients.which_exist_in_file(
-    f_path=f"output/sequential/{cohort}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz"
+    f_path=f"output/sequential/{brand}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz"
     ),
 
   trial_date = patients.with_value_from_file(
-    f_path=f"output/sequential/{cohort}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz", 
+    f_path=f"output/sequential/{brand}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz", 
     returning="trial_date", 
     returning_type="date", 
     date_format='YYYY-MM-DD'
     ),
   
   match_id = patients.with_value_from_file(
-    f_path=f"output/sequential/{cohort}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz", 
+    f_path=f"output/sequential/{brand}/matchround{n_matching_rounds}/actual/cumulative_matchedcontrols.csv.gz", 
     returning="match_id", 
     returning_type="int"
     ),

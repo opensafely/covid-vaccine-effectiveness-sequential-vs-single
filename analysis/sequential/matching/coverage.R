@@ -1,55 +1,46 @@
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # Purpose: describe matching results
 # imports matching data
-# reports on matching coverage, matching flowcharts, creates a "table 1", etc
-# # # # # # # # # # # # # # # # # # # # #
-
+# reports on matching coverage
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
 # Preliminaries ----
 
-
-## Import libraries ----
+# Import libraries 
 library('tidyverse')
 library('lubridate')
 library('here')
 library('glue')
 library('arrow')
 
-## import local functions and parameters ---
-
+# import local functions and parameters 
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 
-# import command-line arguments ----
-
+# import command-line arguments
 args <- commandArgs(trailingOnly=TRUE)
-
 if(length(args)==0){
   # use for interactive testing
-  removeobjects <- FALSE
-  cohort <- "pfizer"
+  brand <- "pfizer"
 } else {
-  #FIXME replace with actual eventual action variables
-  removeobjects <- TRUE
-  cohort <- args[[1]]
+  brand <- args[[1]]
 }
 
-## get cohort-specific parameters study dates and parameters ----
-dates <- study_dates[[cohort]]
+# get brand-specific parameters study dates
+dates <- study_dates[[brand]]
 
-## create output directory ----
-
+# create output directory
 output_dir <- here("output", "report", "coverage")
 fs::dir_create(output_dir)
 
 # matching coverage on each day of recruitment period ----
 
 data_treatedeligible_matchstatus <- read_rds(
-  here("output", "sequential", cohort, "match", "data_treatedeligible_matchstatus.rds")
+  here("output", "sequential", brand, "match", "data_treatedeligible_matchstatus.rds")
   )
 
-# matching coverage for boosted people
+# matching coverage for treated people
 data_coverage <-
   data_treatedeligible_matchstatus %>%
   group_by(vax1_date) %>%
@@ -73,7 +64,7 @@ data_coverage <-
   ) %>%
   group_by(status) %>%
   complete(
-    vax1_date = full_seq(c(dates$start_date, dates$end_date), 1), # go X days before to
+    vax1_date = full_seq(c(dates$start_date, dates$end_date), 1), 
     fill = list(n=0)
   ) %>%
   mutate(
@@ -94,4 +85,5 @@ data_coverage_rounded <-
     n = diff(c(0,cumuln)),
   )
 
-write_csv(data_coverage_rounded, fs::path(output_dir, glue("coverage_{cohort}.csv")))
+# don't compress as this file is being released
+write_csv(data_coverage_rounded, fs::path(output_dir, glue("coverage_{brand}.csv")))

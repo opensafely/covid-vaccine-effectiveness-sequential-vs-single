@@ -54,7 +54,7 @@ actions:
         data_eligible_skim: output/sequential/treated/eligible/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # 
-  ## pfizer cohort 
+  ## Brand: pfizer 
   ## # # # # # # # # # # # # # # # # # # # 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Extract, process and match control data 
@@ -63,7 +63,7 @@ actions:
   extract_controlpotential_pfizer_1:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
       --output-file output/sequential/pfizer/matchround1/extract/input_controlpotential.feather
-      --param cohort=pfizer --param matching_round=1 --param index_date=2020-12-08
+      --param brand=pfizer --param matching_round=1 --param index_date=2020-12-08
     needs:
     - design
     outputs:
@@ -96,7 +96,7 @@ actions:
   extract_controlactual_pfizer_1:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
       --output-file output/sequential/pfizer/matchround1/extract/input_controlactual.feather
-      --param cohort=pfizer --param matching_round=1
+      --param brand=pfizer --param matching_round=1
     needs:
     - design
     - match_potential_pfizer_1
@@ -123,7 +123,7 @@ actions:
   extract_controlpotential_pfizer_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
       --output-file output/sequential/pfizer/matchround2/extract/input_controlpotential.feather
-      --param cohort=pfizer --param matching_round=2 --param index_date=2020-12-22
+      --param brand=pfizer --param matching_round=2 --param index_date=2020-12-22
     needs:
     - design
     - process_controlpotential_pfizer_1
@@ -158,7 +158,7 @@ actions:
   extract_controlactual_pfizer_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
       --output-file output/sequential/pfizer/matchround2/extract/input_controlactual.feather
-      --param cohort=pfizer --param matching_round=2
+      --param brand=pfizer --param matching_round=2
     needs:
     - design
     - match_potential_pfizer_2
@@ -186,7 +186,7 @@ actions:
   extract_controlfinal_pfizer:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
       --output-file output/sequential/pfizer/extract/input_controlfinal.feather --param
-      cohort=pfizer --param n_matching_rounds=2
+      brand=pfizer --param n_matching_rounds=2
     needs:
     - design
     - process_controlactual_pfizer_2
@@ -218,6 +218,10 @@ actions:
         input_controlfinal_skim: output/sequential/pfizer/extract/*.txt
         data_matched_skim: output/sequential/pfizer/match/*.txt
 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Cohort summary 
+  ## # # # # # # # # # # # # # # # # # # # 
+
   coverage_pfizer:
     run: r:latest analysis/sequential/matching/coverage.R pfizer
     needs:
@@ -227,14 +231,14 @@ actions:
       moderately_sensitive:
         coverage: output/report/coverage/coverage_pfizer.csv
 
-  table1_pfizer:
-    run: r:latest analysis/report/table1.R pfizer
+  table1_sequential_pfizer:
+    run: r:latest analysis/report/table1.R sequential pfizer
     needs:
     - process_treated
     - process_controlfinal_pfizer
     outputs:
       moderately_sensitive:
-        coverage: output/report/table1/table1_pfizer.csv
+        table1: output/report/table1/table1_sequential_pfizer.csv
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model 
@@ -268,7 +272,7 @@ actions:
         png: output/sequential/pfizer/model/all/death/*.png
 
   ## # # # # # # # # # # # # # # # # # # # 
-  ## az cohort 
+  ## Brand: az 
   ## # # # # # # # # # # # # # # # # # # # 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Extract, process and match control data 
@@ -277,7 +281,7 @@ actions:
   extract_controlpotential_az_1:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
       --output-file output/sequential/az/matchround1/extract/input_controlpotential.feather
-      --param cohort=az --param matching_round=1 --param index_date=2021-01-04
+      --param brand=az --param matching_round=1 --param index_date=2021-01-04
     needs:
     - design
     outputs:
@@ -310,7 +314,7 @@ actions:
   extract_controlactual_az_1:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
       --output-file output/sequential/az/matchround1/extract/input_controlactual.feather
-      --param cohort=az --param matching_round=1
+      --param brand=az --param matching_round=1
     needs:
     - design
     - match_potential_az_1
@@ -337,7 +341,7 @@ actions:
   extract_controlpotential_az_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
       --output-file output/sequential/az/matchround2/extract/input_controlpotential.feather
-      --param cohort=az --param matching_round=2 --param index_date=2021-01-18
+      --param brand=az --param matching_round=2 --param index_date=2021-01-18
     needs:
     - design
     - process_controlpotential_az_1
@@ -372,7 +376,7 @@ actions:
   extract_controlactual_az_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
       --output-file output/sequential/az/matchround2/extract/input_controlactual.feather
-      --param cohort=az --param matching_round=2
+      --param brand=az --param matching_round=2
     needs:
     - design
     - match_potential_az_2
@@ -400,7 +404,7 @@ actions:
   extract_controlfinal_az:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
       --output-file output/sequential/az/extract/input_controlfinal.feather --param
-      cohort=az --param n_matching_rounds=2
+      brand=az --param n_matching_rounds=2
     needs:
     - design
     - process_controlactual_az_2
@@ -432,6 +436,10 @@ actions:
         input_controlfinal_skim: output/sequential/az/extract/*.txt
         data_matched_skim: output/sequential/az/match/*.txt
 
+  ## # # # # # # # # # # # # # # # # # # # 
+  ## Cohort summary 
+  ## # # # # # # # # # # # # # # # # # # # 
+
   coverage_az:
     run: r:latest analysis/sequential/matching/coverage.R az
     needs:
@@ -441,14 +449,14 @@ actions:
       moderately_sensitive:
         coverage: output/report/coverage/coverage_az.csv
 
-  table1_az:
-    run: r:latest analysis/report/table1.R az
+  table1_sequential_az:
+    run: r:latest analysis/report/table1.R sequential az
     needs:
     - process_treated
     - process_controlfinal_az
     outputs:
       moderately_sensitive:
-        coverage: output/report/table1/table1_az.csv
+        table1: output/report/table1/table1_sequential_az.csv
 
   ## # # # # # # # # # # # # # # # # # # # 
   ## Model 
@@ -515,13 +523,13 @@ actions:
         data_processed_skim: output/single/process/*.txt
         data_eligible_skim: output/single/eligible/*.txt
 
-  table1_single:
-    run: r:latest analysis/report/table1.R single
+  table1_single_any:
+    run: r:latest analysis/report/table1.R single any
     needs:
     - process_single
     outputs:
       moderately_sensitive:
-        coverage: output/report/table1/table1_single.csv
+        table1: output/report/table1/table1_single_any.csv
 
   extract_timevarying:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_timevarying

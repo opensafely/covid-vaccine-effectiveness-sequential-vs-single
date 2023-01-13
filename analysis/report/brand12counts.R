@@ -1,30 +1,31 @@
-# # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # This script:
-# plots the cumultive incidence of doses1 and 2 over time
-# # # # # # # # # # # # # # # # # # # # #
+# plots the cumulative incidence of doses1 and 2 over time
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # Preliminaries ----
 
-## Import libraries ----
+# import libraries
 library('tidyverse')
 library('here')
 library('glue')
 
-## Import custom user functions from lib
+# import custom user functions and parameters
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 
-## create output directories ----
+# create output directory
 outdir <- here("output", "report", "brand12counts")
 fs::dir_create(outdir)
 
-## Import data_days and carry out some further processing ----
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# import and process data_days ----
 data_days <- read_rds(here("output", "single", "stset", "data_days.rds")) %>%
   transmute(
     
     patient_id,
     
-    # this was tstop but I think should be tstart?
     date = as.Date(study_dates$global$index_date) + tstart,
     
     dereg_status,
@@ -61,6 +62,7 @@ write_csv(
   file.path(outdir, "brand12counts_rounded.csv")
 )
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # create plot ----
 colour_palette <- c(
   "Not vaccinated" = "#f7f7f7", # light grey
@@ -117,7 +119,6 @@ plot <- plot_data %>%
     panel.border=element_rect(colour='black', fill=NA),
     
     strip.background = element_blank(),
-    # strip.text.y.right = element_text(angle = 0),
     
     axis.line.x = element_line(colour = "black"),
     axis.text.x = element_text(angle = 70, vjust = 1, hjust=1),

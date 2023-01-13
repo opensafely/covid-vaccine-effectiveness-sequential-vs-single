@@ -1,8 +1,17 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# This script:
+# calculates the counts for the flowchart in the manuscript
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+# Preliminaries ----
+
+# import libraries
 library(tidyverse)
 library(glue)
 library(here)
 
-# load and define functions
+# load functions and paramters
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "fuzzy_join.R"))
@@ -11,9 +20,11 @@ source(here("analysis", "functions", "fuzzy_join.R"))
 outdir <- here("output", "report", "flowchart")
 fs::dir_create(outdir)
 
+# import flowchart for single trial cohort
 data_singleeligible <- readr::read_rds(here("output", "single", "eligible", "data_singleeligible.rds")) %>%
   select(patient_id, vax1_date, vax1_type)
 
+# define all flow categories for sequential trial cohorts
 flow_categories <- tribble(
   ~crit, ~criteria,
   # those who are vaccinated with the brand on day 1 of recruitment
@@ -31,6 +42,7 @@ flow_categories <- tribble(
   "I", "vaccinated with the other brand and matched as control"
 ) 
 
+# define boxes for sequential trial flow
 flow_boxes <- tribble(
   ~box_crit, ~box_descr,
   "ABCDEF", "Vaccinated with {brand} during recruitment period",
