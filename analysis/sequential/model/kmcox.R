@@ -392,7 +392,7 @@ coxcontrast <- function(data, cuts=NULL){
   
   fup_split <-
     data %>%
-    select(new_id, treated) %>%
+    select(patient_id, new_id, treated) %>%
     uncount(weights = length(cuts)-1, .id="period_id") %>%
     mutate(
       fup_time = cuts[period_id],
@@ -400,7 +400,7 @@ coxcontrast <- function(data, cuts=NULL){
     ) %>%
     droplevels() %>%
     select(
-      new_id, period_id, fup_time, fup_period
+      patient_id, new_id, period_id, fup_time, fup_period
     )
   
   data_split <-
@@ -457,7 +457,7 @@ coxcontrast <- function(data, cuts=NULL){
           # therefore it is possible for follow-up time to overlap.
           # Therefore: cluster the observations on patient_id to calculate robust variance:
           robust=TRUE, 
-          id=new_id, 
+          id=patient_id, 
           na.action="na.fail"
         )
       }),
