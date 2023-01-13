@@ -451,8 +451,13 @@ coxcontrast <- function(data, cuts=NULL){
           adjustment_formula, 
           data = .x, 
           y=FALSE, 
+          # Some individuals are included twice: as a control prior to vaccination then treated after
+          # although follow-up time for such individuals doesn't overlap on the calendar time-scale,
+          # the model uses time "time since trial_date" time scale, 
+          # therefore it is possible for follow-up time to overlap.
+          # Therefore: cluster the observations on patient_id to calculate robust variance:
           robust=TRUE, 
-          id=new_id, # don't think we need robust standard errors here, as only ever 1 event per patient?? (now that we exclude on prior positive test)
+          id=new_id, 
           na.action="na.fail"
         )
       }),
