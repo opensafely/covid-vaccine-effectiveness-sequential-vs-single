@@ -798,7 +798,7 @@ actions:
   ## # # # # # # # # # # # # # # # # # # # 
 
   msm_combine:
-    run: r:latest analysis/model/msm_combine.R
+    run: r:latest analysis/single/model/msm_combine.R
     needs:
     - msm_postprocess_pfizer_all_postest
     - msm_postprocess_pfizer_all_covidadmitted

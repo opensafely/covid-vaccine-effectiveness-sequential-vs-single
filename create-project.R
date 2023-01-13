@@ -589,7 +589,7 @@ actions_list <- splice(
           "# # # # # # # # # # # # # # # # # # #"),
   action(
     name = "msm_combine",
-    run = glue("r:latest analysis/model/msm_combine.R"),
+    run = glue("r:latest analysis/single/model/msm_combine.R"),
     needs = splice(
       as.list(
         glue_data(
