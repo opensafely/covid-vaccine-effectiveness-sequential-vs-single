@@ -1,10 +1,11 @@
-# xxx
+# Single trial vs sequential trial approaches for estimating COVID-19 vaccine effectiveness 
 
-This is the code and configuration for xxx.
+This is the code and configuration for the paper entitled "Challenges in estimating the effectiveness of COVID-19 vaccination
+using observational data". This paper compares two approaches to target trial emulation for estimating COVID-19 vaccine effectiveness: the single trial approach and the sequential trial approach.
 
-You can run this project via [Gitpod](https://gitpod.io) in a web browser by clicking on this badge: [![Gitpod ready-to-code](xxx)](xxx)
+You can run this project via [Gitpod](https://gitpod.io) in a web browser by clicking on this badge: [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-908a85?logo=gitpod)](https://gitpod.io/#https://github.com/opensafely/covid-vaccine-effectiveness-seqtrial)
 
-* The paper is [here]()
+<!--* The paper is [here]()--->
 * If you are interested in how we defined our code lists, look in the [codelists folder](./codelists/).
 * Developers and epidemiologists interested in the framework should review [the OpenSAFELY documentation](https://docs.opensafely.org)
 
