@@ -268,3 +268,22 @@ formatpercent100 <- function(x,accuracy){
     formatx
   )
 }
+
+# define function to add descriptive variables ----
+add_descr <- function(.data) {
+  
+  brand_descr <- brand_lookup %>% filter(brand %in% model_brands) %>% pull(brand_descr)
+  subgroup_descr <- names(recoder$subgroups[recoder$subgroups %in% model_subgroups])
+  outcome_descr <- events_lookup %>% filter(event %in% model_outcomes) %>% pull(event_descr)
+  
+  .data %>%
+    mutate( 
+      brand_descr = factor(brand, levels = model_brands, labels = brand_descr),
+      subgroup_descr = factor(subgroup, levels = model_subgroups, labels = subgroup_descr),
+      outcome_descr = factor(outcome, levels = model_outcomes, labels = outcome_descr),
+    ) %>%
+    mutate(across(brand, factor, levels = model_brands)) %>%
+    mutate(across(subgroup, factor, levels = model_subgroups)) %>%
+    mutate(across(outcome, factor, levels = model_outcomes)) 
+  
+}

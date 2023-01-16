@@ -62,10 +62,6 @@ namelesslst <- function(...){
 }
 
 ## actions for a single matching round ----
-
-
-
-
 action_1matchround <- function(brand, matching_round){
   
   control_extract_date <- study_dates[[brand]][[glue("control_extract_dates")]][matching_round]
@@ -82,6 +78,14 @@ action_1matchround <- function(brand, matching_round){
   }
   
   splice(
+    
+    comment(
+      "",
+      "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+      glue("Matching round {matching_round}:"),
+      "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"
+      ),
+    
     action(
       name = glue("extract_controlpotential_{brand}_{matching_round}"),
       run = glue(
@@ -188,6 +192,12 @@ action_extract_and_match <- function(brand, n_matching_rounds) {
     
     allrounds,
     
+    comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+            glue("Extract and process data from final controls in the {brand} trials"),
+            "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
+    
+    comment(glue("`extract_controlfinal_{brand}` extracts data from successful matches"),
+            "across all matching rounds:"),
     action(
       name = glue("extract_controlfinal_{brand}"),
       run = glue(
@@ -206,6 +216,9 @@ action_extract_and_match <- function(brand, n_matching_rounds) {
       )
     ),
     
+    comment(glue("`dummydata_controlfinal_{brand}` creates dummy data to represent"),
+            glue("the dummy data extraced in `extract_controlfinal_{brand}`(for "),
+            "testing only):"),
     action(
       name = glue("dummydata_controlfinal_{brand}"),
       run = glue("r:latest analysis/dummy/dummydata_controlfinal.R"),
@@ -219,6 +232,8 @@ action_extract_and_match <- function(brand, n_matching_rounds) {
       ),
     ),
     
+    comment(glue("`process_controlfinal_{brand}` processes the data extracted in"),
+            glue("extract_controlfinal_{brand}:")),
     action(
       name = glue("process_controlfinal_{brand}"),
       run = glue("r:latest analysis/process/process_data.R"),
@@ -264,22 +279,64 @@ action_kmcox <- function(brand, subgroup, outcome){
 
 brand_seqtrial <- function(brand) {
   
+  if (brand == "pfizer") {
+    
+    matching_comment <- 
+      comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+              "",
+              "Due to constraints in the way that data are extracted using the",
+              "opensafely cohort extractor (i.e. one-row-per-patient), we",
+              glue("conduct the matching over {n_matching_rounds} rounds. Each round (denoted "),
+              "{matching_round}) implements the following actions:",
+              "",
+              "- `extract_controlpotential_pfizer_{matching_round}` extracts data",
+              "  from individuals who are potential controls for matching in ",
+              "  matching round {matching_round}",
+              "",
+              "- `process_controlpotential_pfizer_{matching_round}` processes the",
+              "  extracted data and applies the eligibility criteria",
+              "",
+              "- `match_potential_pfizer_{matching_round}` matches the potential",
+              "  controls the the treated individuals",
+              "",
+              "- `extract_controlactual_pfizer_{matching_round}` re-extracts data",
+              "  from the individuals who were matched as controls in",
+              "  `match_potential_pfizer_{matching_round}`, with data re-defined",
+              "  on `trial_date` (the start date fo the sequential trial to which",
+              "  they were assigned)",
+              "",
+              "- `process_controlactual_pfizer_{matching_round}` processes the",
+              "  data extracted in `extract_controlactual_pfizer_{matching_round}`",
+              "  and checks that the matches made in",
+              "  `match_potential_pfizer_{matching_round}` still match bases on",
+              "  the re-extracted data",
+              "",
+              "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #")
+  } else {
+    
+    matching_comment <- 
+    comment("",
+            "See comment at the start of the pfizer matching round for a",
+            "description of the actions in the matching round section.")
+    
+  }
+  
   splice(
     
-    comment("# # # # # # # # # # # # # # # # # # #",
-            glue("Brand: {brand}"),
-            "# # # # # # # # # # # # # # # # # # #"),
+    comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+            glue("Extract control data, match and model for the {brand} trials"),
+            "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
     
-    comment("# # # # # # # # # # # # # # # # # # #",
-            "Extract, process and match control data",
-            "# # # # # # # # # # # # # # # # # # #"),
+    matching_comment,
     
     action_extract_and_match(brand, n_matching_rounds),
     
-    comment("# # # # # # # # # # # # # # # # # # #",
-            "Cohort summary",
-            "# # # # # # # # # # # # # # # # # # #"),
+    comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+            glue("{brand} trial summary"),
+            "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
     
+    comment(glue("`coverage_{brand}` summarises the matching coverage on each day of"),
+            "the recruitment period:"),
     action(
       name = glue("coverage_{brand}"),
       run = glue("r:latest analysis/sequential/matching/coverage.R"),
@@ -293,6 +350,8 @@ brand_seqtrial <- function(brand) {
       )
     ),
     
+    comment(glue("`table1_sequential_{brand}` summarises matching variables and"),
+            glue("baseline covariates for individuals included in the {brand} trials:")),
     action(
       name = glue("table1_sequential_{brand}"),
       run = "r:latest analysis/report/table1.R",
@@ -302,14 +361,16 @@ brand_seqtrial <- function(brand) {
         glue("process_controlfinal_{brand}"),
       ),
       moderately_sensitive= lst(
-        table1 = glue("output/report/table1/table1_sequential_{brand}.csv")
+        table1 = glue("output/report/table1/table1_sequential_{brand}_rounded.csv")
       )
     ),
     
-    comment("# # # # # # # # # # # # # # # # # # #",
-            "Model",
-            "# # # # # # # # # # # # # # # # # # #"),
-    
+    comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+            "Fit models to the sequential trials data",
+            "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+            "",
+            "`kmcox_pfizer_{subgroup}_{outcome}` actions fit models to the",
+            paste0(glue("{brand}"), " trial data for a given {subgroup} and {outcome}:")),
     
     expand_grid(
       brand=brand,
@@ -329,9 +390,9 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
   
   splice(
     
-    comment("# # # # # # # # # # # # # # # # # # #", 
-            glue("Model: {brand}; {subgroup}; {outcome};"), 
-            "# # # # # # # # # # # # # # # # # # #"),
+    comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+            glue("Model: brand = {brand}; subgroup = {subgroup}; outcome = {outcome}"),
+            "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
     
     action(
       name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
@@ -396,17 +457,20 @@ defaults_list <- lst(
 ## actions ----
 actions_list <- splice(
 
-  comment("# # # # # # # # # # # # # # # # # # #",
+  comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
           "DO NOT EDIT project.yaml DIRECTLY",
           "This file is created by create-project.R",
           "Edit and run create-project.R to update the project.yaml",
-          "# # # # # # # # # # # # # # # # # # #",
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
            " "
           ),
   
-  comment("# # # # # # # # # # # # # # # # # # #", 
-          "Preliminaries", 
-          "# # # # # # # # # # # # # # # # # # #"),
+  comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
+          "PRELIIMINARIES", 
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          "",
+          "`design` defines study metadata:"),
+  
   action(
     name = "design",
     run = glue("r:latest analysis/design.R"),
@@ -415,14 +479,13 @@ actions_list <- splice(
     ),
   ),
   
-  comment("# # # # # # # # # # # # # # # # # # #", 
+  comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
           "SEQUENTIAL TRIAL APPROACH", 
-          "# # # # # # # # # # # # # # # # # # #"),
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          "",
+          "`extract_treated` extracts data from individuals who received a",
+          "vaccine dose during the study recruitment period:"),
   
-  comment("# # # # # # # # # # # # # # # # # # #", 
-          "Extract and process treated data", 
-          "# # # # # # # # # # # # # # # # # # #"),
-  # all treated people
   action(
     name = "extract_treated",
     run = glue(
@@ -438,7 +501,7 @@ actions_list <- splice(
     ),
   ),
   
-  # all treated people
+  comment("`process_treated` processes data and apply eligibility criteria:"),
   action(
     name = "process_treated",
     run = "r:latest analysis/process/process_data.R",
@@ -462,8 +525,10 @@ actions_list <- splice(
   brand_seqtrial("pfizer"),
   brand_seqtrial("az"),
   
+  comment("`combine_kmcox` combines output from all actions that run `kmcox.R`:"),
+  
   action(
-    name = glue("combine_kmcox"),
+    name = "combine_kmcox",
     run = glue("r:latest analysis/sequential/model/kmcox_combine.R"),
     needs = splice(
       as.list(
@@ -483,18 +548,22 @@ actions_list <- splice(
     )
   ),
   
-  comment("# # # # # # # # # # # # # # # # # # #", 
+  comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
           "SINGLE TRIAL APPROACH", 
-          "# # # # # # # # # # # # # # # # # # #"),
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
   comment("Extract and process data", 
-          "# # # # # # # # # # # # # # # # # # #"),
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          "",
+          "`process_single` processes data extracted in the ", 
+          "`extract_controlpotential_pfizer_1` action for the",
+          "single trial approach:"),
   
   action(
     name = "process_single",
     run = "r:latest analysis/process/process_data.R",
     arguments = "single",
     needs = namelesslst(
-      "extract_treated",
+      # "extract_treated",
       "extract_controlpotential_pfizer_1"
     ),
     highly_sensitive = lst(
@@ -508,6 +577,9 @@ actions_list <- splice(
     )
   ),
   
+  comment("`table1_single_any` calculates summary statistics for the single", 
+          "trial cohort:"), 
+  
   action(
     name = "table1_single_any",
     run = "r:latest analysis/report/table1.R",
@@ -516,9 +588,13 @@ actions_list <- splice(
       "process_single"
     ),
     moderately_sensitive= lst(
-      table1 = glue("output/report/table1/table1_single_any.csv")
+      table1 = glue("output/report/table1/table1_single_any_rounded.csv")
     )
   ),
+  
+  comment("`extract_timevarying` extracts the data needed to derive", 
+          "time-varying covariates and outcome variables for the single trial",
+          "approach:"), 
   
   # extract outcome and timevarying variables for the single trial approach
   action(
@@ -536,6 +612,9 @@ actions_list <- splice(
     )
   ),
   
+  comment("`dummydata_timevarying` creates dummy data represent the data", 
+          "extracted in `extract_timevarying` (for testing only):"), 
+  
   action(
     name = "dummydata_timevarying",
     run = "r:latest analysis/dummy/dummydata_timevarying.R",
@@ -547,6 +626,10 @@ actions_list <- splice(
       dummydata = "output/single/dummydata/*.feather"
     )
   ),
+  
+  comment("`process_timevarying` processes the data extracted in ", 
+          "`extract_timevarying` to create time-varying covariates and outcome",
+          "variables:"), 
   
   action(
     name = "process_timevarying",
@@ -561,6 +644,8 @@ actions_list <- splice(
     )
   ),
   
+  comment("`process_stset` creates time-to-event datasets that can be used in", 
+          "survival models:"), 
   action(
     name = "process_stset",
     run = "r:latest analysis/single/process/process_stset.R",
@@ -571,6 +656,27 @@ actions_list <- splice(
     highly_sensitive = lst(
       processed = "output/single/stset/*.rds"
     )
+  ),
+  
+  comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          "Fit models to the single trials data",
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          "",
+          "The actions in this section do the following:",
+          "",
+          "- `msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_n}_",
+          "  {msm_sample_nonoutcomes_n}` checks that there are no separation",
+          "  issues between covariates and outcomes",
+          "",
+          "- `msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_",
+          "  {msm_sample_nonoutcomes_n}` fits marginal structural models to",
+          "   the single trials data",
+          "",
+          "- `msm_postprocess_{brand}_{subgroup}_{outcome}` processes the",
+          "  output from the `msm_preflight_{brand}_{subgroup}_{outcome}_",
+          "  {ipw_sample_n}_{msm_sample_nonoutcomes_n}` action",
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          ""
   ),
   
   # model actions
@@ -584,9 +690,11 @@ actions_list <- splice(
     ) %>%
     unlist(recursive = FALSE),
   
-  comment("# # # # # # # # # # # # # # # # # # #", 
+  comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
           "Combine model outputs",
-          "# # # # # # # # # # # # # # # # # # #"),
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          "",
+          "`msm_combine` combines the output from all actions that run `msm.R`:"),
   action(
     name = "msm_combine",
     run = glue("r:latest analysis/single/model/msm_combine.R"),
@@ -608,9 +716,12 @@ actions_list <- splice(
     )
   ),
   
-  comment("# # # # # # # # # # # # # # # # # # #", 
+  comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
           "REPORT", 
-          "# # # # # # # # # # # # # # # # # # #"),
+          "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
+          "",
+          "`flowchart` prepares the data to be used in the particiant flow",
+          "diagram in the paper (Supplementary Figure xxx):"),
   
   action(
     name = "flowchart",
@@ -626,6 +737,9 @@ actions_list <- splice(
     )
   ),
   
+  comment("`brand12counts` plots the cumulative incidence of first and second",
+  "vaccine doses (Figure xxx):"),
+  
   action(
     name = "brand12counts",
     run = glue("r:latest analysis/report/brand12counts.R"),
@@ -639,9 +753,9 @@ actions_list <- splice(
   ),
   
   # 
-  # comment("# # # # # # # # # # # # # # # # # # #", 
+  # comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
   #         "Move files for release", 
-  #         "# # # # # # # # # # # # # # # # # # #"),
+  #         "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
   # 
   # action(
   #   name = "release",

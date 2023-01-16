@@ -50,28 +50,27 @@ var_levels <- map_chr(
   ~last(as.character(.))
   )
 
-# use gtsummary to obtain stnadardised table 1 data
+# use gtsummary to obtain standardised table 1 data
 tab_summary_baseline <-
   data_in %>%
   mutate(
     N = 1L,
-    age = factor(age, levels=sort(unique(age)))
+    age_factor = factor(age, levels=sort(unique(age)))
   ) %>%
   select(
-    treated,
+    treated, age_factor,
     any_of(names(var_lookup)),
   ) %>%
   tbl_summary(
     by = treated,
-    label = unname(var_lookup[names(.)]),
     statistic = list(N = "{N}")
-  ) 
+  )
 
 raw_stats <- tab_summary_baseline$meta_data %>%
   select(var_label, df_stats) %>%
   unnest(df_stats)
 
-raw_stats_redacted <- raw_stats %>%
+raw_stats_rounded <- raw_stats %>%
   mutate(
     n=roundmid_any(n, threshold),
     N=roundmid_any(N, threshold),
@@ -81,8 +80,9 @@ raw_stats_redacted <- raw_stats %>%
     p_miss = N_miss/N_obs,
     N_nonmiss = roundmid_any(N_nonmiss, threshold),
     p_nonmiss = N_nonmiss/N_obs,
+    median, p25, p75,
     var_label = factor(var_label, levels=var_levels),
     variable_levels = replace_na(as.character(variable_levels), "")
   ) 
 
-write_csv(raw_stats_redacted, fs::path(outdir, glue("table1_{approach}_{brand}.csv")))
+write_csv(raw_stats_rounded, fs::path(outdir, glue("table1_{approach}_{brand}_rounded.csv")))

@@ -44,26 +44,6 @@ metaparams <- expand_grid(
 )
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# define function to add descriptive variables ----
-add_descr <- function(.data) {
-  
-  brand_descr <- brand_lookup %>% filter(brand %in% model_brands) %>% pull(brand_descr)
-  subgroup_descr <- names(recoder$subgroups[recoder$subgroups %in% model_subgroups])
-  outcome_descr <- events_lookup %>% filter(event %in% model_outcomes) %>% pull(event_descr)
-  
-  .data %>%
-    mutate( 
-      brand_descr = factor(brand, levels = model_brands, labels = brand_descr),
-      subgroup_descr = factor(subgroup, levels = model_subgroups, labels = subgroup_descr),
-      outcome_descr = factor(outcome, levels = model_outcomes, labels = outcome_descr),
-    ) %>%
-    mutate(across(brand, factor, levels = model_brands)) %>%
-    mutate(across(subgroup, factor, levels = model_subgroups)) %>%
-    mutate(across(outcome, factor, levels = model_outcomes)) 
-  
-}
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # IPW ----
 
 # define forest_from_broomstack function
@@ -91,15 +71,21 @@ forest_from_broomstack <- function(broomstack, title){
     ungroup() %>%
     droplevels()
   
-  var_lookup <- str_wrap(plot_data$var_label, 20)
+  var_lookup <- str_trunc(plot_data$var_label, width = 20, side = "right")
   names(var_lookup) <- plot_data$variable
   
   level_lookup <- plot_data$level
   names(level_lookup) <- plot_data$level_label
   
   ggplot(plot_data) +
-    geom_point(aes(x=or, y=level, colour=subgroup_level), position = position_dodge(width = 0.3)) +
-    geom_linerange(aes(xmin=or.ll, xmax=or.ul, y=level, colour=subgroup_level), position = position_dodge(width = 0.3)) +
+    geom_point(
+      aes(x=or, y=level, colour=outcome),
+      position = position_dodge(width = 0.3)
+      ) +
+    geom_linerange(
+      aes(xmin=or.ll, xmax=or.ul, y=level, colour=outcome),
+      position = position_dodge(width = 0.3)
+      ) +
     geom_vline(aes(xintercept=1), colour='black', alpha=0.8)+
     facet_grid(
       rows=vars(variable),
@@ -133,7 +119,6 @@ forest_from_broomstack <- function(broomstack, title){
 
 # generate broomstack ----
 broomstack <- metaparams %>%
-  filter(outcome=="postest", brand=="pfizer") %>%
   mutate(
     subgroup_level =  pmap(
       list(.$subgroup), 
@@ -141,100 +126,50 @@ broomstack <- metaparams %>%
       )
   ) %>%
   unnest(subgroup_level) %>%
-  mutate(
-    broom = pmap(
-      ., 
-      ~read_rds(file.path(indir, brand, subgroup, outcome, "postprocess", glue("broom_vax{brand}1_{subgroup_level}.rds"))) %>%
-        select(-subgroup_level)
-    )
+  pmap(
+    function(brand, subgroup, outcome, subgroup_level) 
+      read_rds(file.path(indir, brand, subgroup, outcome, "postprocess", glue("broom_vax{brand}1_{subgroup_level}.rds"))) %>%
+      add_column(brand=brand, subgroup=subgroup, outcome=outcome, .before=1)
   ) %>%
-  unnest(broom) %>%
-  add_descr()
+  bind_rows() 
   
-
-broomstack_formatted <- broomstack %>%
-  transmute(
-    subgroup_level,
-    brand_descr,
-    var_label,
-    label,
-    HR = scales::label_number(accuracy = .01, trim=TRUE)(or),
-    HR = if_else(is.na(HR), "1", HR),
-    CI = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(or.ll), "-", scales::label_number(accuracy = .01, trim=TRUE)(or.ul), ")"),
-    CI = if_else(is.na(HR), "", CI),
-    HR_ECI = paste0(HR, " ", CI)
-  )
-
-broomstack_formatted_wide <- broomstack_formatted %>%
-  select(
-    subgroup_level, brand_descr, var_label, label, HR_ECI
-  ) %>%
-  pivot_wider(
-    id_cols = c(subgroup_level, var_label, label),
-    names_from = brand_descr,
-    values_from = HR_ECI,
-    names_glue = "{brand_descr}_{.value}"
-  )
-
-write_csv(broomstack_formatted, file.path(outdir, "tab_vax1.csv"))
-write_csv(broomstack_formatted_wide, file.path(outdir, "tab_vax1_wide.csv"))
-
 # plot broomstack
-plot_vax <- forest_from_broomstack(broomstack, "Vaccination model")
+plot_vax <- forest_from_broomstack(
+  broomstack %>% add_descr(), 
+  "Vaccination model"
+  )
 ggsave(
   file.path(outdir, "plot_vax1.svg"),
   plot_vax,
   units="cm", width=30, height=25
 )
 
+# selected required columns and save
+broomstack %>%
+  select(
+    brand, subgroup, subgroup_level, outcome,
+    var_label, label, starts_with("or")
+    ) %>%
+  write_csv(file.path(outdir, "tab_vax1.csv"))
+  
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 ## MSM ----
 
 # combine all estimates
 estimates <- metaparams %>%
-  filter(outcome=="postest", brand=="pfizer") %>%
-  mutate(
-    estimates = pmap(
-      .,
-      ~read_csv(file.path(indir, brand, subgroup, outcome, "postprocess", glue("estimates_timesincevax.csv"))))
-  ) %>%
-  unnest(estimates) %>%
-  mutate(
-    outcome = factor(outcome, levels = model_outcomes),
-  ) %>%
+  pmap(
+    function(brand, subgroup, outcome)
+      read_csv(file.path(indir, brand, subgroup, outcome, "postprocess", "estimates_timesincevax.csv")) %>%
+      add_column(subgroup=subgroup, brand=brand, outcome=outcome, .before=1)
+      ) %>%
+  bind_rows() %>%
   add_descr() 
+
+# only save the required columns
+estimates %>%
+  select(brand, subgroup, subgroup_level, model, term, outcome, starts_with("or")) %>%
+  write_csv(file.path(outdir, "estimates_timesincevax.csv"))
   
-estimates_formatted <- estimates %>%
-  transmute(
-    outcome_descr,
-    brand_descr,
-    subgroup_descr,
-    subgroup_level,
-    model,
-    model_descr,
-    term=str_replace(term, pattern="timesincevax\\_pw", ""),
-    HR =scales::label_number(accuracy = .01, trim=TRUE)(or),
-    HR_CI = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(or.ll), "-", scales::label_number(accuracy = .01, trim=TRUE)(or.ul), ")"),
-    VE = scales::label_number(accuracy = .1, trim=FALSE, scale=100)(ve),
-    VE_CI = paste0("(", scales::label_number(accuracy = .1, trim=TRUE, scale=100)(ve.ll), "-", scales::label_number(accuracy = .1, trim=TRUE, scale=100)(ve.ul), ")"),
-    
-    HR_ECI = paste0(HR, " ", HR_CI),
-    VE_ECI = paste0(VE, " ", VE_CI),
-  )
-
-estimates_formatted_wide <- estimates_formatted %>%
-  select(outcome_descr, brand_descr, subgroup_descr, model, term, HR_ECI, VE_ECI) %>%
-  pivot_wider(
-    id_cols=c(outcome_descr, brand_descr, term, subgroup_descr),
-    names_from = model,
-    values_from = c(HR_ECI, VE_ECI),
-    names_glue = "{model}_{.value}"
-  )
-
-write_csv(estimates, file.path(outdir, glue("estimates_timesincevax.csv")))
-write_csv(estimates_formatted, file.path(outdir, glue("estimates_formatted_timesincevax.csv")))
-write_csv(estimates_formatted_wide, file.path(outdir, glue("estimates_formatted_wide_timesincevax.csv")))
-
 # create forest plot for each subgroup_level
 msmmod_effect_data <- estimates %>%
   mutate(

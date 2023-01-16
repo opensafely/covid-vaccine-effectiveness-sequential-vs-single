@@ -6,15 +6,17 @@ expectations:
 
 actions:
 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## DO NOT EDIT project.yaml DIRECTLY 
   ## This file is created by create-project.R 
   ## Edit and run create-project.R to update the project.yaml 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ##   
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Preliminaries 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## PRELIIMINARIES 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## `design` defines study metadata: 
 
   design:
     run: r:latest analysis/design.R
@@ -22,12 +24,12 @@ actions:
       moderately_sensitive:
         lib: lib/design/study-dates.json
 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## SEQUENTIAL TRIAL APPROACH 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Extract and process treated data 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## `extract_treated` extracts data from individuals who received a 
+  ## vaccine dose during the study recruitment period: 
 
   extract_treated:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_treated
@@ -37,6 +39,8 @@ actions:
     outputs:
       highly_sensitive:
         extract: output/sequential/treated/extract/input_treated.feather
+
+  ## `process_treated` processes data and apply eligibility criteria: 
 
   process_treated:
     run: r:latest analysis/process/process_data.R treated
@@ -53,12 +57,43 @@ actions:
         data_processed_skim: output/sequential/treated/process/*.txt
         data_eligible_skim: output/sequential/treated/eligible/*.txt
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Brand: pfizer 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Extract, process and match control data 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Extract control data, match and model for the pfizer trials 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## Due to constraints in the way that data are extracted using the 
+  ## opensafely cohort extractor (i.e. one-row-per-patient), we 
+  ## conduct the matching over 2 rounds. Each round (denoted  
+  ## {matching_round}) implements the following actions: 
+  ##  
+  ## - `extract_controlpotential_pfizer_{matching_round}` extracts data 
+  ##   from individuals who are potential controls for matching in  
+  ##   matching round {matching_round} 
+  ##  
+  ## - `process_controlpotential_pfizer_{matching_round}` processes the 
+  ##   extracted data and applies the eligibility criteria 
+  ##  
+  ## - `match_potential_pfizer_{matching_round}` matches the potential 
+  ##   controls the the treated individuals 
+  ##  
+  ## - `extract_controlactual_pfizer_{matching_round}` re-extracts data 
+  ##   from the individuals who were matched as controls in 
+  ##   `match_potential_pfizer_{matching_round}`, with data re-defined 
+  ##   on `trial_date` (the start date fo the sequential trial to which 
+  ##   they were assigned) 
+  ##  
+  ## - `process_controlactual_pfizer_{matching_round}` processes the 
+  ##   data extracted in `extract_controlactual_pfizer_{matching_round}` 
+  ##   and checks that the matches made in 
+  ##   `match_potential_pfizer_{matching_round}` still match bases on 
+  ##   the re-extracted data 
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 1: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   extract_controlpotential_pfizer_1:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -119,6 +154,11 @@ actions:
       moderately_sensitive:
         input_controlactual_skim: output/sequential/pfizer/matchround1/extract/actual/*.txt
         data_actual_skim: output/sequential/pfizer/matchround1/actual/*.txt
+
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 2: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   extract_controlpotential_pfizer_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -183,6 +223,12 @@ actions:
         input_controlactual_skim: output/sequential/pfizer/matchround2/extract/actual/*.txt
         data_actual_skim: output/sequential/pfizer/matchround2/actual/*.txt
 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Extract and process data from final controls in the pfizer trials 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## `extract_controlfinal_pfizer` extracts data from successful matches 
+  ## across all matching rounds: 
+
   extract_controlfinal_pfizer:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
       --output-file output/sequential/pfizer/extract/input_controlfinal.feather --param
@@ -194,6 +240,10 @@ actions:
       highly_sensitive:
         extract: output/sequential/pfizer/extract/input_controlfinal.feather
 
+  ## `dummydata_controlfinal_pfizer` creates dummy data to represent 
+  ## the dummy data extraced in `extract_controlfinal_pfizer`(for  
+  ## testing only): 
+
   dummydata_controlfinal_pfizer:
     run: r:latest analysis/dummy/dummydata_controlfinal.R pfizer
     needs:
@@ -202,6 +252,9 @@ actions:
     outputs:
       highly_sensitive:
         dummydata_controlfinal: output/sequential/pfizer/dummydata/dummy_control_final.feather
+
+  ## `process_controlfinal_pfizer` processes the data extracted in 
+  ## extract_controlfinal_pfizer: 
 
   process_controlfinal_pfizer:
     run: r:latest analysis/process/process_data.R final pfizer
@@ -218,9 +271,11 @@ actions:
         input_controlfinal_skim: output/sequential/pfizer/extract/*.txt
         data_matched_skim: output/sequential/pfizer/match/*.txt
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Cohort summary 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## pfizer trial summary 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## `coverage_pfizer` summarises the matching coverage on each day of 
+  ## the recruitment period: 
 
   coverage_pfizer:
     run: r:latest analysis/sequential/matching/coverage.R pfizer
@@ -231,6 +286,9 @@ actions:
       moderately_sensitive:
         coverage: output/report/coverage/coverage_pfizer.csv
 
+  ## `table1_sequential_pfizer` summarises matching variables and 
+  ## baseline covariates for individuals included in the pfizer trials: 
+
   table1_sequential_pfizer:
     run: r:latest analysis/report/table1.R sequential pfizer
     needs:
@@ -238,11 +296,14 @@ actions:
     - process_controlfinal_pfizer
     outputs:
       moderately_sensitive:
-        table1: output/report/table1/table1_sequential_pfizer.csv
+        table1: output/report/table1/table1_sequential_pfizer_rounded.csv
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Fit models to the sequential trials data 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## `kmcox_pfizer_{subgroup}_{outcome}` actions fit models to the 
+  ## pfizer trial data for a given {subgroup} and {outcome}: 
 
   kmcox_pfizer_all_postest:
     run: r:latest analysis/sequential/model/kmcox.R pfizer all postest
@@ -271,12 +332,16 @@ actions:
         rds: output/sequential/pfizer/model/all/death/*.rds
         png: output/sequential/pfizer/model/all/death/*.png
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Brand: az 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Extract, process and match control data 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Extract control data, match and model for the az trials 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## See comment at the start of the pfizer matching round for a 
+  ## description of the actions in the matching round section. 
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 1: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   extract_controlpotential_az_1:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -337,6 +402,11 @@ actions:
       moderately_sensitive:
         input_controlactual_skim: output/sequential/az/matchround1/extract/actual/*.txt
         data_actual_skim: output/sequential/az/matchround1/actual/*.txt
+
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 2: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   extract_controlpotential_az_2:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
@@ -401,6 +471,12 @@ actions:
         input_controlactual_skim: output/sequential/az/matchround2/extract/actual/*.txt
         data_actual_skim: output/sequential/az/matchround2/actual/*.txt
 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Extract and process data from final controls in the az trials 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## `extract_controlfinal_az` extracts data from successful matches 
+  ## across all matching rounds: 
+
   extract_controlfinal_az:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
       --output-file output/sequential/az/extract/input_controlfinal.feather --param
@@ -412,6 +488,10 @@ actions:
       highly_sensitive:
         extract: output/sequential/az/extract/input_controlfinal.feather
 
+  ## `dummydata_controlfinal_az` creates dummy data to represent 
+  ## the dummy data extraced in `extract_controlfinal_az`(for  
+  ## testing only): 
+
   dummydata_controlfinal_az:
     run: r:latest analysis/dummy/dummydata_controlfinal.R az
     needs:
@@ -420,6 +500,9 @@ actions:
     outputs:
       highly_sensitive:
         dummydata_controlfinal: output/sequential/az/dummydata/dummy_control_final.feather
+
+  ## `process_controlfinal_az` processes the data extracted in 
+  ## extract_controlfinal_az: 
 
   process_controlfinal_az:
     run: r:latest analysis/process/process_data.R final az
@@ -436,9 +519,11 @@ actions:
         input_controlfinal_skim: output/sequential/az/extract/*.txt
         data_matched_skim: output/sequential/az/match/*.txt
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Cohort summary 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## az trial summary 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## `coverage_az` summarises the matching coverage on each day of 
+  ## the recruitment period: 
 
   coverage_az:
     run: r:latest analysis/sequential/matching/coverage.R az
@@ -449,6 +534,9 @@ actions:
       moderately_sensitive:
         coverage: output/report/coverage/coverage_az.csv
 
+  ## `table1_sequential_az` summarises matching variables and 
+  ## baseline covariates for individuals included in the az trials: 
+
   table1_sequential_az:
     run: r:latest analysis/report/table1.R sequential az
     needs:
@@ -456,11 +544,14 @@ actions:
     - process_controlfinal_az
     outputs:
       moderately_sensitive:
-        table1: output/report/table1/table1_sequential_az.csv
+        table1: output/report/table1/table1_sequential_az_rounded.csv
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Fit models to the sequential trials data 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## `kmcox_pfizer_{subgroup}_{outcome}` actions fit models to the 
+  ## az trial data for a given {subgroup} and {outcome}: 
 
   kmcox_az_all_postest:
     run: r:latest analysis/sequential/model/kmcox.R az all postest
@@ -489,6 +580,8 @@ actions:
         rds: output/sequential/az/model/all/death/*.rds
         png: output/sequential/az/model/all/death/*.png
 
+  ## `combine_kmcox` combines output from all actions that run `kmcox.R`: 
+
   combine_kmcox:
     run: r:latest analysis/sequential/model/kmcox_combine.R
     needs:
@@ -503,16 +596,19 @@ actions:
         rds: output/sequential/combine/*.csv
         png: output/sequential/combine/*.png
 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## SINGLE TRIAL APPROACH 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Extract and process data 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## `process_single` processes data extracted in the  
+  ## `extract_controlpotential_pfizer_1` action for the 
+  ## single trial approach: 
 
   process_single:
     run: r:latest analysis/process/process_data.R single
     needs:
-    - extract_treated
     - extract_controlpotential_pfizer_1
     outputs:
       highly_sensitive:
@@ -523,13 +619,20 @@ actions:
         data_processed_skim: output/single/process/*.txt
         data_eligible_skim: output/single/eligible/*.txt
 
+  ## `table1_single_any` calculates summary statistics for the single 
+  ## trial cohort: 
+
   table1_single_any:
     run: r:latest analysis/report/table1.R single any
     needs:
     - process_single
     outputs:
       moderately_sensitive:
-        table1: output/report/table1/table1_single_any.csv
+        table1: output/report/table1/table1_single_any_rounded.csv
+
+  ## `extract_timevarying` extracts the data needed to derive 
+  ## time-varying covariates and outcome variables for the single trial 
+  ## approach: 
 
   extract_timevarying:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_timevarying
@@ -541,6 +644,9 @@ actions:
       highly_sensitive:
         extract: output/single/extract/input_timevarying.feather
 
+  ## `dummydata_timevarying` creates dummy data represent the data 
+  ## extracted in `extract_timevarying` (for testing only): 
+
   dummydata_timevarying:
     run: r:latest analysis/dummy/dummydata_timevarying.R
     needs:
@@ -549,6 +655,10 @@ actions:
     outputs:
       highly_sensitive:
         dummydata: output/single/dummydata/*.feather
+
+  ## `process_timevarying` processes the data extracted in  
+  ## `extract_timevarying` to create time-varying covariates and outcome 
+  ## variables: 
 
   process_timevarying:
     run: r:latest analysis/single/process/process_timevarying.R
@@ -560,6 +670,9 @@ actions:
       highly_sensitive:
         processed: output/single/process/*.rds
 
+  ## `process_stset` creates time-to-event datasets that can be used in 
+  ## survival models: 
+
   process_stset:
     run: r:latest analysis/single/process/process_stset.R
     needs:
@@ -569,9 +682,28 @@ actions:
       highly_sensitive:
         processed: output/single/stset/*.rds
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model: pfizer; all; postest; 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Fit models to the single trials data 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## The actions in this section do the following: 
+  ##  
+  ## - `msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_n}_ 
+  ##   {msm_sample_nonoutcomes_n}` checks that there are no separation 
+  ##   issues between covariates and outcomes 
+  ##  
+  ## - `msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_ 
+  ##   {msm_sample_nonoutcomes_n}` fits marginal structural models to 
+  ##    the single trials data 
+  ##  
+  ## - `msm_postprocess_{brand}_{subgroup}_{outcome}` processes the 
+  ##   output from the `msm_preflight_{brand}_{subgroup}_{outcome}_ 
+  ##   {ipw_sample_n}_{msm_sample_nonoutcomes_n}` action 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Model: brand = pfizer; subgroup = all; outcome = postest 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   msm_preflight_pfizer_all_postest_3000_1000:
     run: r:latest analysis/single/model/msm_preflight.R pfizer all postest 3000 1000
@@ -606,9 +738,9 @@ actions:
         csv: output/single/pfizer/all/postest/postprocess/*.csv
         svg: output/single/pfizer/all/postest/postprocess/*.svg
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model: pfizer; all; covidadmitted; 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Model: brand = pfizer; subgroup = all; outcome = covidadmitted 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   msm_preflight_pfizer_all_covidadmitted_3000_1000:
     run: r:latest analysis/single/model/msm_preflight.R pfizer all covidadmitted 3000
@@ -644,9 +776,9 @@ actions:
         csv: output/single/pfizer/all/covidadmitted/postprocess/*.csv
         svg: output/single/pfizer/all/covidadmitted/postprocess/*.svg
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model: pfizer; all; death; 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Model: brand = pfizer; subgroup = all; outcome = death 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   msm_preflight_pfizer_all_death_3000_1000:
     run: r:latest analysis/single/model/msm_preflight.R pfizer all death 3000 1000
@@ -681,9 +813,9 @@ actions:
         csv: output/single/pfizer/all/death/postprocess/*.csv
         svg: output/single/pfizer/all/death/postprocess/*.svg
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model: az; all; postest; 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Model: brand = az; subgroup = all; outcome = postest 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   msm_preflight_az_all_postest_3000_1000:
     run: r:latest analysis/single/model/msm_preflight.R az all postest 3000 1000
@@ -718,9 +850,9 @@ actions:
         csv: output/single/az/all/postest/postprocess/*.csv
         svg: output/single/az/all/postest/postprocess/*.svg
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model: az; all; covidadmitted; 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Model: brand = az; subgroup = all; outcome = covidadmitted 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   msm_preflight_az_all_covidadmitted_3000_1000:
     run: r:latest analysis/single/model/msm_preflight.R az all covidadmitted 3000
@@ -756,9 +888,9 @@ actions:
         csv: output/single/az/all/covidadmitted/postprocess/*.csv
         svg: output/single/az/all/covidadmitted/postprocess/*.svg
 
-  ## # # # # # # # # # # # # # # # # # # # 
-  ## Model: az; all; death; 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Model: brand = az; subgroup = all; outcome = death 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
   msm_preflight_az_all_death_3000_1000:
     run: r:latest analysis/single/model/msm_preflight.R az all death 3000 1000
@@ -793,9 +925,11 @@ actions:
         csv: output/single/az/all/death/postprocess/*.csv
         svg: output/single/az/all/death/postprocess/*.svg
 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Combine model outputs 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## `msm_combine` combines the output from all actions that run `msm.R`: 
 
   msm_combine:
     run: r:latest analysis/single/model/msm_combine.R
@@ -811,9 +945,12 @@ actions:
         csv: output/single/combine/*.csv
         svg: output/single/combine/*.svg
 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## REPORT 
-  ## # # # # # # # # # # # # # # # # # # # 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ##  
+  ## `flowchart` prepares the data to be used in the particiant flow 
+  ## diagram in the paper (Supplementary Figure xxx): 
 
   flowchart:
     run: r:latest analysis/report/flowchart.R
@@ -825,6 +962,9 @@ actions:
     outputs:
       moderately_sensitive:
         flow_matching: output/report/flowchart/*.csv
+
+  ## `brand12counts` plots the cumulative incidence of first and second 
+  ## vaccine doses (Figure xxx): 
 
   brand12counts:
     run: r:latest analysis/report/brand12counts.R
