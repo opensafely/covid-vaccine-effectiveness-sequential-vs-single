@@ -11,10 +11,12 @@ You can run this project via [Gitpod](https://gitpod.io) in a web browser by cli
 
 ## project.yaml
 The [`project.yaml`](./project.yaml) defines run-order and dependencies for all the analysis scripts. 
-**This file should *not* be edited directly**. To make changes to the yaml, edit and run the [`create-project.R`](./create-project.R) script instead.
-There is no need to run [`create_project.R`](./create_project.R) if you are simply cloning this repo.
+It is split into a series of "actions", each one implementing a step in the analysis pipeline.
+The file is annotated to describe the purpose of each action. 
+This file is where you should start if you wish to understand the analysis pipeline.
 
-The [`project.yaml`](./project.yaml) is annotated to describe the purpose of each action. 
+**The [`project.yaml`](./project.yaml) should *not* be edited directly**. To make changes, edit and run the [`create-project.R`](./create-project.R) script instead.
+There is no need to run [`create_project.R`](./create_project.R) if you are simply cloning this repo.
 
 # About the OpenSAFELY framework
 
