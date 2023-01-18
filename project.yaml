@@ -36,6 +36,7 @@ actions:
       --output-file output/sequential/treated/extract/input_treated.feather
     needs:
     - design
+    - process_single
     outputs:
       highly_sensitive:
         extract: output/sequential/treated/extract/input_treated.feather
@@ -64,7 +65,7 @@ actions:
   ##  
   ## Due to constraints in the way that data are extracted using the 
   ## opensafely cohort extractor (i.e. one-row-per-patient), we 
-  ## conduct the matching over 2 rounds. Each round (denoted  
+  ## conduct the matching over 4 rounds. Each round (denoted  
   ## {matching_round}) implements the following actions: 
   ##  
   ## - `extract_controlpotential_pfizer_{matching_round}` extracts data 
@@ -223,6 +224,142 @@ actions:
         input_controlactual_skim: output/sequential/pfizer/matchround2/extract/actual/*.txt
         data_actual_skim: output/sequential/pfizer/matchround2/actual/*.txt
 
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 3: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+  extract_controlpotential_pfizer_3:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/sequential/pfizer/matchround3/extract/input_controlpotential.feather
+      --param brand=pfizer --param matching_round=3 --param index_date=2021-01-05
+    needs:
+    - design
+    - process_controlpotential_pfizer_1
+    - process_controlactual_pfizer_2
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/pfizer/matchround3/extract/input_controlpotential.feather
+
+  process_controlpotential_pfizer_3:
+    run: r:latest analysis/process/process_data.R potential pfizer 3
+    needs:
+    - extract_controlpotential_pfizer_3
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/pfizer/matchround3/process/*.rds
+      moderately_sensitive:
+        input_controlpotential_skim: output/sequential/pfizer/matchround3/extract/potential/*.txt
+        data_processed_skim: output/sequential/pfizer/matchround3/potential/*.txt
+        data_controlpotential_skim: output/sequential/pfizer/matchround3/process/*.txt
+
+  match_potential_pfizer_3:
+    run: r:latest analysis/sequential/matching/match_potential.R pfizer 3
+    needs:
+    - process_treated
+    - process_controlpotential_pfizer_3
+    - process_controlactual_pfizer_2
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/pfizer/matchround3/potential/*.rds
+        csv: output/sequential/pfizer/matchround3/potential/*.csv.gz
+
+  extract_controlactual_pfizer_3:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/sequential/pfizer/matchround3/extract/input_controlactual.feather
+      --param brand=pfizer --param matching_round=3
+    needs:
+    - design
+    - match_potential_pfizer_3
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/pfizer/matchround3/extract/input_controlactual.feather
+
+  process_controlactual_pfizer_3:
+    run: r:latest analysis/process/process_data.R actual pfizer 3
+    needs:
+    - process_treated
+    - match_potential_pfizer_3
+    - extract_controlpotential_pfizer_3
+    - process_controlpotential_pfizer_3
+    - extract_controlactual_pfizer_3
+    - process_controlactual_pfizer_2
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/pfizer/matchround3/actual/*.rds
+        csv: output/sequential/pfizer/matchround3/actual/*.csv.gz
+      moderately_sensitive:
+        input_controlactual_skim: output/sequential/pfizer/matchround3/extract/actual/*.txt
+        data_actual_skim: output/sequential/pfizer/matchround3/actual/*.txt
+
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 4: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+  extract_controlpotential_pfizer_4:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/sequential/pfizer/matchround4/extract/input_controlpotential.feather
+      --param brand=pfizer --param matching_round=4 --param index_date=2021-01-19
+    needs:
+    - design
+    - process_controlpotential_pfizer_1
+    - process_controlactual_pfizer_3
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/pfizer/matchround4/extract/input_controlpotential.feather
+
+  process_controlpotential_pfizer_4:
+    run: r:latest analysis/process/process_data.R potential pfizer 4
+    needs:
+    - extract_controlpotential_pfizer_4
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/pfizer/matchround4/process/*.rds
+      moderately_sensitive:
+        input_controlpotential_skim: output/sequential/pfizer/matchround4/extract/potential/*.txt
+        data_processed_skim: output/sequential/pfizer/matchround4/potential/*.txt
+        data_controlpotential_skim: output/sequential/pfizer/matchround4/process/*.txt
+
+  match_potential_pfizer_4:
+    run: r:latest analysis/sequential/matching/match_potential.R pfizer 4
+    needs:
+    - process_treated
+    - process_controlpotential_pfizer_4
+    - process_controlactual_pfizer_3
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/pfizer/matchround4/potential/*.rds
+        csv: output/sequential/pfizer/matchround4/potential/*.csv.gz
+
+  extract_controlactual_pfizer_4:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/sequential/pfizer/matchround4/extract/input_controlactual.feather
+      --param brand=pfizer --param matching_round=4
+    needs:
+    - design
+    - match_potential_pfizer_4
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/pfizer/matchround4/extract/input_controlactual.feather
+
+  process_controlactual_pfizer_4:
+    run: r:latest analysis/process/process_data.R actual pfizer 4
+    needs:
+    - process_treated
+    - match_potential_pfizer_4
+    - extract_controlpotential_pfizer_4
+    - process_controlpotential_pfizer_4
+    - extract_controlactual_pfizer_4
+    - process_controlactual_pfizer_3
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/pfizer/matchround4/actual/*.rds
+        csv: output/sequential/pfizer/matchround4/actual/*.csv.gz
+      moderately_sensitive:
+        input_controlactual_skim: output/sequential/pfizer/matchround4/extract/actual/*.txt
+        data_actual_skim: output/sequential/pfizer/matchround4/actual/*.txt
+
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Extract and process data from final controls in the pfizer trials 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -232,10 +369,10 @@ actions:
   extract_controlfinal_pfizer:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
       --output-file output/sequential/pfizer/extract/input_controlfinal.feather --param
-      brand=pfizer --param n_matching_rounds=2
+      brand=pfizer --param n_matching_rounds=4
     needs:
     - design
-    - process_controlactual_pfizer_2
+    - process_controlactual_pfizer_4
     outputs:
       highly_sensitive:
         extract: output/sequential/pfizer/extract/input_controlfinal.feather
@@ -249,6 +386,8 @@ actions:
     needs:
     - process_controlactual_pfizer_1
     - process_controlactual_pfizer_2
+    - process_controlactual_pfizer_3
+    - process_controlactual_pfizer_4
     outputs:
       highly_sensitive:
         dummydata_controlfinal: output/sequential/pfizer/dummydata/dummy_control_final.feather
@@ -261,6 +400,8 @@ actions:
     needs:
     - process_controlactual_pfizer_1
     - process_controlactual_pfizer_2
+    - process_controlactual_pfizer_3
+    - process_controlactual_pfizer_4
     - extract_controlfinal_pfizer
     - process_treated
     - dummydata_controlfinal_pfizer
@@ -471,6 +612,142 @@ actions:
         input_controlactual_skim: output/sequential/az/matchround2/extract/actual/*.txt
         data_actual_skim: output/sequential/az/matchround2/actual/*.txt
 
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 3: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+  extract_controlpotential_az_3:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/sequential/az/matchround3/extract/input_controlpotential.feather
+      --param brand=az --param matching_round=3 --param index_date=2021-02-01
+    needs:
+    - design
+    - process_controlpotential_az_1
+    - process_controlactual_az_2
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround3/extract/input_controlpotential.feather
+
+  process_controlpotential_az_3:
+    run: r:latest analysis/process/process_data.R potential az 3
+    needs:
+    - extract_controlpotential_az_3
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround3/process/*.rds
+      moderately_sensitive:
+        input_controlpotential_skim: output/sequential/az/matchround3/extract/potential/*.txt
+        data_processed_skim: output/sequential/az/matchround3/potential/*.txt
+        data_controlpotential_skim: output/sequential/az/matchround3/process/*.txt
+
+  match_potential_az_3:
+    run: r:latest analysis/sequential/matching/match_potential.R az 3
+    needs:
+    - process_treated
+    - process_controlpotential_az_3
+    - process_controlactual_az_2
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround3/potential/*.rds
+        csv: output/sequential/az/matchround3/potential/*.csv.gz
+
+  extract_controlactual_az_3:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/sequential/az/matchround3/extract/input_controlactual.feather
+      --param brand=az --param matching_round=3
+    needs:
+    - design
+    - match_potential_az_3
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround3/extract/input_controlactual.feather
+
+  process_controlactual_az_3:
+    run: r:latest analysis/process/process_data.R actual az 3
+    needs:
+    - process_treated
+    - match_potential_az_3
+    - extract_controlpotential_az_3
+    - process_controlpotential_az_3
+    - extract_controlactual_az_3
+    - process_controlactual_az_2
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround3/actual/*.rds
+        csv: output/sequential/az/matchround3/actual/*.csv.gz
+      moderately_sensitive:
+        input_controlactual_skim: output/sequential/az/matchround3/extract/actual/*.txt
+        data_actual_skim: output/sequential/az/matchround3/actual/*.txt
+
+  ##  
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+  ## Matching round 4: 
+  ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+  extract_controlpotential_az_4:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlpotential
+      --output-file output/sequential/az/matchround4/extract/input_controlpotential.feather
+      --param brand=az --param matching_round=4 --param index_date=2021-02-15
+    needs:
+    - design
+    - process_controlpotential_az_1
+    - process_controlactual_az_3
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround4/extract/input_controlpotential.feather
+
+  process_controlpotential_az_4:
+    run: r:latest analysis/process/process_data.R potential az 4
+    needs:
+    - extract_controlpotential_az_4
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround4/process/*.rds
+      moderately_sensitive:
+        input_controlpotential_skim: output/sequential/az/matchround4/extract/potential/*.txt
+        data_processed_skim: output/sequential/az/matchround4/potential/*.txt
+        data_controlpotential_skim: output/sequential/az/matchround4/process/*.txt
+
+  match_potential_az_4:
+    run: r:latest analysis/sequential/matching/match_potential.R az 4
+    needs:
+    - process_treated
+    - process_controlpotential_az_4
+    - process_controlactual_az_3
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround4/potential/*.rds
+        csv: output/sequential/az/matchround4/potential/*.csv.gz
+
+  extract_controlactual_az_4:
+    run: cohortextractor:latest generate_cohort --study-definition study_definition_controlactual
+      --output-file output/sequential/az/matchround4/extract/input_controlactual.feather
+      --param brand=az --param matching_round=4
+    needs:
+    - design
+    - match_potential_az_4
+    outputs:
+      highly_sensitive:
+        cohort: output/sequential/az/matchround4/extract/input_controlactual.feather
+
+  process_controlactual_az_4:
+    run: r:latest analysis/process/process_data.R actual az 4
+    needs:
+    - process_treated
+    - match_potential_az_4
+    - extract_controlpotential_az_4
+    - process_controlpotential_az_4
+    - extract_controlactual_az_4
+    - process_controlactual_az_3
+    outputs:
+      highly_sensitive:
+        rds: output/sequential/az/matchround4/actual/*.rds
+        csv: output/sequential/az/matchround4/actual/*.csv.gz
+      moderately_sensitive:
+        input_controlactual_skim: output/sequential/az/matchround4/extract/actual/*.txt
+        data_actual_skim: output/sequential/az/matchround4/actual/*.txt
+
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Extract and process data from final controls in the az trials 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -480,10 +757,10 @@ actions:
   extract_controlfinal_az:
     run: cohortextractor:latest generate_cohort --study-definition study_definition_controlfinal
       --output-file output/sequential/az/extract/input_controlfinal.feather --param
-      brand=az --param n_matching_rounds=2
+      brand=az --param n_matching_rounds=4
     needs:
     - design
-    - process_controlactual_az_2
+    - process_controlactual_az_4
     outputs:
       highly_sensitive:
         extract: output/sequential/az/extract/input_controlfinal.feather
@@ -497,6 +774,8 @@ actions:
     needs:
     - process_controlactual_az_1
     - process_controlactual_az_2
+    - process_controlactual_az_3
+    - process_controlactual_az_4
     outputs:
       highly_sensitive:
         dummydata_controlfinal: output/sequential/az/dummydata/dummy_control_final.feather
@@ -509,6 +788,8 @@ actions:
     needs:
     - process_controlactual_az_1
     - process_controlactual_az_2
+    - process_controlactual_az_3
+    - process_controlactual_az_4
     - extract_controlfinal_az
     - process_treated
     - dummydata_controlfinal_az
@@ -705,8 +986,9 @@ actions:
   ## Model: brand = pfizer; subgroup = all; outcome = postest 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_pfizer_all_postest_3000_1000:
-    run: r:latest analysis/single/model/msm_preflight.R pfizer all postest 3000 1000
+  msm_preflight_pfizer_all_postest_150000_50000:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all postest 150000
+      50000
     needs:
     - process_stset
     outputs:
@@ -714,11 +996,11 @@ actions:
         csv: output/single/pfizer/all/postest/preflight/*.csv
         html: output/single/pfizer/all/postest/preflight/*.html
 
-  msm_pfizer_all_postest_3000_1000:
-    run: r:latest analysis/single/model/msm.R pfizer all postest 3000 1000
+  msm_pfizer_all_postest_150000_50000:
+    run: r:latest analysis/single/model/msm.R pfizer all postest 150000 50000
     needs:
     - process_stset
-    - msm_preflight_pfizer_all_postest_3000_1000
+    - msm_preflight_pfizer_all_postest_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/postest/msm/*.rds
@@ -730,7 +1012,7 @@ actions:
   msm_postprocess_pfizer_all_postest:
     run: r:latest analysis/single/model/msm_postprocess.R pfizer all postest
     needs:
-    - msm_pfizer_all_postest_3000_1000
+    - msm_pfizer_all_postest_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/postest/postprocess/*.rds
@@ -742,9 +1024,9 @@ actions:
   ## Model: brand = pfizer; subgroup = all; outcome = covidadmitted 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_pfizer_all_covidadmitted_3000_1000:
-    run: r:latest analysis/single/model/msm_preflight.R pfizer all covidadmitted 3000
-      1000
+  msm_preflight_pfizer_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all covidadmitted 150000
+      50000
     needs:
     - process_stset
     outputs:
@@ -752,11 +1034,11 @@ actions:
         csv: output/single/pfizer/all/covidadmitted/preflight/*.csv
         html: output/single/pfizer/all/covidadmitted/preflight/*.html
 
-  msm_pfizer_all_covidadmitted_3000_1000:
-    run: r:latest analysis/single/model/msm.R pfizer all covidadmitted 3000 1000
+  msm_pfizer_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/msm.R pfizer all covidadmitted 150000 50000
     needs:
     - process_stset
-    - msm_preflight_pfizer_all_covidadmitted_3000_1000
+    - msm_preflight_pfizer_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/covidadmitted/msm/*.rds
@@ -768,7 +1050,7 @@ actions:
   msm_postprocess_pfizer_all_covidadmitted:
     run: r:latest analysis/single/model/msm_postprocess.R pfizer all covidadmitted
     needs:
-    - msm_pfizer_all_covidadmitted_3000_1000
+    - msm_pfizer_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/covidadmitted/postprocess/*.rds
@@ -780,8 +1062,8 @@ actions:
   ## Model: brand = pfizer; subgroup = all; outcome = death 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_pfizer_all_death_3000_1000:
-    run: r:latest analysis/single/model/msm_preflight.R pfizer all death 3000 1000
+  msm_preflight_pfizer_all_death_150000_50000:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all death 150000 50000
     needs:
     - process_stset
     outputs:
@@ -789,11 +1071,11 @@ actions:
         csv: output/single/pfizer/all/death/preflight/*.csv
         html: output/single/pfizer/all/death/preflight/*.html
 
-  msm_pfizer_all_death_3000_1000:
-    run: r:latest analysis/single/model/msm.R pfizer all death 3000 1000
+  msm_pfizer_all_death_150000_50000:
+    run: r:latest analysis/single/model/msm.R pfizer all death 150000 50000
     needs:
     - process_stset
-    - msm_preflight_pfizer_all_death_3000_1000
+    - msm_preflight_pfizer_all_death_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/death/msm/*.rds
@@ -805,7 +1087,7 @@ actions:
   msm_postprocess_pfizer_all_death:
     run: r:latest analysis/single/model/msm_postprocess.R pfizer all death
     needs:
-    - msm_pfizer_all_death_3000_1000
+    - msm_pfizer_all_death_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/death/postprocess/*.rds
@@ -817,8 +1099,8 @@ actions:
   ## Model: brand = az; subgroup = all; outcome = postest 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_az_all_postest_3000_1000:
-    run: r:latest analysis/single/model/msm_preflight.R az all postest 3000 1000
+  msm_preflight_az_all_postest_150000_50000:
+    run: r:latest analysis/single/model/msm_preflight.R az all postest 150000 50000
     needs:
     - process_stset
     outputs:
@@ -826,11 +1108,11 @@ actions:
         csv: output/single/az/all/postest/preflight/*.csv
         html: output/single/az/all/postest/preflight/*.html
 
-  msm_az_all_postest_3000_1000:
-    run: r:latest analysis/single/model/msm.R az all postest 3000 1000
+  msm_az_all_postest_150000_50000:
+    run: r:latest analysis/single/model/msm.R az all postest 150000 50000
     needs:
     - process_stset
-    - msm_preflight_az_all_postest_3000_1000
+    - msm_preflight_az_all_postest_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/az/all/postest/msm/*.rds
@@ -842,7 +1124,7 @@ actions:
   msm_postprocess_az_all_postest:
     run: r:latest analysis/single/model/msm_postprocess.R az all postest
     needs:
-    - msm_az_all_postest_3000_1000
+    - msm_az_all_postest_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/az/all/postest/postprocess/*.rds
@@ -854,9 +1136,9 @@ actions:
   ## Model: brand = az; subgroup = all; outcome = covidadmitted 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_az_all_covidadmitted_3000_1000:
-    run: r:latest analysis/single/model/msm_preflight.R az all covidadmitted 3000
-      1000
+  msm_preflight_az_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/msm_preflight.R az all covidadmitted 150000
+      50000
     needs:
     - process_stset
     outputs:
@@ -864,11 +1146,11 @@ actions:
         csv: output/single/az/all/covidadmitted/preflight/*.csv
         html: output/single/az/all/covidadmitted/preflight/*.html
 
-  msm_az_all_covidadmitted_3000_1000:
-    run: r:latest analysis/single/model/msm.R az all covidadmitted 3000 1000
+  msm_az_all_covidadmitted_150000_50000:
+    run: r:latest analysis/single/model/msm.R az all covidadmitted 150000 50000
     needs:
     - process_stset
-    - msm_preflight_az_all_covidadmitted_3000_1000
+    - msm_preflight_az_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/az/all/covidadmitted/msm/*.rds
@@ -880,7 +1162,7 @@ actions:
   msm_postprocess_az_all_covidadmitted:
     run: r:latest analysis/single/model/msm_postprocess.R az all covidadmitted
     needs:
-    - msm_az_all_covidadmitted_3000_1000
+    - msm_az_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/az/all/covidadmitted/postprocess/*.rds
@@ -892,8 +1174,8 @@ actions:
   ## Model: brand = az; subgroup = all; outcome = death 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_az_all_death_3000_1000:
-    run: r:latest analysis/single/model/msm_preflight.R az all death 3000 1000
+  msm_preflight_az_all_death_150000_50000:
+    run: r:latest analysis/single/model/msm_preflight.R az all death 150000 50000
     needs:
     - process_stset
     outputs:
@@ -901,11 +1183,11 @@ actions:
         csv: output/single/az/all/death/preflight/*.csv
         html: output/single/az/all/death/preflight/*.html
 
-  msm_az_all_death_3000_1000:
-    run: r:latest analysis/single/model/msm.R az all death 3000 1000
+  msm_az_all_death_150000_50000:
+    run: r:latest analysis/single/model/msm.R az all death 150000 50000
     needs:
     - process_stset
-    - msm_preflight_az_all_death_3000_1000
+    - msm_preflight_az_all_death_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/az/all/death/msm/*.rds
@@ -917,7 +1199,7 @@ actions:
   msm_postprocess_az_all_death:
     run: r:latest analysis/single/model/msm_postprocess.R az all death
     needs:
-    - msm_az_all_death_3000_1000
+    - msm_az_all_death_150000_50000
     outputs:
       highly_sensitive:
         rds: output/single/az/all/death/postprocess/*.rds

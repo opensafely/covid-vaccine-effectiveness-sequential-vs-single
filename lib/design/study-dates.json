@@ -10,12 +10,12 @@
   "pfizer": {
     "start_date": "2020-12-08",
     "end_date": "2021-04-12",
-    "control_extract_dates": ["2020-12-08", "2020-12-22"]
+    "control_extract_dates": ["2020-12-08", "2020-12-22", "2021-01-05", "2021-01-19"]
   },
   "az": {
     "start_date": "2021-01-04",
     "end_date": "2021-04-12",
-    "control_extract_dates": ["2021-01-04", "2021-01-18"]
+    "control_extract_dates": ["2021-01-04", "2021-01-18", "2021-02-01", "2021-02-15"]
   },
   "over80s": {
     "start_date": "2020-12-08"
