@@ -531,10 +531,21 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
       isnot_endoflife = !endoflife,
       isnot_housebound = !housebound,
       
-      covid_vax_disease_1_date_matches_vax1_date = (covid_vax_disease_1_date == vax1_date) | (is.na(covid_vax_disease_1_date) & is.na(vax1_date)),
+      covid_vax_disease_1_date_matches_vax1_date = case_when(
+        # FALSE if only one is missing
+        is.na(covid_vax_disease_1_date) & !is.na(vax1_date) ~ FALSE,
+        !is.na(covid_vax_disease_1_date) & is.na(vax1_date) ~ FALSE,
+        # TRUE if both missing
+        is.na(covid_vax_disease_1_date) & is.na(vax1_date) ~ TRUE,
+        # TRUE if equal
+        covid_vax_disease_1_date == vax1_date ~ TRUE,
+        # FALSE otherwise
+        TRUE ~ FALSE
+        ),
       
       # Check the individual was not vaccinated before eligible.
       vax1_notbeforeageeligible = case_when(
+        is.na(vax1_date) ~ TRUE,
         ageband2 %in% c("80+") & vax1_date < study_dates$over80s$start_date ~ FALSE,
         ageband2 %in% c("70-79") & vax1_date < study_dates$in70s$start_date ~ FALSE,
         # ignore agebands under 70 years old as these are not being studied here
