@@ -671,7 +671,8 @@ if (stage %in% c("single", "treated")) {
         pct_step = n / lag(n),
         crit = str_extract(criteria, "^c\\d+"),
         criteria = fct_recoderelevel(crit, criteria_descr)
-      ) 
+      ) %>%
+      mutate(across(starts_with("pct_"), ~round(.x,4)))
     
     if (stage == "single") {
       flowchart_path <- here("output", "single", "eligible")
@@ -694,6 +695,7 @@ if (stage %in% c("single", "treated")) {
         pct_all = n / first(n),
         pct_step = n / lag(n),
       ) %>%
+      mutate(across(starts_with("pct_"), ~round(.x, 4))) %>%
       write_csv(file.path(flowchart_path, glue("flowchart_{stage}eligible_{brand}_rounded.csv"))) 
     
   }
