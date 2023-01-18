@@ -433,7 +433,7 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
   criteria_descr["  not receiving end-of-life care"] <- "c5"
   criteria_descr["  no missing demographic information"] <- "c6"
   if (stage=="single") {
-    criteria_descr["  no evidence of covid before eligible for vaccintation"] <- "c7"
+    criteria_descr["  no evidence of covid before eligible for vaccination"] <- "c7"
     include <- "c7"
   } else {
     criteria_descr["  no evidence of covid before trial date"] <- "c7"
