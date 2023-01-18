@@ -99,7 +99,7 @@ action_1matchround <- function(brand, matching_round){
       needs = c(
         "design",
         if(matching_round>1) {
-          c(glue("process_controlpotential_{brand}_{matching_round-1}"),glue("process_controlactual_{brand}_{matching_round-1}"))
+          c(glue("process_controlpotential_{brand}_1"),glue("process_controlactual_{brand}_{matching_round-1}"))
         } else {
             NULL
           }
@@ -494,7 +494,8 @@ actions_list <- splice(
       " --output-file output/sequential/treated/extract/input_treated.feather",
     ),
     needs = namelesslst(
-      "design"
+      "design",
+      "process_single"
     ),
     highly_sensitive = lst(
       extract = "output/sequential/treated/extract/input_treated.feather"
@@ -686,7 +687,7 @@ actions_list <- splice(
     outcome=model_outcomes,
   ) %>%
     pmap(
-      function(brand, subgroup, outcome) model_single(brand, subgroup, outcome, 3000, 1000)#150000, 50000)
+      function(brand, subgroup, outcome) model_single(brand, subgroup, outcome, 150000, 50000)
     ) %>%
     unlist(recursive = FALSE),
   
