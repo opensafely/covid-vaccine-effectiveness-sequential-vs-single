@@ -48,7 +48,7 @@ if matching_round == 1: additional_inclusion_variables = dict(
 )
 else: additional_inclusion_variables = dict(
    eligible_matchinground1 = patients.which_exist_in_file(
-      f_path=f"output/sequential/{brand}/matchround{previousmatching_round}/process/data_controlpotential.csv.gz"
+      f_path=f"output/sequential/{brand}/matchround1/process/data_controlpotential.csv.gz"
       ),
 )
 
