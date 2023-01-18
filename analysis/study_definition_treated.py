@@ -62,10 +62,15 @@ study = StudyDefinition(
     NOT has_died
     AND 
     covid_vax_disease_1_date
+    AND
+    eligible_single
     """,
     
-    **inclusion_variables,    
+    **inclusion_variables,   
 
+    eligible_single = patients.which_exist_in_file(
+      f_path=f"output/single/eligible/data_singleeligible.csv.gz"
+      ),
   ),
   
   #################################################################
