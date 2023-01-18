@@ -57,7 +57,7 @@ study_dates <- lst(
 
 ## sequential trial parameters:
 # number of matching rounds to perform
-n_matching_rounds <- 2#4
+n_matching_rounds <- 4
 # gap in days between matching rounds
 extract_increment <- 14
 # define brand-specific control_extract_dates
