@@ -83,6 +83,8 @@ raw_stats_rounded <- raw_stats %>%
     median, p25, p75,
     var_label = factor(var_label, levels=var_levels),
     variable_levels = replace_na(as.character(variable_levels), "")
-  ) 
+  ) %>%
+  mutate(across(c(p, p_miss, p_nonmiss), ~round(.x, 4))) %>%
+  mutate(across(c(median, p25, p75), ~round(.x, 2)))
 
 write_csv(raw_stats_rounded, fs::path(outdir, glue("table1_{approach}_{brand}_rounded.csv")))
