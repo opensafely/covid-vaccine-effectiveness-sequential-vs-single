@@ -421,7 +421,7 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
   if (stage == "single") {
     criteria_descr["Aged 70+"] <- "c0"
   } else if (stage == "treated") {
-    criteria_descr["Aged 70+ with 1st dose between study dates"] <- "c0"
+    criteria_descr["Aged 70+ with 1st dose between study dates and eligible for single trial"] <- "c0"
   } else if (stage %in% c("potential", "actual")) {
     # c0 not straightforward to define when stage%in%c(potential,actual)
     # but we don't create flowcharts at those stages, so ok not to define c0 here
