@@ -21,7 +21,11 @@ fs::dir_create(outdir)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # import and process data_days ----
-data_days <- read_rds(here("output", "single", "stset", "data_days.rds")) %>%
+data_days <- lapply(
+  1:process_data_days_n,
+  function(iteration) read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) 
+) %>%
+  bind_rows() %>%
   transmute(
     
     patient_id,

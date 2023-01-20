@@ -398,9 +398,14 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
       run = "r:latest analysis/single/model/msm_preflight.R",
       arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
-      needs = namelesslst(
+      needs = splice(
         "process_stset",
-        "process_data_days"
+        as.list(
+          glue_data(
+            .x=tibble(iteration = 1:process_data_days_n),
+            "process_data_days_{iteration}"
+          ) 
+        )
       ),
       moderately_sensitive = lst(
         csv = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/*.csv"),
@@ -412,9 +417,14 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       name = glue("msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
       run = "r:latest analysis/single/model/msm.R",
       arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
-      needs = namelesslst(
+      needs = splice(
         "process_stset",
-        "process_data_days",
+        as.list(
+          glue_data(
+            .x=tibble(iteration = 1:process_data_days_n),
+            "process_data_days_{iteration}"
+          ) 
+        ),
         glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
       ),
       highly_sensitive = lst(
@@ -661,19 +671,27 @@ actions_list <- splice(
     )
   ),
   
-  comment("`process_data_days` creates a one-row-per-patient-per-day dataset",
-          "(this is a separate action to `process_stset` due to memomery)",
-          "constraints):"), 
-  action(
-    name = "process_data_days",
-    run = "r:latest analysis/single/process/process_data_days.R",
-    needs = namelesslst(
-      "process_stset"
-    ),
-    highly_sensitive = lst(
-      processed = "output/single/stset/data_days.rds"
-    )
-  ),
+  comment("`process_data_days` creates a one-row-per-patient-per-day dataset;",
+          "this is split across `process_data_days_n` defined in",
+          "due to memory constraints:"), 
+  
+  tibble(iteration = 1:process_data_days_n) %>%
+    pmap(
+      function(iteration) {
+        action(
+          name = glue("process_data_days_{iteration}"),
+          run = "r:latest analysis/single/process/process_data_days.R",
+          arguments = iteration,
+          needs = namelesslst(
+            "process_stset"
+          ),
+          highly_sensitive = lst(
+            processed = glue("output/single/stset/data_days_{iteration}.rds")
+          )
+        )
+      }
+    ) %>%
+    unlist(recursive = FALSE),
   
   comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
           "Fit models to the single trials data",
@@ -760,8 +778,11 @@ actions_list <- splice(
   action(
     name = "brand12counts",
     run = glue("r:latest analysis/report/brand12counts.R"),
-    needs = namelesslst(
-      "process_stset"
+    needs = as.list(
+      glue_data(
+        .x=tibble(iteration = 1:process_data_days_n),
+        "process_data_days_{iteration}"
+      ) 
     ),
     moderately_sensitive = lst(
       csv = "output/report/brand12counts/*.csv",

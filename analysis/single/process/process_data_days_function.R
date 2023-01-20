@@ -7,7 +7,11 @@
 
 process_data_days_function <- function(stage) {
   
-  data_days0 <- read_rds(here("output", "single", "stset", "data_days.rds")) # one row per patient per day
+  data_days0 <- lapply(
+    1:process_data_days_n,
+    function(iteration) read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) 
+  ) %>%
+    bind_rows()
   
   if (stage == "msm") {
     

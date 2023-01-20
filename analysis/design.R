@@ -264,3 +264,7 @@ list_formula_single <- local({
   return(list_formula)
   
 })
+
+
+# number of samples for process_data_days
+process_data_days_n <- 10

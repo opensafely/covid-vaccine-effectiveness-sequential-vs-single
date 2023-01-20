@@ -24,25 +24,50 @@ source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "survival.R"))
 
-# remove large objects when running on server
-if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
+# import command-line arguments
+args <- commandArgs(trailingOnly=TRUE)
+if(length(args)==0){
   removeobs <- FALSE
+  iteration <- 1L
 } else {
   removeobs <- TRUE
+  iteration <- as.integer(args[[1]])
 }
-
-# import processed data
-# data_eligible <- read_rds(here("output", "single", "eligible", "data_singleeligible.rds"))
-# data_outcomes <- read_rds(here("output", "single", "process", "data_outcomes.rds"))
 
 # create output directory
 outdir <- here("output", "single", "stset")
 # fs::dir_create(outdir)
 
-# import datasets from process_stset ----
-data_fixed <- read_rds(file.path(outdir, "data_fixed.rds"))
-data_patients <- read_rds(file.path(outdir, "data_patients.rds"))
-data_events <- read_rds(file.path(outdir, "data_events.rds"))
+# import datasets from process_stset and restrict to iteration_ids  ----
+
+data_fixed <- read_rds(file.path(outdir, "data_fixed.rds")) 
+
+# run this script over `process_data_days_n` iterations (defined in analysis/design.R)
+# otherwise the script runs into memory issues
+iteration_size <- ceiling(nrow(data_fixed)/process_data_days_n)
+
+iteration_ids <- data_fixed %>%
+  transmute(
+    patient_id = as.integer(patient_id),
+    rank_id = dense_rank(patient_id)
+    ) %>%
+  filter(
+    (iteration - 1)*iteration_size < rank_id,
+    rank_id <= iteration*iteration_size
+  ) %>%
+  distinct(patient_id) %>%
+  pull(patient_id)
+
+data_fixed <- data_fixed %>%
+  filter(as.integer(patient_id) %in% iteration_ids)
+  
+data_patients <- read_rds(file.path(outdir, "data_patients.rds")) %>%
+  filter(as.integer(patient_id) %in% iteration_ids)
+
+data_events <- read_rds(file.path(outdir, "data_events.rds")) %>%
+  filter(as.integer(patient_id) %in% iteration_ids)
+
+rm(iteration_ids)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # Generate data_days: one one row per person per day ----
@@ -151,4 +176,4 @@ cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_days)), "\n
 cat(glue("memory usage = ", format(object.size(data_days), units="GB", standard="SI", digits=3L)), "\n")
 
 # Save processed dataset ----
-write_rds(data_days, file.path(outdir, "data_days.rds"), compress="gz")
+write_rds(data_days, file.path(outdir, glue("data_days_{iteration}.rds")), compress="gz")
