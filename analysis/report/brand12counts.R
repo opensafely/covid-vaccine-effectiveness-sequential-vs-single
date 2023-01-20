@@ -20,12 +20,17 @@ outdir <- here("output", "report", "brand12counts")
 fs::dir_create(outdir)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# import and process data_days ----
+# import data_days ----
+cat("Start import:\n")
 data_days <- lapply(
   1:process_data_days_n,
   function(iteration) read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) 
 ) %>%
-  bind_rows() %>%
+  bind_rows() 
+
+# process data_days ----
+cat("Start processing:\n")
+data_days <- data_days %>%
   transmute(
     
     patient_id,
@@ -42,10 +47,11 @@ data_days <- lapply(
       vaxaz_status==1  ~ "ChAdOx1\ndose 1",
       vaxaz_status==2  ~ "ChAdOx1\ndose 2",
       TRUE ~ NA_character_
-    ),
+    )
     
   )
 
+cat("Generate plot_data:\n")
 plot_data <- data_days %>%
   group_by(date, vaxbrand12_status) %>%
   summarise(
@@ -68,6 +74,7 @@ write_csv(
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # create plot ----
+cat("Create plot:\n")
 colour_palette <- c(
   "Not vaccinated" = "#f7f7f7", # light grey
   "BNT162b2\ndose 1" = "#e78ac3", # medium pink / medium grey
