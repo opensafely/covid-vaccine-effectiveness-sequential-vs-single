@@ -967,85 +967,13 @@ actions:
   ## this is split across `process_data_days_n` defined in 
   ## due to memory constraints: 
 
-  process_data_days_1:
-    run: r:latest analysis/single/process/process_data_days.R 1
+  process_data_days:
+    run: r:latest analysis/single/process/process_data_days.R
     needs:
     - process_stset
     outputs:
       highly_sensitive:
-        processed: output/single/stset/data_days_1.rds
-
-  process_data_days_2:
-    run: r:latest analysis/single/process/process_data_days.R 2
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_2.rds
-
-  process_data_days_3:
-    run: r:latest analysis/single/process/process_data_days.R 3
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_3.rds
-
-  process_data_days_4:
-    run: r:latest analysis/single/process/process_data_days.R 4
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_4.rds
-
-  process_data_days_5:
-    run: r:latest analysis/single/process/process_data_days.R 5
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_5.rds
-
-  process_data_days_6:
-    run: r:latest analysis/single/process/process_data_days.R 6
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_6.rds
-
-  process_data_days_7:
-    run: r:latest analysis/single/process/process_data_days.R 7
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_7.rds
-
-  process_data_days_8:
-    run: r:latest analysis/single/process/process_data_days.R 8
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_8.rds
-
-  process_data_days_9:
-    run: r:latest analysis/single/process/process_data_days.R 9
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_9.rds
-
-  process_data_days_10:
-    run: r:latest analysis/single/process/process_data_days.R 10
-    needs:
-    - process_stset
-    outputs:
-      highly_sensitive:
-        processed: output/single/stset/data_days_10.rds
+        processed: output/single/stset/data_days_*.rds
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Fit models to the single trials data 
@@ -1075,16 +1003,7 @@ actions:
       50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/pfizer/all/postest/preflight/*.csv
@@ -1094,16 +1013,7 @@ actions:
     run: r:latest analysis/single/model/msm.R pfizer all postest 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     - msm_preflight_pfizer_all_postest_150000_50000
     outputs:
       highly_sensitive:
@@ -1133,16 +1043,7 @@ actions:
       50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/pfizer/all/covidadmitted/preflight/*.csv
@@ -1152,16 +1053,7 @@ actions:
     run: r:latest analysis/single/model/msm.R pfizer all covidadmitted 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     - msm_preflight_pfizer_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
@@ -1190,16 +1082,7 @@ actions:
     run: r:latest analysis/single/model/msm_preflight.R pfizer all death 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/pfizer/all/death/preflight/*.csv
@@ -1209,16 +1092,7 @@ actions:
     run: r:latest analysis/single/model/msm.R pfizer all death 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     - msm_preflight_pfizer_all_death_150000_50000
     outputs:
       highly_sensitive:
@@ -1247,16 +1121,7 @@ actions:
     run: r:latest analysis/single/model/msm_preflight.R az all postest 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/az/all/postest/preflight/*.csv
@@ -1266,16 +1131,7 @@ actions:
     run: r:latest analysis/single/model/msm.R az all postest 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     - msm_preflight_az_all_postest_150000_50000
     outputs:
       highly_sensitive:
@@ -1305,16 +1161,7 @@ actions:
       50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/az/all/covidadmitted/preflight/*.csv
@@ -1324,16 +1171,7 @@ actions:
     run: r:latest analysis/single/model/msm.R az all covidadmitted 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     - msm_preflight_az_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
@@ -1362,16 +1200,7 @@ actions:
     run: r:latest analysis/single/model/msm_preflight.R az all death 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/az/all/death/preflight/*.csv
@@ -1381,16 +1210,7 @@ actions:
     run: r:latest analysis/single/model/msm.R az all death 150000 50000
     needs:
     - process_stset
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     - msm_preflight_az_all_death_150000_50000
     outputs:
       highly_sensitive:
@@ -1455,16 +1275,7 @@ actions:
   brand12counts:
     run: r:latest analysis/report/brand12counts.R
     needs:
-    - process_data_days_1
-    - process_data_days_2
-    - process_data_days_3
-    - process_data_days_4
-    - process_data_days_5
-    - process_data_days_6
-    - process_data_days_7
-    - process_data_days_8
-    - process_data_days_9
-    - process_data_days_10
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/report/brand12counts/*.csv
