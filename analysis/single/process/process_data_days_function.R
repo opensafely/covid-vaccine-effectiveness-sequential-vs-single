@@ -7,6 +7,7 @@
 
 process_data_days_function <- function(stage) {
   
+  cat("Import data_days:\n")
   data_days0 <- lapply(
     1:process_data_days_n,
     function(iteration) read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) 
@@ -15,6 +16,7 @@ process_data_days_function <- function(stage) {
   
   if (stage == "msm") {
     
+    cat("Join data_days to data_samples:\n")
     data_days0 <- data_days0 %>%
       left_join(data_samples, by="patient_id")
     
@@ -26,6 +28,7 @@ process_data_days_function <- function(stage) {
     
   }
   
+  cat("Process step 1:\n")
   data_days1 <- data_days0 %>%
     mutate(all = factor("all",levels=c("all"))) %>%
     filter(
@@ -50,12 +53,14 @@ process_data_days_function <- function(stage) {
       across(where(is.logical), ~.x*1L)
     ) 
   
+  cat("Process step 2:\n")
   postest_when_unvax <- data_days1 %>%
     # identify those who had a positive test while unvaccinated
     filter(vaxany_status == 0 & postest_status == 1) %>%
     distinct(patient_id) %>%
     mutate(postest_when_unvax = TRUE)
     
+  cat("Process step 3:\n")
   data_days1 %>%
     # join those who had a positive test while unvaccinated
     left_join(postest_when_unvax, by = "patient_id") %>%

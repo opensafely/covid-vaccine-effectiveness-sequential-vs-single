@@ -127,7 +127,9 @@ for(subgroup_level in subgroup_levels){
       
       # read and process data_days (one row per person day)
       # see analysis/single/process/process_data_days_function.R for the function `process_data_days_function`
+      cat("Start `process_data_days_function`\n")
       data_days <- process_data_days_function(stage = "preflight")
+      cat("End `process_data_days_function`\n")
       
       if(removeobs) rm(data_fixed)
 
@@ -157,6 +159,7 @@ for(subgroup_level in subgroup_levels){
         update(formula_remove_subgroup)
       
       
+      cat("Generate data_days_vax_sample:\n")
       # vaccination models
       data_days_vax <- data_days %>%
         # select follow-up time where vax brand is being administered
@@ -197,6 +200,7 @@ for(subgroup_level in subgroup_levels){
           )
       
       # apply septab function
+      cat("Apply septab function to vax data:\n")
       septab(data_days_vax_sample, treatment_any, subgroup_level, outcome, brand, "vaxany1")
       septab(data_days_vax_sample, treatment_pfizer, subgroup_level, outcome, brand, "vaxpfizer1")
       septab(data_days_vax_sample, treatment_az, subgroup_level, outcome, brand, "vaxaz1")
@@ -204,6 +208,7 @@ for(subgroup_level in subgroup_levels){
       if(removeobs) rm(data_samples_vax, data_days_vax, data_days_vax_sample)
       
       # outcome models
+      cat("Generate data_days_outcome_sample:\n")
       data_samples_outcome <- data_days %>%
         group_by(patient_id) %>%
         summarise(
@@ -242,6 +247,7 @@ for(subgroup_level in subgroup_levels){
           file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_outcomes.csv"))
         )
       
+      cat("Apply septab function to outcome data:\n")
       septab(data_days_outcome_sample, outcome_formula, subgroup_level, outcome, brand, "outcome")
       
       if(removeobs) rm(data_samples_outcome, data_days, data_days_outcome_sample)
