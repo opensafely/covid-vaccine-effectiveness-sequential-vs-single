@@ -14,6 +14,11 @@ process_data_days_function <- function(stage) {
   ) %>%
     bind_rows()
   
+  # print dataset size
+  cat(" \n")
+  cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_days0)), "\n")
+  cat(glue("memory usage = ", format(object.size(data_days0), units="GB", standard="SI", digits=3L)), "\n")
+  
   if (stage == "msm") {
     
     cat("Join data_days to data_samples:\n")
