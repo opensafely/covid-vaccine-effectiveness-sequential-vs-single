@@ -951,8 +951,8 @@ actions:
       highly_sensitive:
         processed: output/single/process/*.rds
 
-  ## `process_stset` creates time-to-event datasets that can be used in 
-  ## survival models: 
+  ## `process_stset` creates time-to-event datasets necessary to derive 
+  ## data_days (one-row-per-patient-per-day): 
 
   process_stset:
     run: r:latest analysis/single/process/process_stset.R
@@ -962,6 +962,18 @@ actions:
     outputs:
       highly_sensitive:
         processed: output/single/stset/*.rds
+
+  ## `process_data_days` creates a one-row-per-patient-per-day dataset 
+  ## (this is a separate action to `process_stset` due to memomery) 
+  ## constraints): 
+
+  process_data_days:
+    run: r:latest analysis/single/process/process_data_days.R
+    needs:
+    - process_stset
+    outputs:
+      highly_sensitive:
+        processed: output/single/stset/data_days.rds
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Fit models to the single trials data 
@@ -991,6 +1003,7 @@ actions:
       50000
     needs:
     - process_stset
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/pfizer/all/postest/preflight/*.csv
@@ -1000,6 +1013,7 @@ actions:
     run: r:latest analysis/single/model/msm.R pfizer all postest 150000 50000
     needs:
     - process_stset
+    - process_data_days
     - msm_preflight_pfizer_all_postest_150000_50000
     outputs:
       highly_sensitive:
@@ -1029,6 +1043,7 @@ actions:
       50000
     needs:
     - process_stset
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/pfizer/all/covidadmitted/preflight/*.csv
@@ -1038,6 +1053,7 @@ actions:
     run: r:latest analysis/single/model/msm.R pfizer all covidadmitted 150000 50000
     needs:
     - process_stset
+    - process_data_days
     - msm_preflight_pfizer_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
@@ -1066,6 +1082,7 @@ actions:
     run: r:latest analysis/single/model/msm_preflight.R pfizer all death 150000 50000
     needs:
     - process_stset
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/pfizer/all/death/preflight/*.csv
@@ -1075,6 +1092,7 @@ actions:
     run: r:latest analysis/single/model/msm.R pfizer all death 150000 50000
     needs:
     - process_stset
+    - process_data_days
     - msm_preflight_pfizer_all_death_150000_50000
     outputs:
       highly_sensitive:
@@ -1103,6 +1121,7 @@ actions:
     run: r:latest analysis/single/model/msm_preflight.R az all postest 150000 50000
     needs:
     - process_stset
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/az/all/postest/preflight/*.csv
@@ -1112,6 +1131,7 @@ actions:
     run: r:latest analysis/single/model/msm.R az all postest 150000 50000
     needs:
     - process_stset
+    - process_data_days
     - msm_preflight_az_all_postest_150000_50000
     outputs:
       highly_sensitive:
@@ -1141,6 +1161,7 @@ actions:
       50000
     needs:
     - process_stset
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/az/all/covidadmitted/preflight/*.csv
@@ -1150,6 +1171,7 @@ actions:
     run: r:latest analysis/single/model/msm.R az all covidadmitted 150000 50000
     needs:
     - process_stset
+    - process_data_days
     - msm_preflight_az_all_covidadmitted_150000_50000
     outputs:
       highly_sensitive:
@@ -1178,6 +1200,7 @@ actions:
     run: r:latest analysis/single/model/msm_preflight.R az all death 150000 50000
     needs:
     - process_stset
+    - process_data_days
     outputs:
       moderately_sensitive:
         csv: output/single/az/all/death/preflight/*.csv
@@ -1187,6 +1210,7 @@ actions:
     run: r:latest analysis/single/model/msm.R az all death 150000 50000
     needs:
     - process_stset
+    - process_data_days
     - msm_preflight_az_all_death_150000_50000
     outputs:
       highly_sensitive:

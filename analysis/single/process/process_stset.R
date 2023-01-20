@@ -284,7 +284,7 @@ for (var in cols_to_convert) {
  
 # free up memory
 if(removeobs){
-  rm(data_events0, data_hospitalised_infectious, data_hospitalised_noninfectious, data_postest)
+  rm(data_events0, data_hospitalised_infectious, data_hospitalised_noninfectious)
 }
 
 stopifnot("tstart should be >= 0 in data_events" = data_events$tstart>=0)
@@ -295,117 +295,9 @@ cat(" \n")
 cat(glue("one-row-per-patient-per-event data size = ", nrow(data_events)), "\n")
 cat(glue("memory usage = ", format(object.size(data_events), units="GB", standard="SI", digits=3L)), "\n")
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# Generate data_days: one one row per person per day ----
-# this format has lots of redundancy but is necessary for MSMs
-alltimes <- expand(
-  data_patients, 
-  patient_id, 
-  times=as.integer(full_seq(c(1, tte_enddate),1))
-  )
-
-# do not use survSplit as this doesn't handle multiple events properly
-# eg, a positive test will be expanded as if a tdc (eg c(0,0,1,1,1,..)) not an event (eg c(0,0,1,0,0,...))
-# also, survSplit is slower!
-data_days <- tmerge(
-  data1 = data_events,
-  data2 = alltimes,
-  id = patient_id,
-  alltimes = event(times, times)
-) %>%
-  arrange(patient_id, tstop) %>%
-  group_by(patient_id) %>%
-  mutate(
-    hospinfectiousdischarge_time = if_else(hospinfectiousdischarge==1, tstop, NA_real_),
-    hospnoninfectiousdischarge_time = if_else(hospnoninfectiousdischarge==1, tstop, NA_real_)
-  ) %>%
-  fill(
-    hospinfectiousdischarge_time, hospnoninfectiousdischarge_time 
-  ) %>%
-  mutate(
-    
-    # define time since vaccination
-    vaxany1_timesince = cumsum(vaxany1_status),
-    vaxany2_timesince = cumsum(vaxany2_status),
-    vaxpfizer1_timesince = cumsum(vaxpfizer1_status),
-    vaxpfizer2_timesince = cumsum(vaxpfizer2_status),
-    vaxaz1_timesince = cumsum(vaxaz1_status),
-    vaxaz2_timesince = cumsum(vaxaz2_status),
-    
-    # define time since infectious hospitalisation
-    timesince_hospinfectiousdischarge_pw = cut(
-      tstop - hospinfectiousdischarge_time,
-      breaks=c(0, 21, 28),
-      labels=c( "1-21", "22-28"),
-      right=TRUE
-    ),
-    timesince_hospinfectiousdischarge_pw = case_when(
-      is.na(timesince_hospinfectiousdischarge_pw) & hospinfectious_status==0 ~ "Not in hospital",
-      hospinfectious_status==1 ~ "In hospital",
-      !is.na(timesince_hospinfectiousdischarge_pw) ~ as.character(timesince_hospinfectiousdischarge_pw),
-      TRUE ~ NA_character_
-    ) %>% factor(c("Not in hospital", "In hospital", "1-21", "22-28")),
-    
-    # define time since non infectious hospitalisation
-    timesince_hospnoninfectiousdischarge_pw = cut(
-      tstop - hospnoninfectiousdischarge_time,
-      breaks=c(0, 21, 28),
-      labels=c( "1-21", "22-28"),
-      right=TRUE
-    ),
-    timesince_hospnoninfectiousdischarge_pw = case_when(
-      is.na(timesince_hospnoninfectiousdischarge_pw) & hospnoninfectious_status==0 ~ "Not in hospital",
-      hospnoninfectious_status==1 ~ "In hospital",
-      !is.na(timesince_hospnoninfectiousdischarge_pw) ~ as.character(timesince_hospnoninfectiousdischarge_pw),
-      TRUE ~ NA_character_
-    ) %>% factor(c("Not in hospital", "In hospital", "1-21", "22-28"))
-    
-  ) %>%
-  ungroup() %>%
-  select(
-    -hospinfectiousdischarge_time,
-    -hospnoninfectiousdischarge_time
-  ) %>%
-  # tmerge converts event indicators to numeric - convert back to save space
-  mutate(across(
-    .cols = c("vaxany1",
-              "vaxany2",
-              "vaxpfizer1",
-              "vaxpfizer2",
-              "vaxaz1",
-              "vaxaz2",
-              "postest",
-              "covidadmitted",
-              "death",
-              "dereg",
-              "hospinfectious_status",
-              "hospnoninfectious_status",
-              "hospinfectiousdischarge",
-              "hospnoninfectiousdischarge"
-    ),
-    .fns = as.integer
-  ))
-
-stopifnot("dummy 'alltimes' should be equal to tstop" = all(data_days$alltimes == data_days$tstop))
-
-
-# remove unused columns
-data_days <- data_days %>%
-  # mutate(
-  #   vaxanyday1 = tte_vaxany1
-  # ) %>%
-  select(
-    -starts_with("tte_"),
-    -ends_with("_date")
-  )
-
-# print dataset size
-cat(" \n")
-cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_days)), "\n")
-cat(glue("memory usage = ", format(object.size(data_days), units="GB", standard="SI", digits=3L)), "\n")
 
 # Save processed datasets ----
 write_rds(data_fixed, file.path(outdir, "data_fixed.rds"), compress="gz")
 write_rds(data_patients, file.path(outdir, "data_patients.rds"), compress="gz")
-# write_rds(data_events, file.path(outdir, "data_events.rds"), compress="gz")
-write_rds(data_days, file.path(outdir, "data_days.rds"), compress="gz")
+# don't compress data_events as this loses the tmerge class
+write_rds(data_events, file.path(outdir, "data_events.rds"))

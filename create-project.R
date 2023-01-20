@@ -399,7 +399,8 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       run = "r:latest analysis/single/model/msm_preflight.R",
       arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
       needs = namelesslst(
-        "process_stset"
+        "process_stset",
+        "process_data_days"
       ),
       moderately_sensitive = lst(
         csv = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/*.csv"),
@@ -413,6 +414,7 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
       needs = namelesslst(
         "process_stset",
+        "process_data_days",
         glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
       ),
       highly_sensitive = lst(
@@ -645,8 +647,8 @@ actions_list <- splice(
     )
   ),
   
-  comment("`process_stset` creates time-to-event datasets that can be used in", 
-          "survival models:"), 
+  comment("`process_stset` creates time-to-event datasets necessary to derive", 
+          "data_days (one-row-per-patient-per-day):"), 
   action(
     name = "process_stset",
     run = "r:latest analysis/single/process/process_stset.R",
@@ -656,6 +658,20 @@ actions_list <- splice(
     ),
     highly_sensitive = lst(
       processed = "output/single/stset/*.rds"
+    )
+  ),
+  
+  comment("`process_data_days` creates a one-row-per-patient-per-day dataset",
+          "(this is a separate action to `process_stset` due to memomery)",
+          "constraints):"), 
+  action(
+    name = "process_data_days",
+    run = "r:latest analysis/single/process/process_data_days.R",
+    needs = namelesslst(
+      "process_stset"
+    ),
+    highly_sensitive = lst(
+      processed = "output/single/stset/data_days.rds"
     )
   ),
   
