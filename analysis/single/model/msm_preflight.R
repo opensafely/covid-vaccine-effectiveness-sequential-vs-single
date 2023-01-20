@@ -27,7 +27,7 @@ source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 source(here("analysis", "functions", "redaction.R"))
 source(here("analysis", "functions", "survival.R"))
-source(here("analysis", "single", "process", "process_data_days.R"))
+source(here("analysis", "single", "process", "process_data_days_function.R"))
 
 # import command-line arguments
 args <- commandArgs(trailingOnly=TRUE)
@@ -126,8 +126,8 @@ for(subgroup_level in subgroup_levels){
       data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
       
       # read and process data_days (one row per person day)
-      # see analysis/single/process/process_data_days.R for the process_data_days function
-      data_days <- process_data_days(stage = "preflight")
+      # see analysis/single/process/process_data_days_function.R for the function `process_data_days_function`
+      data_days <- process_data_days_function(stage = "preflight")
       
       if(removeobs) rm(data_fixed)
 

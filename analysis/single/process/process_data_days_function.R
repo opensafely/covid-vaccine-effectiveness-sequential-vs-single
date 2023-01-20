@@ -5,7 +5,7 @@
 # analysis/model/msm.R with stage = msm
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-process_data_days <- function(stage) {
+process_data_days_function <- function(stage) {
   
   data_days0 <- read_rds(here("output", "single", "stset", "data_days.rds")) # one row per patient per day
   
