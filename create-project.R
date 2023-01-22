@@ -386,7 +386,7 @@ brand_seqtrial <- function(brand) {
   
 }
 
-model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n) {
+model_single <- function(brand, subgroup, outcome) {
   
   splice(
     
@@ -395,27 +395,42 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
             "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
     
     action(
-      name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
+      name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
       run = "r:latest analysis/single/model/msm_preflight.R",
-      arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
+      arguments = c(brand, subgroup, outcome, "vaccine"),
       needs = splice(
         "process_stset",
         "process_data_days"
       ),
       moderately_sensitive = lst(
-        csv = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/*.csv"),
-        html = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/*.html")
+        csv = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/vaccine/*.csv"),
+        html = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/vaccine/*.html")
       )
     ),
     
     action(
-      name = glue("msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}"),
+      name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome"),
+      run = "r:latest analysis/single/model/msm_preflight.R",
+      arguments = c(brand, subgroup, outcome, "outcome"),
+      needs = splice(
+        "process_stset",
+        "process_data_days"
+      ),
+      moderately_sensitive = lst(
+        csv = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/outcome/*.csv"),
+        html = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/outcome/*.html")
+      )
+    ),
+    
+    action(
+      name = glue("msm_{brand}_{subgroup}_{outcome}"),
       run = "r:latest analysis/single/model/msm.R",
-      arguments = c(brand, subgroup, outcome, ipw_sample_random_n, msm_sample_nonoutcomes_n),
+      arguments = c(brand, subgroup, outcome),
       needs = splice(
         "process_stset",
         "process_data_days",
-        glue("msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
+        glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
+        glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome")
       ),
       highly_sensitive = lst(
         rds = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.rds")
@@ -432,7 +447,7 @@ model_single <- function(brand, subgroup, outcome, ipw_sample_random_n, msm_samp
       run = "r:latest analysis/single/model/msm_postprocess.R",
       arguments = c(brand, subgroup, outcome),
       needs = namelesslst(
-        glue("msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_{msm_sample_nonoutcomes_n}")
+        glue("msm_{brand}_{subgroup}_{outcome}")
       ),
       highly_sensitive = lst(
         rds = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.rds")
@@ -704,7 +719,7 @@ actions_list <- splice(
     outcome=model_outcomes,
   ) %>%
     pmap(
-      function(brand, subgroup, outcome) model_single(brand, subgroup, outcome, 150000, 50000)
+      function(brand, subgroup, outcome) model_single(brand, subgroup, outcome)
     ) %>%
     unlist(recursive = FALSE),
   

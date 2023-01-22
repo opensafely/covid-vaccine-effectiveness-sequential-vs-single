@@ -4,12 +4,11 @@
 # checks that there are no separation issues between covariates and outcomes
 #
 # The script should be run via an action in the project.yaml
-# The script must be accompanied by 3 arguments,
+# The script must be accompanied by 4 arguments,
 # 1. brand
 # 2. the subgroup variable. Use "all" if no subgroups
 # 3. outcome
-# 4. ipw_sample_random_n
-# 5. msm_sample_nonoutcomes_n
+# 4. stage
 # # # # # # # # # # # # # # # # # # # # ## # # # # # # # # # # # # # # # # # # # 
 
 # # # # # # # # # # # # # # # # # # # # ## # # # # # # # # # # # # # # # # # # # 
@@ -36,21 +35,26 @@ if(length(args)==0){
   brand <- "pfizer"
   subgroup <- "all"
   outcome <- "covidadmitted"
-  # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
-  ipw_sample_random_n <- 150000 
-  # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
-  msm_sample_nonoutcomes_n <- 50000 
+  stage <- "outcome"
 } else {
+  removeobs <- TRUE
   brand <- args[[1]]
   subgroup <- args[[2]]
   outcome <- args[[3]]
-  ipw_sample_random_n <- as.integer(args[[4]])
-  msm_sample_nonoutcomes_n <- as.integer(args[[5]])
-  removeobs <- TRUE
+  stage <- args[[4]]
+}
+
+# define sample_n depending on stage
+if (stage == "vaccine") {
+  # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
+  sample_n <- ipw_sample_random_n 
+} else if (stage == "outcome") {
+  # outcome models use more follow up time because longer to outcome, and much fewer outcomes than vaccinations
+  sample_n <- msm_sample_nonoutcomes_n 
 }
 
 # create output directory
-outdir <- here("output", "single", brand, subgroup, outcome, "preflight")
+outdir <- here("output", "single", brand, subgroup, outcome, "preflight", stage)
 fs::dir_create(outdir)
 
 # save formulas to global environment
@@ -125,131 +129,149 @@ for(subgroup_level in subgroup_levels){
       # import processed data
       data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
       
-      # read and process data_days (one row per person day)
-      # see analysis/single/process/process_data_days_function.R for the function `process_data_days_function`
-      cat("Start `process_data_days_function`\n")
-      data_days <- process_data_days_function(stage = "preflight")
-      cat("End `process_data_days_function`\n")
-      
-      if(removeobs) rm(data_fixed)
-
-      # define formulas      
-      treatment_any <-
-        update(vaxany1 ~ 1, formula_covars) %>% 
-        update(formula_secular_region) %>% 
-        update(formula_timedependent) %>% 
-        update(formula_remove_subgroup)
-      treatment_pfizer <-
-        update(vaxpfizer1 ~ 1, formula_covars) %>% 
-        update(formula_secular_region) %>% 
-        update(formula_timedependent) %>%
-        update(formula_remove_subgroup)
-      treatment_az <-
-        update(vaxaz1 ~ 1, formula_covars) %>%
-        update(formula_secular_region) %>%
-        update(formula_timedependent) %>% 
-        update(formula_remove_subgroup)
-      
-
-      outcome_formula <- formula_1 %>% 
-        update(formula_exposure) %>% 
-        update(formula_covars) %>%
-        update(formula_secular_region) %>%
-        update(formula_timedependent) %>%
-        update(formula_remove_subgroup)
-      
-      
-      cat("Generate data_days_vax_sample:\n")
-      # vaccination models
-      data_days_vax <- data_days %>%
-        # select follow-up time where vax brand is being administered
-        filter(vax_atrisk) 
-      
-      # generate data_samples_vax, summarise and save summary
-      data_samples_vax <- data_days_vax %>%
-        group_by(patient_id) %>%
-        summarise(
-          had_vax = any(vax>0),
-        ) %>%
-        ungroup() %>%
-        transmute(
-          patient_id,
-          sample = sample_random_n(patient_id, ipw_sample_random_n)
-        )
-      
-      data_days_vax_sample <- data_days_vax %>%
-        left_join(data_samples_vax, by="patient_id") %>%
-        filter(sample)
-      
-      data_days_vax_sample %>%
-        summarise(
-          obs = n(),
-          patients = n_distinct(patient_id),
-          vaxany1 = sum(vaxany1),
-          vaxpfizer1 = sum(vaxpfizer1),
-          vaxaz1 = sum(vaxaz1),
-          rate_vaxany1 = vaxany1/patients,
-          rate_vaxpfizer1 = vaxpfizer1/patients,
-          rate_vaxaz1 = vaxaz1/patients,
-          incidencerate_vaxany1 = vaxany1/obs,
-          incidencerate_vaxpfizer1 = vaxpfizer1/obs,
-          incidencerate_vaxaz1 = vaxaz1/obs
-        ) %>%
-        write_csv(
-          file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_vaccinations.csv"))
+      if (stage == "vaccine") {
+        
+        # define formulas      
+        treatment_any <-
+          update(vaxany1 ~ 1, formula_covars) %>% 
+          update(formula_secular_region) %>% 
+          update(formula_timedependent) %>% 
+          update(formula_remove_subgroup)
+        treatment_pfizer <-
+          update(vaxpfizer1 ~ 1, formula_covars) %>% 
+          update(formula_secular_region) %>% 
+          update(formula_timedependent) %>%
+          update(formula_remove_subgroup)
+        treatment_az <-
+          update(vaxaz1 ~ 1, formula_covars) %>%
+          update(formula_secular_region) %>%
+          update(formula_timedependent) %>% 
+          update(formula_remove_subgroup)
+        
+        cat("  \n")
+        cat("vaccine models ----\n")
+        cat("  \n")
+        # read and process data_days (one row per person day)
+        # see analysis/single/process/process_data_days_function.R for the function `process_data_days_function`
+        cat("Start `process_data_days_function`\n")
+        data_days_vax <- bind_rows(
+          lapply(
+            1:process_data_days_n,
+            function(i) 
+              process_data_days_function(
+                file = "preflight", 
+                stage = "vaccine",
+                iteration = i
+              )
           )
-      
-      # apply septab function
-      cat("Apply septab function to vax data:\n")
-      septab(data_days_vax_sample, treatment_any, subgroup_level, outcome, brand, "vaxany1")
-      septab(data_days_vax_sample, treatment_pfizer, subgroup_level, outcome, brand, "vaxpfizer1")
-      septab(data_days_vax_sample, treatment_az, subgroup_level, outcome, brand, "vaxaz1")
-      
-      if(removeobs) rm(data_samples_vax, data_days_vax, data_days_vax_sample)
-      
-      # outcome models
-      cat("Generate data_days_outcome_sample:\n")
-      data_samples_outcome <- data_days %>%
-        group_by(patient_id) %>%
-        summarise(
-          had_outcome = any(outcome>0),
-        ) %>%
-        ungroup() %>%
-        transmute(
-          patient_id,
-          sample = sample_nonoutcomes_n(had_outcome, patient_id, msm_sample_nonoutcomes_n),
-          sample_weights = sample_weights(had_outcome, sample) # not used in this script
         )
-      
-      data_days_outcome_sample <- data_days %>%
-        left_join(data_samples_outcome, by="patient_id") %>%
-        filter(sample)
-      
-      data_days_outcome_sample %>%
-        summarise(
-          obs = n(),
-          patients = n_distinct(patient_id),
-          
-          death = sum(death),
-          dereg = sum(dereg),
-          outcome = sum(outcome),
-          
-          rate_death = death/patients,
-          rate_dereg = dereg/patients,
-          rate_outcome = outcome/patients,
-          
-          incidencerate_death = death/obs,
-          incidencerate_dereg = dereg/obs,
-          incidencerate_outcome = outcome/obs
-          
-        ) %>%
-        write_csv(
-          file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_outcomes.csv"))
+        cat("End `process_data_days_function`\n")
+        
+        cat("Generate data_days_vax_sample:\n")
+        
+        # generate data_samples_vax, summarise and save summary
+        data_samples_vax <- data_days_vax %>%
+          distinct(patient_id) %>%
+          mutate(sample = sample_random_n(patient_id, sample_n)) %>%
+          filter(sample)
+        
+        data_days_vax_sample <- data_days_vax %>%
+          right_join(data_samples_vax, by="patient_id")
+        
+        cat(glue("Check correct number of patients in sampled data (should be {sample_n}):"), "\n")
+        data_days_vax_sample %>% distinct(patient_id) %>% nrow() %>% print()
+        
+        data_days_vax_sample %>%
+          summarise(
+            obs = n(),
+            patients = n_distinct(patient_id),
+            vaxany1 = sum(vaxany1),
+            vaxpfizer1 = sum(vaxpfizer1),
+            vaxaz1 = sum(vaxaz1),
+            rate_vaxany1 = vaxany1/patients,
+            rate_vaxpfizer1 = vaxpfizer1/patients,
+            rate_vaxaz1 = vaxaz1/patients,
+            incidencerate_vaxany1 = vaxany1/obs,
+            incidencerate_vaxpfizer1 = vaxpfizer1/obs,
+            incidencerate_vaxaz1 = vaxaz1/obs
+          ) %>%
+          write_csv(
+            file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_vaccinations.csv"))
+          )
+        
+        # apply septab function
+        cat("Apply septab function to vax data:\n")
+        septab(data_days_vax_sample, treatment_any, subgroup_level, outcome, brand, "vaxany1")
+        septab(data_days_vax_sample, treatment_pfizer, subgroup_level, outcome, brand, "vaxpfizer1")
+        septab(data_days_vax_sample, treatment_az, subgroup_level, outcome, brand, "vaxaz1")
+        
+        if(removeobs) rm(data_samples_vax, data_days_vax, data_days_vax_sample)
+        
+      } else if (stage == "outcome") {
+        
+        outcome_formula <- formula_1 %>% 
+          update(formula_exposure) %>% 
+          update(formula_covars) %>%
+          update(formula_secular_region) %>%
+          update(formula_timedependent) %>%
+          update(formula_remove_subgroup)
+        
+        cat("  \n")
+        cat("outcome models ----\n")
+        cat("  \n")
+        cat("Start `process_data_days_function`\n")
+        data_days_outcome <- bind_rows(
+          lapply(
+            1:process_data_days_n,
+            function(i) 
+              process_data_days_function(
+                file = "preflight", 
+                stage = "outcome",
+                iteration = i
+              )
+          )
         )
-      
-      cat("Apply septab function to outcome data:\n")
-      septab(data_days_outcome_sample, outcome_formula, subgroup_level, outcome, brand, "outcome")
-      
-      if(removeobs) rm(data_samples_outcome, data_days, data_days_outcome_sample)
+        cat("End `process_data_days_function`\n")
+        
+        cat("Generate data_days_outcome_sample:\n")
+        data_samples_outcome <- data_days_outcome %>%
+          transmute(
+            patient_id,
+            sample = sample_nonoutcomes_n(had_outcome, patient_id, sample_n)#,
+            # sample_weights = sample_weights(had_outcome, sample) # not used in this script
+          ) %>%
+          filter(sample)
+        
+        data_days_outcome_sample <- data_days_outcome %>%
+          right_join(data_samples_outcome, by="patient_id") 
+        
+        data_days_outcome_sample %>%
+          summarise(
+            obs = n(),
+            patients = n_distinct(patient_id),
+            
+            death = sum(death),
+            dereg = sum(dereg),
+            outcome = sum(outcome),
+            
+            rate_death = death/patients,
+            rate_dereg = dereg/patients,
+            rate_outcome = outcome/patients,
+            
+            incidencerate_death = death/obs,
+            incidencerate_dereg = dereg/obs,
+            incidencerate_outcome = outcome/obs
+            
+          ) %>%
+          write_csv(
+            file.path(outdir, glue("summary_{subgroup_level}_{brand}_{outcome}_outcomes.csv"))
+          )
+        
+        cat("Apply septab function to outcome data:\n")
+        septab(data_days_outcome_sample, outcome_formula, subgroup_level, outcome, brand, "outcome")
+        
+        if(removeobs) rm(data_samples_outcome, data_days_outcome, data_days_outcome_sample)
+        
+      }
       
 }

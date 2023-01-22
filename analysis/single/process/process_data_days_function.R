@@ -5,21 +5,22 @@
 # analysis/model/msm.R with stage = msm
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-process_data_days_function <- function(stage) {
+process_data_days_function <- function(
+  file, # preflight or model
+  stage, # vaccine or outcome
+  iteration # 1:process_data_days_n
+  ) {
+  
+  cat(glue("Iteration {iteration}:"), "\n")
   
   cat("Import data_days:\n")
-  data_days0 <- lapply(
-    1:process_data_days_n,
-    function(iteration) read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) 
-  ) %>%
-    bind_rows()
+  data_days0 <- read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds")))
   
-  # print dataset size
-  cat(" \n")
-  cat(glue("one-row-per-patient-per-time-unit data size = ", nrow(data_days0)), "\n")
-  cat(glue("memory usage = ", format(object.size(data_days0), units="GB", standard="SI", digits=3L)), "\n")
-  
-  if (stage == "msm") {
+  if (file == "preflight") {
+    
+    stage_vars <- c("vax", "death", "dereg")
+    
+  } else if (file == "model") {
     
     cat("Join data_days to data_samples:\n")
     data_days0 <- data_days0 %>%
@@ -27,11 +28,7 @@ process_data_days_function <- function(stage) {
     
     stage_vars <- c("sample_weights", "sample_outcome")
     
-  } else if (stage == "preflight") {
-    
-    stage_vars <- c("vax", "death", "dereg")
-    
-  }
+  } 
   
   cat("Process step 1:\n")
   data_days1 <- data_days0 %>%
@@ -66,7 +63,7 @@ process_data_days_function <- function(stage) {
     mutate(postest_when_unvax = TRUE)
     
   cat("Process step 3:\n")
-  data_days1 %>%
+  data_days <- data_days1 %>%
     # join those who had a positive test while unvaccinated
     left_join(postest_when_unvax, by = "patient_id") %>%
     replace_na(list(postest_when_unvax = FALSE)) %>%
@@ -91,13 +88,6 @@ process_data_days_function <- function(stage) {
         ~ if_else(postest_when_unvax, 0L, .x)
       )
     ) %>%
-    # # update vaxanyday1 to be always missing for patients who have a positive test when unvaccinated
-    # mutate(
-    #   across(
-    #     vaxanyday1, 
-    #     ~if_else(postest_when_unvax, NA_integer_, .x)
-    #     )
-    #   ) %>%
     mutate(
       timesincevax_pw = timesince_cut(vaxany1_timesince, c(0,postbaselinecuts), "pre-vax"),
       outcome = .[[outcome]],
@@ -125,6 +115,35 @@ process_data_days_function <- function(stage) {
       "vaxpfizer1_status",
       "vaxaz1_status",
     )
+  
+  if (file == "preflight") {
+    
+    if (stage == "vaccine") {
+      
+      # vaccination models
+      data_days_vax <- data_days %>%
+        # select follow-up time where vax brand is being administered
+        filter(vax_atrisk) 
+      
+      return(data_days_vax)
+      
+    } else if (stage == "outcome") {
+      
+      data_days_outcome <- data_days %>%
+        group_by(patient_id) %>%
+        mutate(
+          had_outcome = any(outcome>0),
+        ) %>%
+        ungroup()
+      
+      return(data_days_outcome)
+      
+    }
+    
+  } else if (file == "model") {
+    
+  }
+  
   
 }
 

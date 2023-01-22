@@ -998,23 +998,33 @@ actions:
   ## Model: brand = pfizer; subgroup = all; outcome = postest 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_pfizer_all_postest_150000_50000:
-    run: r:latest analysis/single/model/msm_preflight.R pfizer all postest 150000
-      50000
+  msm_preflight_pfizer_all_postest_vaccine:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all postest vaccine
     needs:
     - process_stset
     - process_data_days
     outputs:
       moderately_sensitive:
-        csv: output/single/pfizer/all/postest/preflight/*.csv
-        html: output/single/pfizer/all/postest/preflight/*.html
+        csv: output/single/pfizer/all/postest/preflight/vaccine/*.csv
+        html: output/single/pfizer/all/postest/preflight/vaccine/*.html
 
-  msm_pfizer_all_postest_150000_50000:
-    run: r:latest analysis/single/model/msm.R pfizer all postest 150000 50000
+  msm_preflight_pfizer_all_postest_outcome:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all postest outcome
     needs:
     - process_stset
     - process_data_days
-    - msm_preflight_pfizer_all_postest_150000_50000
+    outputs:
+      moderately_sensitive:
+        csv: output/single/pfizer/all/postest/preflight/outcome/*.csv
+        html: output/single/pfizer/all/postest/preflight/outcome/*.html
+
+  msm_pfizer_all_postest:
+    run: r:latest analysis/single/model/msm.R pfizer all postest
+    needs:
+    - process_stset
+    - process_data_days
+    - msm_preflight_pfizer_all_postest_vaccine
+    - msm_preflight_pfizer_all_postest_outcome
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/postest/msm/*.rds
@@ -1026,7 +1036,7 @@ actions:
   msm_postprocess_pfizer_all_postest:
     run: r:latest analysis/single/model/msm_postprocess.R pfizer all postest
     needs:
-    - msm_pfizer_all_postest_150000_50000
+    - msm_pfizer_all_postest
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/postest/postprocess/*.rds
@@ -1038,23 +1048,33 @@ actions:
   ## Model: brand = pfizer; subgroup = all; outcome = covidadmitted 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_pfizer_all_covidadmitted_150000_50000:
-    run: r:latest analysis/single/model/msm_preflight.R pfizer all covidadmitted 150000
-      50000
+  msm_preflight_pfizer_all_covidadmitted_vaccine:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all covidadmitted vaccine
     needs:
     - process_stset
     - process_data_days
     outputs:
       moderately_sensitive:
-        csv: output/single/pfizer/all/covidadmitted/preflight/*.csv
-        html: output/single/pfizer/all/covidadmitted/preflight/*.html
+        csv: output/single/pfizer/all/covidadmitted/preflight/vaccine/*.csv
+        html: output/single/pfizer/all/covidadmitted/preflight/vaccine/*.html
 
-  msm_pfizer_all_covidadmitted_150000_50000:
-    run: r:latest analysis/single/model/msm.R pfizer all covidadmitted 150000 50000
+  msm_preflight_pfizer_all_covidadmitted_outcome:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all covidadmitted outcome
     needs:
     - process_stset
     - process_data_days
-    - msm_preflight_pfizer_all_covidadmitted_150000_50000
+    outputs:
+      moderately_sensitive:
+        csv: output/single/pfizer/all/covidadmitted/preflight/outcome/*.csv
+        html: output/single/pfizer/all/covidadmitted/preflight/outcome/*.html
+
+  msm_pfizer_all_covidadmitted:
+    run: r:latest analysis/single/model/msm.R pfizer all covidadmitted
+    needs:
+    - process_stset
+    - process_data_days
+    - msm_preflight_pfizer_all_covidadmitted_vaccine
+    - msm_preflight_pfizer_all_covidadmitted_outcome
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/covidadmitted/msm/*.rds
@@ -1066,7 +1086,7 @@ actions:
   msm_postprocess_pfizer_all_covidadmitted:
     run: r:latest analysis/single/model/msm_postprocess.R pfizer all covidadmitted
     needs:
-    - msm_pfizer_all_covidadmitted_150000_50000
+    - msm_pfizer_all_covidadmitted
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/covidadmitted/postprocess/*.rds
@@ -1078,22 +1098,33 @@ actions:
   ## Model: brand = pfizer; subgroup = all; outcome = death 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_pfizer_all_death_150000_50000:
-    run: r:latest analysis/single/model/msm_preflight.R pfizer all death 150000 50000
+  msm_preflight_pfizer_all_death_vaccine:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all death vaccine
     needs:
     - process_stset
     - process_data_days
     outputs:
       moderately_sensitive:
-        csv: output/single/pfizer/all/death/preflight/*.csv
-        html: output/single/pfizer/all/death/preflight/*.html
+        csv: output/single/pfizer/all/death/preflight/vaccine/*.csv
+        html: output/single/pfizer/all/death/preflight/vaccine/*.html
 
-  msm_pfizer_all_death_150000_50000:
-    run: r:latest analysis/single/model/msm.R pfizer all death 150000 50000
+  msm_preflight_pfizer_all_death_outcome:
+    run: r:latest analysis/single/model/msm_preflight.R pfizer all death outcome
     needs:
     - process_stset
     - process_data_days
-    - msm_preflight_pfizer_all_death_150000_50000
+    outputs:
+      moderately_sensitive:
+        csv: output/single/pfizer/all/death/preflight/outcome/*.csv
+        html: output/single/pfizer/all/death/preflight/outcome/*.html
+
+  msm_pfizer_all_death:
+    run: r:latest analysis/single/model/msm.R pfizer all death
+    needs:
+    - process_stset
+    - process_data_days
+    - msm_preflight_pfizer_all_death_vaccine
+    - msm_preflight_pfizer_all_death_outcome
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/death/msm/*.rds
@@ -1105,7 +1136,7 @@ actions:
   msm_postprocess_pfizer_all_death:
     run: r:latest analysis/single/model/msm_postprocess.R pfizer all death
     needs:
-    - msm_pfizer_all_death_150000_50000
+    - msm_pfizer_all_death
     outputs:
       highly_sensitive:
         rds: output/single/pfizer/all/death/postprocess/*.rds
@@ -1117,22 +1148,33 @@ actions:
   ## Model: brand = az; subgroup = all; outcome = postest 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_az_all_postest_150000_50000:
-    run: r:latest analysis/single/model/msm_preflight.R az all postest 150000 50000
+  msm_preflight_az_all_postest_vaccine:
+    run: r:latest analysis/single/model/msm_preflight.R az all postest vaccine
     needs:
     - process_stset
     - process_data_days
     outputs:
       moderately_sensitive:
-        csv: output/single/az/all/postest/preflight/*.csv
-        html: output/single/az/all/postest/preflight/*.html
+        csv: output/single/az/all/postest/preflight/vaccine/*.csv
+        html: output/single/az/all/postest/preflight/vaccine/*.html
 
-  msm_az_all_postest_150000_50000:
-    run: r:latest analysis/single/model/msm.R az all postest 150000 50000
+  msm_preflight_az_all_postest_outcome:
+    run: r:latest analysis/single/model/msm_preflight.R az all postest outcome
     needs:
     - process_stset
     - process_data_days
-    - msm_preflight_az_all_postest_150000_50000
+    outputs:
+      moderately_sensitive:
+        csv: output/single/az/all/postest/preflight/outcome/*.csv
+        html: output/single/az/all/postest/preflight/outcome/*.html
+
+  msm_az_all_postest:
+    run: r:latest analysis/single/model/msm.R az all postest
+    needs:
+    - process_stset
+    - process_data_days
+    - msm_preflight_az_all_postest_vaccine
+    - msm_preflight_az_all_postest_outcome
     outputs:
       highly_sensitive:
         rds: output/single/az/all/postest/msm/*.rds
@@ -1144,7 +1186,7 @@ actions:
   msm_postprocess_az_all_postest:
     run: r:latest analysis/single/model/msm_postprocess.R az all postest
     needs:
-    - msm_az_all_postest_150000_50000
+    - msm_az_all_postest
     outputs:
       highly_sensitive:
         rds: output/single/az/all/postest/postprocess/*.rds
@@ -1156,23 +1198,33 @@ actions:
   ## Model: brand = az; subgroup = all; outcome = covidadmitted 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_az_all_covidadmitted_150000_50000:
-    run: r:latest analysis/single/model/msm_preflight.R az all covidadmitted 150000
-      50000
+  msm_preflight_az_all_covidadmitted_vaccine:
+    run: r:latest analysis/single/model/msm_preflight.R az all covidadmitted vaccine
     needs:
     - process_stset
     - process_data_days
     outputs:
       moderately_sensitive:
-        csv: output/single/az/all/covidadmitted/preflight/*.csv
-        html: output/single/az/all/covidadmitted/preflight/*.html
+        csv: output/single/az/all/covidadmitted/preflight/vaccine/*.csv
+        html: output/single/az/all/covidadmitted/preflight/vaccine/*.html
 
-  msm_az_all_covidadmitted_150000_50000:
-    run: r:latest analysis/single/model/msm.R az all covidadmitted 150000 50000
+  msm_preflight_az_all_covidadmitted_outcome:
+    run: r:latest analysis/single/model/msm_preflight.R az all covidadmitted outcome
     needs:
     - process_stset
     - process_data_days
-    - msm_preflight_az_all_covidadmitted_150000_50000
+    outputs:
+      moderately_sensitive:
+        csv: output/single/az/all/covidadmitted/preflight/outcome/*.csv
+        html: output/single/az/all/covidadmitted/preflight/outcome/*.html
+
+  msm_az_all_covidadmitted:
+    run: r:latest analysis/single/model/msm.R az all covidadmitted
+    needs:
+    - process_stset
+    - process_data_days
+    - msm_preflight_az_all_covidadmitted_vaccine
+    - msm_preflight_az_all_covidadmitted_outcome
     outputs:
       highly_sensitive:
         rds: output/single/az/all/covidadmitted/msm/*.rds
@@ -1184,7 +1236,7 @@ actions:
   msm_postprocess_az_all_covidadmitted:
     run: r:latest analysis/single/model/msm_postprocess.R az all covidadmitted
     needs:
-    - msm_az_all_covidadmitted_150000_50000
+    - msm_az_all_covidadmitted
     outputs:
       highly_sensitive:
         rds: output/single/az/all/covidadmitted/postprocess/*.rds
@@ -1196,22 +1248,33 @@ actions:
   ## Model: brand = az; subgroup = all; outcome = death 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-  msm_preflight_az_all_death_150000_50000:
-    run: r:latest analysis/single/model/msm_preflight.R az all death 150000 50000
+  msm_preflight_az_all_death_vaccine:
+    run: r:latest analysis/single/model/msm_preflight.R az all death vaccine
     needs:
     - process_stset
     - process_data_days
     outputs:
       moderately_sensitive:
-        csv: output/single/az/all/death/preflight/*.csv
-        html: output/single/az/all/death/preflight/*.html
+        csv: output/single/az/all/death/preflight/vaccine/*.csv
+        html: output/single/az/all/death/preflight/vaccine/*.html
 
-  msm_az_all_death_150000_50000:
-    run: r:latest analysis/single/model/msm.R az all death 150000 50000
+  msm_preflight_az_all_death_outcome:
+    run: r:latest analysis/single/model/msm_preflight.R az all death outcome
     needs:
     - process_stset
     - process_data_days
-    - msm_preflight_az_all_death_150000_50000
+    outputs:
+      moderately_sensitive:
+        csv: output/single/az/all/death/preflight/outcome/*.csv
+        html: output/single/az/all/death/preflight/outcome/*.html
+
+  msm_az_all_death:
+    run: r:latest analysis/single/model/msm.R az all death
+    needs:
+    - process_stset
+    - process_data_days
+    - msm_preflight_az_all_death_vaccine
+    - msm_preflight_az_all_death_outcome
     outputs:
       highly_sensitive:
         rds: output/single/az/all/death/msm/*.rds
@@ -1223,7 +1286,7 @@ actions:
   msm_postprocess_az_all_death:
     run: r:latest analysis/single/model/msm_postprocess.R az all death
     needs:
-    - msm_az_all_death_150000_50000
+    - msm_az_all_death
     outputs:
       highly_sensitive:
         rds: output/single/az/all/death/postprocess/*.rds
