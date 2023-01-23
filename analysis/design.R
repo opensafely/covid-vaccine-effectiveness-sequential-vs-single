@@ -270,8 +270,9 @@ list_formula_single <- local({
 process_data_days_n <- 10
 
 # number of samples in ipw vaccine models
-# ipw_sample_random_n <- 150000
-# msm_sample_nonoutcomes_n <- 50000
+ipw_sample_random_n <- 150000
+msm_sample_nonoutcomes_n <- 50000
 
-ipw_sample_random_n <- 15000
-msm_sample_nonoutcomes_n <- 5000
+# reduce sample sizes ***when running locally***
+# ipw_sample_random_n <- 15000
+# msm_sample_nonoutcomes_n <- 5000
