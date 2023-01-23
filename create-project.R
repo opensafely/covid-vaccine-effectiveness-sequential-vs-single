@@ -428,9 +428,9 @@ model_single <- function(brand, subgroup, outcome) {
       arguments = c(brand, subgroup, outcome),
       needs = splice(
         "process_stset",
-        "process_data_days",
-        glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
-        glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome")
+        "process_data_days"#,
+        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
+        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome")
       ),
       highly_sensitive = lst(
         rds = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.rds")
@@ -440,23 +440,46 @@ model_single <- function(brand, subgroup, outcome) {
         svg = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.svg"),
         txt = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.txt")
       )
-    )#,
+    ),
     
-    # action(
-    #   name = glue("msm_postprocess_{brand}_{subgroup}_{outcome}"),
-    #   run = "r:latest analysis/single/model/msm_postprocess.R",
-    #   arguments = c(brand, subgroup, outcome),
-    #   needs = namelesslst(
-    #     glue("msm_{brand}_{subgroup}_{outcome}")
-    #   ),
-    #   highly_sensitive = lst(
-    #     rds = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.rds")
-    #   ),
-    #   moderately_sensitive = lst(
-    #     csv = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.csv"),
-    #     svg = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.svg")
-    #   )
-    # )
+    action(
+      name = glue("msm_{brand}_{subgroup}_{outcome}"),
+      run = "r:latest analysis/single/model/ipw.R",
+      arguments = c(brand, subgroup, outcome),
+      needs = splice(
+        "process_stset",
+        "process_data_days",
+        glue("ipw_{brand}_{subgroup}_{outcome}")
+        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
+        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome"),
+        
+      ),
+      highly_sensitive = lst(
+        rds = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.rds")
+      ),
+      moderately_sensitive = lst(
+        # csv = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.csv"),
+        svg = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.svg"),
+        txt = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.txt")
+      )
+    ),
+    
+    action(
+      name = glue("postprocess_{brand}_{subgroup}_{outcome}"),
+      run = "r:latest analysis/single/model/msm_postprocess.R",
+      arguments = c(brand, subgroup, outcome),
+      needs = namelesslst(
+        glue("ipw_{brand}_{subgroup}_{outcome}"),
+        glue("msm_{brand}_{subgroup}_{outcome}")
+      ),
+      highly_sensitive = lst(
+        rds = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.rds")
+      ),
+      moderately_sensitive = lst(
+        csv = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.csv"),
+        svg = glue("output/single/{brand}/{subgroup}/{outcome}/postprocess/*.svg")
+      )
+    )
 
   )
   
@@ -728,26 +751,26 @@ actions_list <- splice(
           "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
           "",
           "`msm_combine` combines the output from all actions that run `msm.R`:"),
-  # action(
-  #   name = "msm_combine",
-  #   run = glue("r:latest analysis/single/model/msm_combine.R"),
-  #   needs = splice(
-  #     as.list(
-  #       glue_data(
-  #         .x=expand_grid(
-  #           brand=model_brands,
-  #           subgroup=model_subgroups,
-  #           outcome=model_outcomes,
-  #         ),
-  #         "msm_postprocess_{brand}_{subgroup}_{outcome}"
-  #       )
-  #     )
-  #   ),
-  #   moderately_sensitive = lst(
-  #     csv = "output/single/combine/*.csv",
-  #     svg = "output/single/combine/*.svg"
-  #   )
-  # ),
+  action(
+    name = "single_combine",
+    run = glue("r:latest analysis/single/model/combine.R"),
+    needs = splice(
+      as.list(
+        glue_data(
+          .x=expand_grid(
+            brand=model_brands,
+            subgroup=model_subgroups,
+            outcome=model_outcomes,
+          ),
+          "postprocess_{brand}_{subgroup}_{outcome}"
+        )
+      )
+    ),
+    moderately_sensitive = lst(
+      csv = "output/single/combine/*.csv",
+      svg = "output/single/combine/*.svg"
+    )
+  ),
   
   comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
           "REPORT", 
