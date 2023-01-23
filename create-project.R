@@ -395,8 +395,8 @@ model_single <- function(brand, subgroup, outcome) {
             "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"),
     
     action(
-      name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
-      run = "r:latest analysis/single/model/msm_preflight.R",
+      name = glue("preflight_{brand}_{subgroup}_{outcome}_vaccine"),
+      run = "r:latest analysis/single/model/preflight.R",
       arguments = c(brand, subgroup, outcome, "vaccine"),
       needs = splice(
         "process_stset",
@@ -409,8 +409,8 @@ model_single <- function(brand, subgroup, outcome) {
     ),
     
     action(
-      name = glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome"),
-      run = "r:latest analysis/single/model/msm_preflight.R",
+      name = glue("preflight_{brand}_{subgroup}_{outcome}_outcome"),
+      run = "r:latest analysis/single/model/preflight.R",
       arguments = c(brand, subgroup, outcome, "outcome"),
       needs = splice(
         "process_stset",
@@ -429,8 +429,8 @@ model_single <- function(brand, subgroup, outcome) {
       needs = splice(
         "process_stset",
         "process_data_days"#,
-        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
-        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome")
+        # glue("preflight_{brand}_{subgroup}_{outcome}_vaccine"),
+        # glue("preflight_{brand}_{subgroup}_{outcome}_outcome")
       ),
       highly_sensitive = lst(
         rds = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.rds")
@@ -444,29 +444,27 @@ model_single <- function(brand, subgroup, outcome) {
     
     action(
       name = glue("msm_{brand}_{subgroup}_{outcome}"),
-      run = "r:latest analysis/single/model/ipw.R",
+      run = "r:latest analysis/single/model/msm.R",
       arguments = c(brand, subgroup, outcome),
       needs = splice(
-        "process_stset",
-        "process_data_days",
         glue("ipw_{brand}_{subgroup}_{outcome}")
-        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_vaccine"),
-        # glue("msm_preflight_{brand}_{subgroup}_{outcome}_outcome"),
+        # glue("preflight_{brand}_{subgroup}_{outcome}_vaccine"),
+        # glue("preflight_{brand}_{subgroup}_{outcome}_outcome"),
         
       ),
       highly_sensitive = lst(
-        rds = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.rds")
+        rds = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.rds")
       ),
       moderately_sensitive = lst(
-        # csv = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.csv"),
-        svg = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.svg"),
-        txt = glue("output/single/{brand}/{subgroup}/{outcome}/ipw/*.txt")
+        csv = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.csv")#,
+        # svg = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.svg"),
+        # txt = glue("output/single/{brand}/{subgroup}/{outcome}/msm/*.txt")
       )
     ),
     
     action(
       name = glue("postprocess_{brand}_{subgroup}_{outcome}"),
-      run = "r:latest analysis/single/model/msm_postprocess.R",
+      run = "r:latest analysis/single/model/postprocess.R",
       arguments = c(brand, subgroup, outcome),
       needs = namelesslst(
         glue("ipw_{brand}_{subgroup}_{outcome}"),
@@ -720,17 +718,18 @@ actions_list <- splice(
           "",
           "The actions in this section do the following:",
           "",
-          "- `msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_n}_",
-          "  {msm_sample_nonoutcomes_n}` checks that there are no separation",
-          "  issues between covariates and outcomes",
+          "- `preflight_{brand}_{subgroup}_{outcome}_{stage}",
+          "  checks for separation between covariates and outcomes",
           "",
-          "- `msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_",
-          "  {msm_sample_nonoutcomes_n}` fits marginal structural models to",
-          "   the single trials data",
+          "- `ipw_{brand}_{subgroup}_{outcome} fits models to calculate the",
+          "  probability of vaccination models",
           "",
-          "- `msm_postprocess_{brand}_{subgroup}_{outcome}` processes the",
-          "  output from the `msm_preflight_{brand}_{subgroup}_{outcome}_",
-          "  {ipw_sample_n}_{msm_sample_nonoutcomes_n}` action",
+          "- `msm_{brand}_{subgroup}_{outcome} fits marginal structural models",
+          "   to predict the odds of outcome events",
+          "",
+          "- `postprocess_{brand}_{subgroup}_{outcome}` processes the",
+          "  output from the `ipw_preflight_{brand}_{subgroup}_{outcome}`",
+          "  and `msm_preflight_{brand}_{subgroup}_{outcome}` actions",
           "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #",
           ""
   ),
