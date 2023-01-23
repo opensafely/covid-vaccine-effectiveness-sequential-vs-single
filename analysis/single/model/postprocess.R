@@ -37,7 +37,7 @@ source(here("analysis", "functions", "survival.R"))
 args <- commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   removeobs <- FALSE
-  brand <- "az"
+  brand <- "pfizer"
   subgroup <- "all"
   outcome <- "postest"
 } else {
@@ -48,7 +48,8 @@ if(length(args)==0){
 }
 
 # create output directory
-indir <- here("output", "single", brand, subgroup, outcome, "msm") 
+ipw_indir <- here("output", "single", brand, subgroup, outcome, "ipw") 
+msm_indir <- here("output", "single", brand, subgroup, outcome, "msm") 
 outdir <- here("output", "single", brand, subgroup, outcome, "postprocess") 
 fs::dir_create(outdir)
 
@@ -90,8 +91,8 @@ for(subgroup_level in subgroup_levels) {
   # IPW ----
   # pfizer
   # import models
-  model_vaxbrand1 <- read_rds(file.path(indir, glue("model_vax{brand}1_{subgroup_level}.rds")))
-  ipw_formula <- read_rds(file.path(indir, glue("model_formula_vax{brand}1_{subgroup_level}.rds")))
+  model_vaxbrand1 <- read_rds(file.path(ipw_indir, glue("model_vax{brand}1_{subgroup_level}.rds")))
+  ipw_formula <- read_rds(file.path(ipw_indir, glue("model_formula_vax{brand}1_{subgroup_level}.rds")))
   assign(as.character(model_vaxbrand1$call$data), model_vaxbrand1$data)
   # calculate robust CIs taking into account patient-level clustering
   broom_vaxbrand1 <- broom_model_summary(model_vaxbrand1, model_vaxbrand1$data$patient_id, subgroup_level)
@@ -102,8 +103,8 @@ for(subgroup_level in subgroup_levels) {
   if(removeobs) rm(list= c(as.character(model_vaxbrand1$call$data), "ipw_formula", "model_vaxbrand1", "broom_vaxbrand1"))
   
   # MSM ----
-  data_weights <- read_rds(file.path(indir, glue("data_weights_{subgroup_level}.rds")))
-  msmmod4 <- read_rds(file.path(indir, glue("model4_{subgroup_level}.rds")))
+  data_weights <- read_rds(file.path(ipw_indir, glue("data_weights_{subgroup_level}.rds")))
+  msmmod4 <- read_rds(file.path(msm_indir, glue("model4_{subgroup_level}.rds")))
   robust4 <- tidy_plr(msmmod4, cluster=data_weights$patient_id)
   robust_summary <- bind_rows(
     list("4" = mutate(robust4, model_descr="Region-stratified marginal structural Cox model, with adjustment for baseline and time-varying confounders")),
