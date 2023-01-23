@@ -39,7 +39,7 @@ if(length(args)==0){
   removeobs <- FALSE
   brand <- "az"
   subgroup <- "all"
-  outcome <- "covidadmitted"
+  outcome <- "postest"
 } else {
   removeobs <- TRUE
   brand <- args[[1]]
