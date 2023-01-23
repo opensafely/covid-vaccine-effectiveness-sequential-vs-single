@@ -80,7 +80,7 @@ for(subgroup_level in subgroup_levels){
   cat("  \n")
   
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-  # data processing ----
+  # data import and processing ----
   
   # import processed data
   data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds")) %>%
@@ -89,7 +89,7 @@ for(subgroup_level in subgroup_levels){
       # select patients in current subgroup_level
       .[[subgroup]] == subgroup_level
     )
-  
+
   # generate data_samples
   data_samples <- read_rds(here("output", "single", "stset", "data_patients.rds")) %>%
     # right join because data_fixed filtered on subgroup
@@ -103,30 +103,7 @@ for(subgroup_level in subgroup_levels){
       sample_outcome = sample_nonoutcomes_n(!is.na(tte_outcome), patient_id, msm_sample_nonoutcomes_n),
       sample_weights = sample_weights(!is.na(tte_outcome), sample_outcome),
     )
-  
-  ## read and process data_days (one row per person day)
-  # see analysis/single/process/process_data_days_function.R for the function process_data_days_function
-  # (do this _within_ loop so that it can be deleted just before models are run, to reduce RAM use)
-  cat("Start `process_data_days_function` for stage=vaccine\n")
-  data_days_sub <- bind_rows(
-    lapply(
-      1:process_data_days_n,
-      function(i) 
-        process_data_days_function(
-          file = "model",
-          stage = "vaccine",
-          iteration = i
-        )
-    )
-  )
-  cat("End `process_data_days_function`\n")
-  
-  if(removeobs) rm(data_samples, data_fixed)
-  
-  #print dataset size
-  cat(glue("data_days_sub data size = ", nrow(data_days_sub)), "\n  ")
-  cat(glue("data_days_sub patient size = ", n_distinct(data_days_sub$patient_id)), "\n  ")
-  cat(glue("memory usage = ", format(object.size(data_days_sub), units="GB", standard="SI", digits=3L)), "\n  ")
+
   
   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   # IPW model ----
@@ -135,9 +112,15 @@ for(subgroup_level in subgroup_levels){
   # IPW model for pfizer / az vaccination
   # these models are shared across brands (one is treatment model, one is censoring model)
   # these could be separated out and run only once, but it complicates the remaining workflow so leaving as is
+  cat("  \n")
+  cat("Start weights_vaxpfizer1\n")
+  cat("  \n")
   weights_vaxpfizer1 <- get_ipw_weights(
     
-    data_days_sub, "vaxpfizer1", "vaxpfizer1_status", "vaxpfizer1_atrisk",
+    # data_days_sub, 
+    event = "vaxpfizer1", 
+    event_status = "vaxpfizer1_status", 
+    event_atrisk = "vaxpfizer1_atrisk",
     
     # select no more than n non-outcome samples
     # sample_type = "random_n", 
@@ -155,10 +138,17 @@ for(subgroup_level in subgroup_levels){
     subgroup_level = subgroup_level
     
   )
-  
+  cat("  \n")
+  cat("End weights_vaxpfizer1\n")
+  cat("  \n")
+  cat("Start weights_vaxaz1\n")
+  cat("  \n")
   weights_vaxaz1 <- get_ipw_weights(
     
-    data_days_sub, "vaxaz1", "vaxaz1_status", "vaxaz1_atrisk",
+    # data_days_sub, 
+    event = "vaxaz1", 
+    event_status = "vaxaz1_status", 
+    event_atrisk = "vaxaz1_atrisk",
     
     # sample_type="random_n", 
     sample_amount=ipw_sample_random_n,
@@ -175,38 +165,78 @@ for(subgroup_level in subgroup_levels){
     subgroup_level = subgroup_level
     
   )
+  cat("  \n")
+  cat("End weights_vaxaz1\n")
+  cat("  \n")
   
+  # postprocessing of model output ----
   
-  data_weights <- data_days_sub %>%
-    filter(
-      # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
-      sample_outcome==1L 
-    ) %>%
-    left_join(weights_vaxpfizer1, by=c("patient_id", "tstart", "tstop")) %>%
-    left_join(weights_vaxaz1, by=c("patient_id", "tstart", "tstop")) %>%
-    replace_na(list( 
-      # weight is 1 if patient is not yet at risk or has already been vaccinated / censored
-      ipweight_stbl_vaxpfizer1 = 1,
-      ipweight_stbl_vaxaz1 = 1
-    )) %>%
-    arrange(patient_id, tstop) %>%
-    group_by(patient_id) %>%
-    mutate(
-      cmlipweight_stbl_vaxpfizer1 = cumprod(ipweight_stbl_vaxpfizer1),
-      cmlipweight_stbl_vaxaz1 = cumprod(ipweight_stbl_vaxaz1)
-    ) %>%
-    ungroup() %>%
-    mutate(
-      ## COMBINE WEIGHTS
-      # take product of all weights
-      ipweight_stbl = ipweight_stbl_vaxpfizer1 * ipweight_stbl_vaxaz1,
-      ipweight_stbl_sample = ipweight_stbl * sample_weights,
-      
-      cmlipweight_stbl = cmlipweight_stbl_vaxpfizer1 * cmlipweight_stbl_vaxaz1,
-      cmlipweight_stbl_sample = cmlipweight_stbl * sample_weights,
-    )
+  ## read and process data_days (one row per person day)
+  # see analysis/single/process/process_data_days_function.R for the function process_data_days_function
+  # (do this _within_ loop so that it can be deleted just before models are run, to reduce RAM use)
+  cat("  \n")
+  cat("Start `process_data_days_function` for stage=vaccine\n")
+  cat("  \n")
+  data_weights <- lapply(
+    1:process_data_days_n,
+    function(i)
+      process_data_days_function(
+        file = "model",
+        stage = "vaccine",
+        iteration = i
+      )
+  )
+  cat("  \n")
+  cat("End `process_data_days_function`\n")
+  cat("  \n")
+
+  if(removeobs) rm(data_samples, data_fixed)
   
-  if(removeobs) rm(weights_vaxpfizer1, weights_vaxaz1, data_days_sub)
+  # loop so that only calculating weights in 1/process_data_days_n of dataset at a time
+  for (i in seq_along(data_weights)) {
+    
+    cat("  \n")
+    cat(glue("Calculating weights for iteration {i}:"), "\n")
+    cat("  \n")
+    
+    data_weights[[i]] <- data_weights[[i]] %>%
+      filter(
+        # select all patients who experienced the outcome, and a proportion (determined in data_sample action) of those who don't
+        sample_outcome==1L 
+      ) %>%
+      left_join(weights_vaxpfizer1, by=c("patient_id", "tstart", "tstop")) %>%
+      left_join(weights_vaxaz1, by=c("patient_id", "tstart", "tstop")) %>%
+      replace_na(list( 
+        # weight is 1 if patient is not yet at risk or has already been vaccinated / censored
+        ipweight_stbl_vaxpfizer1 = 1,
+        ipweight_stbl_vaxaz1 = 1
+      )) %>%
+      arrange(patient_id, tstop) %>%
+      group_by(patient_id) %>%
+      mutate(
+        cmlipweight_stbl_vaxpfizer1 = cumprod(ipweight_stbl_vaxpfizer1),
+        cmlipweight_stbl_vaxaz1 = cumprod(ipweight_stbl_vaxaz1)
+      ) %>%
+      ungroup() %>%
+      mutate(
+        ## COMBINE WEIGHTS
+        # take product of all weights
+        ipweight_stbl = ipweight_stbl_vaxpfizer1 * ipweight_stbl_vaxaz1,
+        ipweight_stbl_sample = ipweight_stbl * sample_weights,
+        
+        cmlipweight_stbl = cmlipweight_stbl_vaxpfizer1 * cmlipweight_stbl_vaxaz1,
+        cmlipweight_stbl_sample = cmlipweight_stbl * sample_weights,
+      )
+    
+  }
+  
+  if(removeobs) rm(weights_vaxpfizer1, weights_vaxaz1)
+  
+  data_weights <- bind_rows(data_weights)
+  
+  cat("  \n")
+  cat("Summarise wieghts\n")
+  cat("  \n")
   
   # report weights ----
   summarise_weights <-

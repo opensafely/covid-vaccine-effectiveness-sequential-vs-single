@@ -4,7 +4,7 @@
 ## if exposure is az vaccine, then create model for vaccination by az + model for pfizer for censoring weights
 
 get_ipw_weights <- function(
-  data,
+  # data,
   event,
   event_status,
   event_atrisk,
@@ -20,15 +20,34 @@ get_ipw_weights <- function(
   
   # stopifnot(sample_type %in% c("random_prop", "random_n", "nonoutcomes_n"))
   
-  name <- str_remove(event_atrisk, "_atrisk")
+  ## read and process data_days (one row per person day)
+  # see analysis/single/process/process_data_days_function.R for the function process_data_days_function
+  # (do this _within_ loop so that it can be deleted just before models are run, to reduce RAM use)
+  cat("Start `process_data_days_function` for stage=vaccine\n")
+  data_atrisk <- bind_rows(
+    lapply(
+      1:process_data_days_n,
+      function(i) 
+        process_data_days_function(
+          file = "model",
+          stage = "vaccine",
+          iteration = i
+        )
+    )
+  ) 
+  cat("End `process_data_days_function`\n")
   
-  data_atrisk <- data %>%
+  data_atrisk <- data_atrisk %>%
     mutate(
-      event = data[[event]],
-      event_status = data[[event_status]],
-      event_atrisk = data[[event_atrisk]],
+      event = data_atrisk[[event]],
+      event_status = data_atrisk[[event_status]],
+      event_atrisk = data_atrisk[[event_atrisk]],
     ) %>%
     filter(event_atrisk)
+  
+  # if(removeobs) rm(data_samples, data_fixed)
+  
+  name <- str_remove(event_atrisk, "_atrisk")
   
   # if(sample_type=="random_n"){
     data_sample <- data_atrisk %>%
@@ -44,7 +63,7 @@ get_ipw_weights <- function(
   data_atrisk_sample <- data_atrisk %>%
     right_join(data_sample, by="patient_id") 
   
-  rm("data_sample")
+  rm(data_sample)
   
   # with time-updating covariates
   cat("  \n")
@@ -96,40 +115,57 @@ get_ipw_weights <- function(
   
   rm("data_atrisk_sample")
   
-  # get predictions from model
+  # split the dataset into `process_data_days_n` (defined in analysis/design.R)
+  id_split <- data_atrisk %>%
+    distinct(patient_id) %>%
+    mutate(id_group = sample(1:process_data_days_n, size = n(), replace=TRUE))
+  
   data_atrisk <- data_atrisk %>%
-    transmute(
-      patient_id,
-      tstart, tstop,
-      event,
-      event_status,
-      # get predicted probabilities from ipw models
-      pred_event=predict(event_model, type="response", newdata=data_atrisk),
-      pred_event_fxd=predict(event_model_fxd, type="response", newdata=data_atrisk)
-    ) %>%
-    arrange(patient_id, tstop) %>%
-    group_by(patient_id) %>%
-    mutate(
-      
-      # get probability of occurrence of realised event status (time varying model)
-      probevent_realised = case_when(
-        event!=1L ~ 1 - pred_event,
-        event==1L ~ pred_event,
-        TRUE ~ NA_real_
-      ),
-      
-      # get probability of occurrence of realised event status (non-time varying model)
-      probevent_realised_fxd = case_when(
-        event!=1L ~ 1 - pred_event_fxd,
-        event==1L ~ pred_event_fxd,
-        TRUE ~ NA_real_
-      ),
-      
-      # stabilised inverse probability weights
-      ipweight_stbl = probevent_realised_fxd/probevent_realised
-      
-    ) %>%
-    ungroup()
+    left_join(id_split, by = "patient_id") %>%
+    group_split(id_group) %>%
+    as.list()
+  
+  # loop so that only calculating model predictions in 1/10th of dataset at a time
+  for (i in 1:process_data_days_n) {
+    
+    # get predictions from model
+    data_atrisk[[i]] <- data_atrisk[[i]] %>%
+      transmute(
+        patient_id,
+        tstart, tstop,
+        event,
+        event_status,
+        # get predicted probabilities from ipw models
+        pred_event=predict(event_model, type="response", newdata=data_atrisk[[i]]),
+        pred_event_fxd=predict(event_model_fxd, type="response", newdata=data_atrisk[[i]])
+      ) %>%
+      arrange(patient_id, tstop) %>%
+      group_by(patient_id) %>%
+      mutate(
+        
+        # get probability of occurrence of realised event status (time varying model)
+        probevent_realised = case_when(
+          event!=1L ~ 1 - pred_event,
+          event==1L ~ pred_event,
+          TRUE ~ NA_real_
+        ),
+        
+        # get probability of occurrence of realised event status (non-time varying model)
+        probevent_realised_fxd = case_when(
+          event!=1L ~ 1 - pred_event_fxd,
+          event==1L ~ pred_event_fxd,
+          TRUE ~ NA_real_
+        ),
+        
+        # stabilised inverse probability weights
+        ipweight_stbl = probevent_realised_fxd/probevent_realised
+        
+      ) %>%
+      ungroup()
+    
+  }
+  
+  data_atrisk <- bind_rows(data_atrisk)
   
   stopifnot("probs should all be non-null" = all(!is.na(data_atrisk$probevent_realised)))
   stopifnot("probs (fxd) should all be non-null" = all(!is.na(data_atrisk$probevent_realised_fxd)))
