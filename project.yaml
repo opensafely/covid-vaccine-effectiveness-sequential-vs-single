@@ -1018,8 +1018,8 @@ actions:
         csv: output/single/pfizer/all/postest/preflight/outcome/*.csv
         html: output/single/pfizer/all/postest/preflight/outcome/*.html
 
-  msm_pfizer_all_postest:
-    run: r:latest analysis/single/model/msm.R pfizer all postest
+  ipw_pfizer_all_postest:
+    run: r:latest analysis/single/model/ipw.R pfizer all postest
     needs:
     - process_stset
     - process_data_days
@@ -1027,22 +1027,10 @@ actions:
     - msm_preflight_pfizer_all_postest_outcome
     outputs:
       highly_sensitive:
-        rds: output/single/pfizer/all/postest/msm/*.rds
+        rds: output/single/pfizer/all/postest/ipw/*.rds
       moderately_sensitive:
-        csv: output/single/pfizer/all/postest/msm/*.csv
-        svg: output/single/pfizer/all/postest/msm/*.svg
-        txt: output/single/pfizer/all/postest/msm/*.txt
-
-  msm_postprocess_pfizer_all_postest:
-    run: r:latest analysis/single/model/msm_postprocess.R pfizer all postest
-    needs:
-    - msm_pfizer_all_postest
-    outputs:
-      highly_sensitive:
-        rds: output/single/pfizer/all/postest/postprocess/*.rds
-      moderately_sensitive:
-        csv: output/single/pfizer/all/postest/postprocess/*.csv
-        svg: output/single/pfizer/all/postest/postprocess/*.svg
+        svg: output/single/pfizer/all/postest/ipw/*.svg
+        txt: output/single/pfizer/all/postest/ipw/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Model: brand = pfizer; subgroup = all; outcome = covidadmitted 
@@ -1068,8 +1056,8 @@ actions:
         csv: output/single/pfizer/all/covidadmitted/preflight/outcome/*.csv
         html: output/single/pfizer/all/covidadmitted/preflight/outcome/*.html
 
-  msm_pfizer_all_covidadmitted:
-    run: r:latest analysis/single/model/msm.R pfizer all covidadmitted
+  ipw_pfizer_all_covidadmitted:
+    run: r:latest analysis/single/model/ipw.R pfizer all covidadmitted
     needs:
     - process_stset
     - process_data_days
@@ -1077,22 +1065,10 @@ actions:
     - msm_preflight_pfizer_all_covidadmitted_outcome
     outputs:
       highly_sensitive:
-        rds: output/single/pfizer/all/covidadmitted/msm/*.rds
+        rds: output/single/pfizer/all/covidadmitted/ipw/*.rds
       moderately_sensitive:
-        csv: output/single/pfizer/all/covidadmitted/msm/*.csv
-        svg: output/single/pfizer/all/covidadmitted/msm/*.svg
-        txt: output/single/pfizer/all/covidadmitted/msm/*.txt
-
-  msm_postprocess_pfizer_all_covidadmitted:
-    run: r:latest analysis/single/model/msm_postprocess.R pfizer all covidadmitted
-    needs:
-    - msm_pfizer_all_covidadmitted
-    outputs:
-      highly_sensitive:
-        rds: output/single/pfizer/all/covidadmitted/postprocess/*.rds
-      moderately_sensitive:
-        csv: output/single/pfizer/all/covidadmitted/postprocess/*.csv
-        svg: output/single/pfizer/all/covidadmitted/postprocess/*.svg
+        svg: output/single/pfizer/all/covidadmitted/ipw/*.svg
+        txt: output/single/pfizer/all/covidadmitted/ipw/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Model: brand = pfizer; subgroup = all; outcome = death 
@@ -1118,8 +1094,8 @@ actions:
         csv: output/single/pfizer/all/death/preflight/outcome/*.csv
         html: output/single/pfizer/all/death/preflight/outcome/*.html
 
-  msm_pfizer_all_death:
-    run: r:latest analysis/single/model/msm.R pfizer all death
+  ipw_pfizer_all_death:
+    run: r:latest analysis/single/model/ipw.R pfizer all death
     needs:
     - process_stset
     - process_data_days
@@ -1127,22 +1103,10 @@ actions:
     - msm_preflight_pfizer_all_death_outcome
     outputs:
       highly_sensitive:
-        rds: output/single/pfizer/all/death/msm/*.rds
+        rds: output/single/pfizer/all/death/ipw/*.rds
       moderately_sensitive:
-        csv: output/single/pfizer/all/death/msm/*.csv
-        svg: output/single/pfizer/all/death/msm/*.svg
-        txt: output/single/pfizer/all/death/msm/*.txt
-
-  msm_postprocess_pfizer_all_death:
-    run: r:latest analysis/single/model/msm_postprocess.R pfizer all death
-    needs:
-    - msm_pfizer_all_death
-    outputs:
-      highly_sensitive:
-        rds: output/single/pfizer/all/death/postprocess/*.rds
-      moderately_sensitive:
-        csv: output/single/pfizer/all/death/postprocess/*.csv
-        svg: output/single/pfizer/all/death/postprocess/*.svg
+        svg: output/single/pfizer/all/death/ipw/*.svg
+        txt: output/single/pfizer/all/death/ipw/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Model: brand = az; subgroup = all; outcome = postest 
@@ -1168,8 +1132,8 @@ actions:
         csv: output/single/az/all/postest/preflight/outcome/*.csv
         html: output/single/az/all/postest/preflight/outcome/*.html
 
-  msm_az_all_postest:
-    run: r:latest analysis/single/model/msm.R az all postest
+  ipw_az_all_postest:
+    run: r:latest analysis/single/model/ipw.R az all postest
     needs:
     - process_stset
     - process_data_days
@@ -1177,22 +1141,10 @@ actions:
     - msm_preflight_az_all_postest_outcome
     outputs:
       highly_sensitive:
-        rds: output/single/az/all/postest/msm/*.rds
+        rds: output/single/az/all/postest/ipw/*.rds
       moderately_sensitive:
-        csv: output/single/az/all/postest/msm/*.csv
-        svg: output/single/az/all/postest/msm/*.svg
-        txt: output/single/az/all/postest/msm/*.txt
-
-  msm_postprocess_az_all_postest:
-    run: r:latest analysis/single/model/msm_postprocess.R az all postest
-    needs:
-    - msm_az_all_postest
-    outputs:
-      highly_sensitive:
-        rds: output/single/az/all/postest/postprocess/*.rds
-      moderately_sensitive:
-        csv: output/single/az/all/postest/postprocess/*.csv
-        svg: output/single/az/all/postest/postprocess/*.svg
+        svg: output/single/az/all/postest/ipw/*.svg
+        txt: output/single/az/all/postest/ipw/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Model: brand = az; subgroup = all; outcome = covidadmitted 
@@ -1218,8 +1170,8 @@ actions:
         csv: output/single/az/all/covidadmitted/preflight/outcome/*.csv
         html: output/single/az/all/covidadmitted/preflight/outcome/*.html
 
-  msm_az_all_covidadmitted:
-    run: r:latest analysis/single/model/msm.R az all covidadmitted
+  ipw_az_all_covidadmitted:
+    run: r:latest analysis/single/model/ipw.R az all covidadmitted
     needs:
     - process_stset
     - process_data_days
@@ -1227,22 +1179,10 @@ actions:
     - msm_preflight_az_all_covidadmitted_outcome
     outputs:
       highly_sensitive:
-        rds: output/single/az/all/covidadmitted/msm/*.rds
+        rds: output/single/az/all/covidadmitted/ipw/*.rds
       moderately_sensitive:
-        csv: output/single/az/all/covidadmitted/msm/*.csv
-        svg: output/single/az/all/covidadmitted/msm/*.svg
-        txt: output/single/az/all/covidadmitted/msm/*.txt
-
-  msm_postprocess_az_all_covidadmitted:
-    run: r:latest analysis/single/model/msm_postprocess.R az all covidadmitted
-    needs:
-    - msm_az_all_covidadmitted
-    outputs:
-      highly_sensitive:
-        rds: output/single/az/all/covidadmitted/postprocess/*.rds
-      moderately_sensitive:
-        csv: output/single/az/all/covidadmitted/postprocess/*.csv
-        svg: output/single/az/all/covidadmitted/postprocess/*.svg
+        svg: output/single/az/all/covidadmitted/ipw/*.svg
+        txt: output/single/az/all/covidadmitted/ipw/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Model: brand = az; subgroup = all; outcome = death 
@@ -1268,8 +1208,8 @@ actions:
         csv: output/single/az/all/death/preflight/outcome/*.csv
         html: output/single/az/all/death/preflight/outcome/*.html
 
-  msm_az_all_death:
-    run: r:latest analysis/single/model/msm.R az all death
+  ipw_az_all_death:
+    run: r:latest analysis/single/model/ipw.R az all death
     needs:
     - process_stset
     - process_data_days
@@ -1277,43 +1217,16 @@ actions:
     - msm_preflight_az_all_death_outcome
     outputs:
       highly_sensitive:
-        rds: output/single/az/all/death/msm/*.rds
+        rds: output/single/az/all/death/ipw/*.rds
       moderately_sensitive:
-        csv: output/single/az/all/death/msm/*.csv
-        svg: output/single/az/all/death/msm/*.svg
-        txt: output/single/az/all/death/msm/*.txt
-
-  msm_postprocess_az_all_death:
-    run: r:latest analysis/single/model/msm_postprocess.R az all death
-    needs:
-    - msm_az_all_death
-    outputs:
-      highly_sensitive:
-        rds: output/single/az/all/death/postprocess/*.rds
-      moderately_sensitive:
-        csv: output/single/az/all/death/postprocess/*.csv
-        svg: output/single/az/all/death/postprocess/*.svg
+        svg: output/single/az/all/death/ipw/*.svg
+        txt: output/single/az/all/death/ipw/*.txt
 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## Combine model outputs 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ##  
   ## `msm_combine` combines the output from all actions that run `msm.R`: 
-
-  msm_combine:
-    run: r:latest analysis/single/model/msm_combine.R
-    needs:
-    - msm_postprocess_pfizer_all_postest
-    - msm_postprocess_pfizer_all_covidadmitted
-    - msm_postprocess_pfizer_all_death
-    - msm_postprocess_az_all_postest
-    - msm_postprocess_az_all_covidadmitted
-    - msm_postprocess_az_all_death
-    outputs:
-      moderately_sensitive:
-        csv: output/single/combine/*.csv
-        svg: output/single/combine/*.svg
-
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ## REPORT 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 

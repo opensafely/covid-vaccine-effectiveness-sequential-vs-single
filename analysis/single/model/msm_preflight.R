@@ -34,7 +34,7 @@ if(length(args)==0){
   removeobs <- FALSE
   brand <- "pfizer"
   subgroup <- "all"
-  outcome <- "covidadmitted"
+  outcome <- "postest"
   stage <- "outcome"
 } else {
   removeobs <- TRUE
@@ -45,6 +45,7 @@ if(length(args)==0){
 }
 
 # define sample_n depending on stage
+# `ipw_sample_random_n` and `msm_sample_nonoutcomes_n` defined in analysis/design.R
 if (stage == "vaccine") {
   # vax models use less follow up time because median time to vaccination (=outcome) is ~ 30 days
   sample_n <- ipw_sample_random_n 
@@ -127,7 +128,12 @@ for(subgroup_level in subgroup_levels){
       cat("  \n")
       
       # import processed data
-      data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds"))
+      data_fixed <- read_rds(here("output", "single", "stset", "data_fixed.rds")) %>% 
+        mutate(all = factor("all",levels=c("all"))) %>%
+        filter(
+          # select patients in current subgroup_level
+          .[[subgroup]] == subgroup_level
+        )
       
       if (stage == "vaccine") {
         

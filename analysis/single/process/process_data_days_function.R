@@ -32,7 +32,6 @@ process_data_days_function <- function(
   
   cat("Process step 1:\n")
   data_days1 <- data_days0 %>%
-    mutate(all = factor("all",levels=c("all"))) %>%
     filter(
       # follow up ends at (day after) occurrence of outcome, ie where status not >0
       .[[glue("{outcome}_status")]] == 0, 
@@ -45,11 +44,9 @@ process_data_days_function <- function(
       .[[glue("vax{brand}_atrisk")]] == 1, 
     ) %>%
     # join fixed covariates
-    left_join(data_fixed, by="patient_id") %>%
-    filter(
-      # select patients in current subgroup_level
-      .[[subgroup]] == subgroup_level 
-    ) %>%
+    # inner_join as lhs data filtered on vax status, and rhs data (data_fixed)
+    # contains only patients in the relevant subgroup
+    inner_join(data_fixed, by="patient_id") %>%
     mutate( 
       # this step converts logical to integer so that model coefficients print nicely in gtsummary methods
       across(where(is.logical), ~.x*1L)
@@ -141,6 +138,8 @@ process_data_days_function <- function(
     }
     
   } else if (file == "model") {
+    
+    return(data_days)
     
   }
   
