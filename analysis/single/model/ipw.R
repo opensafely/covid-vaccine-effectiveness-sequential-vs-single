@@ -23,8 +23,6 @@ library('glue')
 library('survival')
 library('splines')
 library('parglm')
-library('gtsummary')
-library('gt')
 
 # import custom user functions from lib
 source(here("analysis", "design.R"))
