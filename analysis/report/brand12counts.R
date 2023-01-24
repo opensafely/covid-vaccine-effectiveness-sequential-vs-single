@@ -20,36 +20,33 @@ outdir <- here("output", "report", "brand12counts")
 fs::dir_create(outdir)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-# import data_days ----
+# import and process data_days ----
 cat("Start import:\n")
 data_days <- lapply(
   1:process_data_days_n,
-  function(iteration) read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) 
+  function(iteration) 
+    read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) %>%
+    transmute(
+      
+      patient_id,
+      
+      date = as.Date(study_dates$global$index_date) + tstart,
+      
+      dereg_status,
+      death_status,
+      
+      vaxbrand12_status = fct_case_when(
+        vaxpfizer_status==0 & vaxaz_status==0  ~ "Not vaccinated",
+        vaxpfizer_status==1  ~ "BNT162b2\ndose 1",
+        vaxpfizer_status==2  ~ "BNT162b2\ndose 2",
+        vaxaz_status==1  ~ "ChAdOx1\ndose 1",
+        vaxaz_status==2  ~ "ChAdOx1\ndose 2",
+        TRUE ~ NA_character_
+      )
+      
+    ) 
 ) %>%
   bind_rows() 
-
-# process data_days ----
-cat("Start processing:\n")
-data_days <- data_days %>%
-  transmute(
-    
-    patient_id,
-    
-    date = as.Date(study_dates$global$index_date) + tstart,
-    
-    dereg_status,
-    death_status,
-
-    vaxbrand12_status = fct_case_when(
-      vaxpfizer_status==0 & vaxaz_status==0  ~ "Not vaccinated",
-      vaxpfizer_status==1  ~ "BNT162b2\ndose 1",
-      vaxpfizer_status==2  ~ "BNT162b2\ndose 2",
-      vaxaz_status==1  ~ "ChAdOx1\ndose 1",
-      vaxaz_status==2  ~ "ChAdOx1\ndose 2",
-      TRUE ~ NA_character_
-    )
-    
-  )
 
 cat("Generate plot_data:\n")
 plot_data <- data_days %>%
