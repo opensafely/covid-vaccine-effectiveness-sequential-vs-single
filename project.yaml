@@ -981,17 +981,18 @@ actions:
   ##  
   ## The actions in this section do the following: 
   ##  
-  ## - `msm_preflight_{brand}_{subgroup}_{outcome}_{ipw_sample_n}_ 
-  ##   {msm_sample_nonoutcomes_n}` checks that there are no separation 
-  ##   issues between covariates and outcomes 
+  ## - `preflight_{brand}_{subgroup}_{outcome}_{stage} 
+  ##   checks for separation between covariates and outcomes 
   ##  
-  ## - `msm_{brand}_{subgroup}_{outcome}_{ipw_sample_random_n}_ 
-  ##   {msm_sample_nonoutcomes_n}` fits marginal structural models to 
-  ##    the single trials data 
+  ## - `ipw_{brand}_{subgroup}_{outcome} fits models to calculate the 
+  ##   probability of vaccination models 
   ##  
-  ## - `msm_postprocess_{brand}_{subgroup}_{outcome}` processes the 
-  ##   output from the `msm_preflight_{brand}_{subgroup}_{outcome}_ 
-  ##   {ipw_sample_n}_{msm_sample_nonoutcomes_n}` action 
+  ## - `msm_{brand}_{subgroup}_{outcome} fits marginal structural models 
+  ##    to predict the odds of outcome events 
+  ##  
+  ## - `postprocess_{brand}_{subgroup}_{outcome}` processes the 
+  ##   output from the `ipw_preflight_{brand}_{subgroup}_{outcome}` 
+  ##   and `msm_preflight_{brand}_{subgroup}_{outcome}` actions 
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
   ##  
   ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -1378,6 +1379,7 @@ actions:
     - process_single
     outputs:
       moderately_sensitive:
+        check_NAs: output/report/flowchart/*.txt
         flow_matching: output/report/flowchart/*.csv
 
   ## `brand12counts` plots the cumulative incidence of first and second 

@@ -788,6 +788,7 @@ actions_list <- splice(
       "process_single"
     ),
     moderately_sensitive = lst(
+      check_NAs = "output/report/flowchart/*.txt",
       flow_matching = "output/report/flowchart/*.csv"
     )
   ),
