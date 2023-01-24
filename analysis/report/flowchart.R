@@ -129,7 +129,7 @@ flowchart_matching_function <- function(brand) {
         .groups = "keep"
       ) %>%
       ungroup() %>%
-      print(),
+      knitr::kable(format = "pipe"),
     file = file.path(outdir, glue("check_NAs_{brand}.txt"))
   )
   
