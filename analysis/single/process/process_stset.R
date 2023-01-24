@@ -81,8 +81,8 @@ data_patients <- data_eligible %>%
     covidadmitted_date,
     death_date,
     
-    #composite of death, deregistration, end date, and no more than maxfup days after vaccination
-    lastfup_date = pmin(vax1_date + maxfup, death_date, end_date, dereg_date, na.rm=TRUE),
+    #composite of death, deregistration, end date
+    lastfup_date = pmin(death_date, end_date, dereg_date, na.rm=TRUE),
     
     # Events are considered to occur the end of each day.
     # The study start date is the end of 7 december 2020 / start of 8 december 2020 = tstart=0.
@@ -200,7 +200,8 @@ data_events0 <- tmerge(
   postest_status = tdc(tte_postest),
   covidadmitted_status = tdc(tte_covidadmitted),
   death_status = tdc(tte_death),
-  dereg_status= tdc(tte_dereg),
+  dereg_status = tdc(tte_dereg),
+  lastfup_status = tdc(tte_lastfup),
 
   vaxany1 = event(tte_vaxany1),
   vaxany2 = event(tte_vaxany2),
@@ -272,6 +273,7 @@ cols_to_convert <-   c("vaxany1",
                        "postest",
                        "covidadmitted",
                        "death",
+                       "lastfup",
                        "hospinfectious_status",
                        "hospnoninfectious_status",
                        "hospinfectiousdischarge",

@@ -33,6 +33,8 @@ process_data_days_function <- function(
   cat("Process step 1:\n")
   data_days1 <- data_days0 %>%
     filter(
+      # stop follow-up maxfup days after vax 1
+      vaxany1_timesince <= maxfup,
       # follow up ends at (day after) occurrence of outcome, ie where status not >0
       .[[glue("{outcome}_status")]] == 0, 
       # if brand-specific, follow up ends at (day after) occurrence of competing vaccination, 

@@ -155,6 +155,7 @@ for (iteration in 1:process_data_days_n) {
                 "covidadmitted",
                 "death",
                 "dereg",
+                "lastfup",
                 "hospinfectious_status",
                 "hospnoninfectious_status",
                 "hospinfectiousdischarge",
