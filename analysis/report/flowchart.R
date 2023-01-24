@@ -60,6 +60,10 @@ flow_boxes <- tribble(
 # derive data for flowcharts with brands combined and specified
 flowchart_matching_function <- function(brand) {
   
+  cat(" \n")
+  cat(glue("{brand}: \n"))
+  cat(" \n")
+  
   # read data for eligible treated
   treated_eligible <- readr::read_rds(here("output", "sequential", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_unrounded.rds"))) 
   
@@ -71,13 +75,16 @@ flowchart_matching_function <- function(brand) {
       names_from = treated,
       values_from = matched
     ) %>%
-    rename("treated" = "1", "control" = "0") 
+    rename("treated" = "1", "control" = "0") %>%
+    mutate(sequential = TRUE)
     
   
   # categorise individuals
   data_match_flow  <- data_singleeligible %>%
-    left_join(data_matched, by = "patient_id") %>%
-    mutate(across(c(treated, control), ~ replace_na(as.logical(.x), replace=FALSE)))  %>%
+    select(patient_id, vax1_date, vax1_type) %>%
+    mutate(single = TRUE) %>%
+    full_join(data_matched, by = "patient_id") %>%
+    mutate(across(c(treated, control, single, sequential), ~ replace_na(as.logical(.x), replace=FALSE)))  %>%
     mutate(
       crit = case_when(
         # those who are vaccinated on day 1 of recruitment
@@ -110,7 +117,16 @@ flowchart_matching_function <- function(brand) {
         TRUE ~ "vax after end"
       )) %>% 
     group_by(vax1_date_cat, treated, control) %>%
-    count() %>%
+    summarise(
+      min_date = min(vax1_date, na.rm = TRUE),
+      max_date = max(vax1_date, na.rm = TRUE),
+      na_date = sum(is.na(vax1_date)),
+      single_only = sum(single & !sequential),
+      sequential_only = sum(sequential & !single),
+      both = sum(single & sequential),
+      total = n(),
+      .groups = "keep"
+    ) %>%
     ungroup() %>%
     print()
   
