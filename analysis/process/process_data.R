@@ -689,7 +689,7 @@ if (stage %in% c("single", "treated")) {
     data_flowchart %>%
       transmute(
         criteria, crit, 
-        n = ceiling_any(n, to=threshold),
+        n = roundmid_any(n, to=threshold),
         n_exclude = lag(n) - n,
         pct_exclude = n_exclude/lag(n),
         pct_all = n / first(n),
