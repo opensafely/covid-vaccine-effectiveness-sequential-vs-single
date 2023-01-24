@@ -66,7 +66,7 @@ flowchart_matching_function <- function(brand) {
   
   # reshape so one row per patient, and logical columns to indicate if matched as treated, control or both
   data_matched <- readr::read_rds(here("output", "sequential", brand, "match", "data_matched.rds")) %>%
-    select(patient_id, treated) %>%
+    select(patient_id, treated, vax1_date, vax1_type) %>%
     mutate(matched = 1) %>%
     pivot_wider(
       names_from = treated,
@@ -87,7 +87,11 @@ flowchart_matching_function <- function(brand) {
   data_match_flow  <- data_singleeligible %>%
     select(patient_id, vax1_date, vax1_type) %>%
     mutate(single = TRUE) %>%
-    full_join(data_matched, by = "patient_id") %>%
+    full_join(
+      data_matched,
+      by = "patient_id",
+      suffix = c("", "_sequential")
+      ) %>%
     mutate(across(c(treated, control, single, sequential), ~ replace_na(as.logical(.x), replace=FALSE)))  %>%
     mutate(
       crit = case_when(
@@ -108,7 +112,17 @@ flowchart_matching_function <- function(brand) {
       )
     )
   
-  # check NAs
+  cat("Check `vax1_date` and `vax_type` match in single and sequential data:\n")
+  data_match_flow %>%
+    filter(vax1_date != vax1_date_sequential) %>%
+    select(vax1_date, vax1_date_sequential, vax1_type, vax1_type_sequential) %>% 
+    print()
+  data_match_flow %>%
+    filter(vax1_type != vax1_type_sequential) %>%
+    select(vax1_date, vax1_date_sequential, vax1_type, vax1_type_sequential) %>%
+    print()
+  
+  # check NAs (capture output as too wide to print in log)
   capture.output(
     data_match_flow %>%
       filter(is.na(crit)) %>%
