@@ -72,11 +72,12 @@ flowchart_matching_function <- function(brand) {
       values_from = matched
     ) %>%
     rename("treated" = "1", "control" = "0") 
+    
   
   # categorise individuals
   data_match_flow  <- data_singleeligible %>%
     left_join(data_matched, by = "patient_id") %>%
-    mutate(across(c(treated, control), ~ replace_na(.x, replace=FALSE))) %>%
+    mutate(across(c(treated, control), ~ replace_na(as.logical(.x), replace=FALSE)))  %>%
     mutate(
       crit = case_when(
         # those who are vaccinated on day 1 of recruitment
@@ -95,6 +96,23 @@ flowchart_matching_function <- function(brand) {
         TRUE ~ NA_character_
       )
     )
+  
+  # check NAs
+  data_match_flow %>%
+    filter(is.na(crit)) %>%
+    mutate(
+      vax1_date_cat = case_when(
+        is.na(vax1_date) ~ "no vax",
+        vax1_type == brand & vax1_date < study_dates[[brand]]$start_date ~ as.character(glue("vax with {brand} before start")),
+        vax1_type == brand & vax1_date <= study_dates$global$studyend_date ~ as.character(glue("vax with {brand} between start and end (inclusive)")),
+        vax1_type != brand & vax1_date < study_dates[[brand]]$start_date ~ "vax with other brand before start",
+        vax1_type != brand & vax1_date <= study_dates$global$studyend_date ~ "vax with other brand between start and end (inclusive)",
+        TRUE ~ "vax after end"
+      )) %>% 
+    group_by(vax1_date_cat, treated, control) %>%
+    count() %>%
+    ungroup() %>%
+    print()
   
   # count number in each category
   flowchart_matching <- data_match_flow %>% group_by(crit) %>% count() %>%
