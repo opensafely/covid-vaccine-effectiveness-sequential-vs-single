@@ -64,9 +64,6 @@ flowchart_matching_function <- function(brand) {
   cat(glue("{brand}: \n"))
   cat(" \n")
   
-  # read data for eligible treated
-  treated_eligible <- readr::read_rds(here("output", "sequential", "treated", "eligible", glue("flowchart_treatedeligible_{brand}_unrounded.rds"))) 
-  
   # reshape so one row per patient, and logical columns to indicate if matched as treated, control or both
   data_matched <- readr::read_rds(here("output", "sequential", brand, "match", "data_matched.rds")) %>%
     select(patient_id, treated) %>%
@@ -77,7 +74,14 @@ flowchart_matching_function <- function(brand) {
     ) %>%
     rename("treated" = "1", "control" = "0") %>%
     mutate(sequential = TRUE)
-    
+  
+  cat("Check there are the same number of treated and control:\n")
+  data_matched %>%
+    summarise(
+      treated = sum(treated, na.rm = TRUE),
+      control = sum(control, na.rm = TRUE)
+    ) %>%
+    print()
   
   # categorise individuals
   data_match_flow  <- data_singleeligible %>%
@@ -197,7 +201,8 @@ flow_boxes_brand <- flow_boxes %>%
   ) %>%
   # sum across all criteria in each box
   group_by(brand, box_crit, box_descr) %>%
-  summarise(n = sum(n), .groups = "keep") 
+  summarise(n = sum(n), .groups = "keep")  %>%
+  ungroup()
 
 # unvaccinated counts (not brand-specific)
 flow_boxes_unvax <- flow_boxes %>%
@@ -219,6 +224,7 @@ flow_boxes_unvax <- flow_boxes %>%
   # sum across all criteria in each box
   group_by(box_crit, box_descr) %>%
   summarise(n = sum(n), .groups = "keep")  %>% 
+  ungroup() %>%
   mutate(brand = "unvax")
 
 # bind together and process final flowchart for report
@@ -239,3 +245,22 @@ write_csv(
   flowchart_final,
   file.path(outdir, "flowchart_final_rounded.csv")
 )
+
+cat("Check that c7 = ABCDEF_pfizer + ABCDEF_az + GH\n")
+cat("c7:\n")
+c7 <- flowchart_singleeligible_rounded %>% filter(crit=="c7") %>% pull(n) 
+print(c7)
+cat("ABCDEF_pfizer:\n")
+ABCDEF_pfizer <- flow_boxes_brand %>% filter(box_crit == "ABCDEF", brand=="pfizer") %>% pull(n)
+print(ABCDEF_pfizer)
+cat("ABCDEF_az:\n")
+ABCDEF_az <- flow_boxes_brand %>% filter(box_crit == "ABCDEF", brand=="az") %>% pull(n)
+print(ABCDEF_az)
+cat("GH:\n")
+GH <- flow_boxes_unvax %>% filter(box_crit == "GH") %>% pull(n)
+print(GH)
+
+cat("ceiling_any:\n")
+c7 == ceiling_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
+cat("roundmid_any:\n")
+c7 == roundmid_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
