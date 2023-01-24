@@ -1394,5 +1394,16 @@ actions:
         csv: output/report/brand12counts/*.csv
         plots: output/report/brand12counts/*.png
 
+  ## Check vax data mismatch: 
+
+  check_vax_data:
+    run: r:latest analysis/checks/vax_data.R
+    needs:
+    - extract_treated
+    - extract_controlpotential_pfizer_1
+    outputs:
+      moderately_sensitive:
+        vax_data: output/checks/vax_data.txt
+
   ## #### End #### 
 

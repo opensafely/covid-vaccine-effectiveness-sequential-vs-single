@@ -808,6 +808,19 @@ actions_list <- splice(
     )
   ),
   
+  comment("Check vax data mismatch:"),
+  action(
+    name = "check_vax_data",
+    run = glue("r:latest analysis/checks/vax_data.R"),
+    needs = namelesslst(
+      "extract_treated",
+      "extract_controlpotential_pfizer_1"
+    ),
+    moderately_sensitive = lst(
+      vax_data = "output/checks/vax_data.txt"
+    )
+  ),
+  
   # 
   # comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 
   #         "Move files for release", 
