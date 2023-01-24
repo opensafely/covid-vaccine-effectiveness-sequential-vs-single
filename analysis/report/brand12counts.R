@@ -27,14 +27,11 @@ data_days <- lapply(
   function(iteration) 
     read_rds(here("output", "single", "stset", glue("data_days_{iteration}.rds"))) %>%
     transmute(
-      
+
       patient_id,
-      
+
       date = as.Date(study_dates$global$index_date) + tstart,
-      
-      dereg_status,
-      death_status,
-      
+
       vaxbrand12_status = fct_case_when(
         vaxpfizer_status==0 & vaxaz_status==0  ~ "Not vaccinated",
         vaxpfizer_status==1  ~ "BNT162b2\ndose 1",
@@ -43,8 +40,8 @@ data_days <- lapply(
         vaxaz_status==2  ~ "ChAdOx1\ndose 2",
         TRUE ~ NA_character_
       )
-      
-    ) 
+
+    )
 ) %>%
   bind_rows() 
 
