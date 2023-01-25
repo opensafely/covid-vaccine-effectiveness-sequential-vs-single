@@ -21,10 +21,10 @@ source(here("analysis", "functions", "redaction.R"))
 args <- commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   # use for interactive testing
-  approach <- "single"
-  brand <- "any"
-  # approach <- "sequential"
-  # brand <- "pfizer"
+  # approach <- "single"
+  # brand <- "any"
+  approach <- "sequential"
+  brand <- "pfizer"
 } else {
   approach <- args[[1]]
   brand <- args[[2]]
@@ -44,12 +44,6 @@ if (approach == "single") {
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # create table 1 ----
-# set variable names as factor levels
-var_levels <- map_chr(
-  var_lookup[-which(names(var_lookup) %in% c("N", "treated"))],
-  ~last(as.character(.))
-  )
-
 # use gtsummary to obtain standardised table 1 data
 tab_summary_baseline <-
   data_in %>%
@@ -71,7 +65,11 @@ raw_stats <- tab_summary_baseline$meta_data %>%
   unnest(df_stats)
 
 raw_stats_rounded <- raw_stats %>%
-  mutate(
+  transmute(
+    variable,
+    variable_levels = replace_na(as.character(variable_levels), ""),
+    stat_display,
+    by,
     n=roundmid_any(n, threshold),
     N=roundmid_any(N, threshold),
     p=n/N,
@@ -80,9 +78,7 @@ raw_stats_rounded <- raw_stats %>%
     p_miss = N_miss/N_obs,
     N_nonmiss = roundmid_any(N_nonmiss, threshold),
     p_nonmiss = N_nonmiss/N_obs,
-    median, p25, p75,
-    var_label = factor(var_label, levels=var_levels),
-    variable_levels = replace_na(as.character(variable_levels), "")
+    median, p25, p75
   ) %>%
   mutate(across(c(p, p_miss, p_nonmiss), ~round(.x, 4))) %>%
   mutate(across(c(median, p25, p75), ~round(.x, 2)))
