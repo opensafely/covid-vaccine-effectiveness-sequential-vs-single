@@ -22,11 +22,38 @@ index_date = params["index_date"]
 
 
 ############################################################
-## inclusion variables
+## vax variables
 from variables_vax import generate_vax_variables 
-vax_variables = generate_vax_variables(index_date="1900-01-01", n=2)
+
+if matching_round == 1 and brand == "pfizer": 
+  vax_variables = generate_vax_variables(index_date="1900-01-01", n=2)
+else: 
+  vax_variables = dict(
+    vax1_date = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax1_date", 
+    returning_type="date", 
+    date_format='YYYY-MM-DD'
+    ),
+  vax2_date = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax2_date", 
+    returning_type="date", 
+    date_format='YYYY-MM-DD'
+    ),
+  vax1_type = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax1_type", 
+    returning_type="str", 
+    ),
+  vax2_type = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax2_type", 
+    returning_type="str", 
+    ),
+)
 ############################################################
-# vax variables
+# inclusion variables
 from variables_inclusion import generate_inclusion_variables 
 inclusion_variables = generate_inclusion_variables(index_date="index_date")
 ############################################################
@@ -43,12 +70,14 @@ from variables_pre import generate_pre_variables
 pre_variables = generate_pre_variables(index_date="index_date")
 ############################################################
 ## additional_inclusion_variables
-if matching_round == 1: additional_inclusion_variables = dict(
-    eligible_matchinground1 = patients.all(),
-)
-else: additional_inclusion_variables = dict(
-   eligible_matchinground1 = patients.which_exist_in_file(
-      f_path=f"output/sequential/{brand}/matchround1/process/data_controlpotential.csv.gz"
+if matching_round == 1 and brand == "pfizer": 
+  additional_inclusion_variables = dict(
+    eligible_single = patients.all(),
+    )
+else: 
+  additional_inclusion_variables = dict(
+    eligible_single = patients.which_exist_in_file(
+      f_path="output/single/eligible/data_singleeligible.csv.gz"
       ),
 )
 
@@ -76,7 +105,7 @@ study = StudyDefinition(
     AND
     NOT has_died
     AND
-    eligible_matchinground1
+    eligible_single
     """,
     
     **inclusion_variables,    

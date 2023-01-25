@@ -99,7 +99,10 @@ action_1matchround <- function(brand, matching_round){
       needs = c(
         "design",
         if(matching_round>1) {
-          c(glue("process_controlpotential_{brand}_1"),glue("process_controlactual_{brand}_{matching_round-1}"))
+          c(
+            "process_single",
+            glue("process_controlactual_{brand}_{matching_round-1}")
+            )
         } else {
             NULL
           }

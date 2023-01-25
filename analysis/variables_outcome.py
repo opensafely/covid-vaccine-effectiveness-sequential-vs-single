@@ -11,20 +11,7 @@ def generate_outcome_variables(index_date):
       on_or_after=index_date,
       date_format="YYYY-MM-DD",
     ),
-  
-    # # positive case identification 
-    # primary_care_covid_case_date=patients.with_these_clinical_events(
-    #   combine_codelists(
-    #     codelists.covid_primary_care_code,
-    #     codelists.covid_primary_care_positive_test,
-    #     codelists.covid_primary_care_sequelae,
-    #   ),
-    #   returning="date",
-    #   date_format="YYYY-MM-DD",
-    #   on_or_after=index_date,
-    #   find_first_match_in_period=True,
-    # ),
-    
+     
     # positive covid test
     postest_date=patients.with_test_result_in_sgss(
         pathogen="SARS-CoV-2",

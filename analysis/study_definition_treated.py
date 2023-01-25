@@ -15,29 +15,25 @@ from cohortextractor import (
 )
 
 ############################################################
-## inclusion variables
-from variables_vax import generate_vax_variables 
-vax_variables = generate_vax_variables(index_date="1900-01-01", n=2)
-############################################################
 # vax variables
 from variables_inclusion import generate_inclusion_variables 
-inclusion_variables = generate_inclusion_variables(index_date="covid_vax_disease_1_date")
+inclusion_variables = generate_inclusion_variables(index_date="vax1_date")
 ############################################################
 ## jcvi variables
 from variables_jcvi import generate_jcvi_variables 
-jcvi_variables = generate_jcvi_variables(index_date="covid_vax_disease_1_date")
+jcvi_variables = generate_jcvi_variables(index_date="vax1_date")
 ############################################################
 ## demographic variables
 from variables_demo import generate_demo_variables 
-demo_variables = generate_demo_variables(index_date="covid_vax_disease_1_date")
+demo_variables = generate_demo_variables(index_date="vax1_date")
 ############################################################
 ## pre variables
 from variables_pre import generate_pre_variables 
-pre_variables = generate_pre_variables(index_date="covid_vax_disease_1_date")
+pre_variables = generate_pre_variables(index_date="vax1_date")
 ############################################################
 ## outcome variables
 from variables_outcome import generate_outcome_variables 
-outcome_variables = generate_outcome_variables(index_date="covid_vax_disease_1_date")
+outcome_variables = generate_outcome_variables(index_date="vax1_date")
 ############################################################
 
 # Specify study definition
@@ -61,22 +57,43 @@ study = StudyDefinition(
     AND
     NOT has_died
     AND 
-    covid_vax_disease_1_date
-    AND
     eligible_single
+    AND
+    vax1_date
     """,
     
     **inclusion_variables,   
 
     eligible_single = patients.which_exist_in_file(
-      f_path=f"output/single/eligible/data_singleeligible.csv.gz"
+      f_path="output/single/eligible/data_singleeligible.csv.gz"
       ),
   ),
   
   #################################################################
   ## Covid vaccine dates
   #################################################################
-  **vax_variables,
+  vax1_date = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax1_date", 
+    returning_type="date", 
+    date_format='YYYY-MM-DD'
+    ),
+  vax2_date = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax2_date", 
+    returning_type="date", 
+    date_format='YYYY-MM-DD'
+    ),
+  vax1_type = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax1_type", 
+    returning_type="str", 
+    ),
+  vax2_type = patients.with_value_from_file(
+    f_path="output/single/eligible/data_singleeligible.csv.gz", 
+    returning="vax2_type", 
+    returning_type="str", 
+    ),
     
   ###############################################################################
   # jcvi variables

@@ -23,22 +23,26 @@ source(here("analysis", "process", "process_functions.R"))
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
   # use for interactive testing
-  stage <- "single"
+  # stage <- "single"
   # stage <- "treated"
   # stage <- "potential"
   # stage <- "actual"
-  # stage <- "final"
+  stage <- "final"
   if (stage %in% c("potential", "actual", "final")) {
     brand <- "pfizer"
     if (stage != "final") matching_round <- as.integer("1")
-  }
+  } 
 } else {
+  
   stage <- args[[1]]
   
   if (stage %in% c("treated", "single")) {
+    
     if (length(args) > 1) 
       stop("No additional args to be specified when `stage`=\"treated\" or `stage`=\"single\"")
+    
   } else if (stage %in% c("potential", "actual")) {
+    
     if (length(args) == 1) {
       stop("`brand` and `matching_round` must be specified when `stage=\"potential\"` or \"actual\"")
     }
@@ -53,6 +57,7 @@ if (length(args) == 0) {
     }
     
     brand <- args[[2]] # undefined if treated
+    matching_round <- 0
     
   }
 } 
@@ -61,6 +66,14 @@ if (length(args) == 0) {
 if (stage == "single") {
   brand <- "pfizer"
   matching_round <- 1
+}
+# define brand and matching round when stage=treated
+if (stage == "treated") {
+  # dummy values so that conditional statements don't fail
+  brand <- "none"
+}
+if (stage %in% c("treated", "final")) {
+  matching_round <- 0
 }
 # extract matching_round_date
 if (stage %in% c("single", "potential")) {
@@ -127,7 +140,31 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
     # because of a bug in cohort extractor -- remove once pulled new version
     mutate(patient_id = as.integer(patient_id))
   
-  data_custom_dummy <- read_feather(custom_path) 
+  data_custom_dummy <- read_feather(custom_path)
+  
+  # sort out vax variables to match data_custom_dummy to data_studydef_dummy
+  if (
+    stage == "treated" |
+    (stage == "potential" & (matching_round > 1 | brand == "az"))
+  ) {
+    
+    data_custom_dummy <- data_custom_dummy %>%
+      mutate(
+        vax1_date = covid_vax_disease_1_date,
+        vax2_date = covid_vax_disease_2_date,
+        vax1_type = fct_case_when(
+          vax1_date == covid_vax_pfizer_1_date ~ "pfizer", 
+          vax1_date == covid_vax_az_1_date ~ "az"
+          ),
+        vax2_type = fct_case_when(
+          vax2_date == covid_vax_pfizer_2_date ~ "pfizer", 
+          vax2_date == covid_vax_az_2_date ~ "az"
+        ),
+      ) %>%
+      select(-starts_with("covid_vax")) 
+    
+    
+  }
   
   if (stage == "actual") {
     
@@ -328,7 +365,7 @@ if (stage == "single") {
     )
   # define index date
   data_extract <- data_extract %>%
-    mutate(index_date = covid_vax_disease_1_date) 
+    mutate(index_date = vax1_date) 
   
 } else if(stage == "potential"){
   
@@ -377,23 +414,36 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 # process vaccination data ----
-if (stage %in% c("single", "treated", "potential")) {
+if (
+  stage == "single" |
+  (stage == "potential" & brand == "pfizer" & matching_round == 1)
+) {
+  
+  data_processed <- data_processed %>% process_vax(stage)
+  
+} else if (stage == "final") {
+  
+  # do nothing
+  
+} else {
+  
+  if (stage == "actual") {
+    
+    ### join to vax data 
+    data_vax_wide <- 
+      read_rds(ghere("output", "sequential", brand, "matchround{matching_round}", "process", "data_controlpotential.rds")) %>%
+      select(patient_id, matches("^vax\\d"))
+    
+    data_processed <- data_processed %>%
+      left_join(data_vax_wide, by = "patient_id") 
+    
+    rm(data_vax_wide)
+    
+  }
   
   data_processed <- data_processed %>%
-    process_vax(stage)
-  
-} else if (stage == "actual") {
-  
-  ### join to vax data 
-  data_vax_wide <- 
-    read_rds(ghere("output", "sequential", brand, "matchround{matching_round}", "process", "data_controlpotential.rds")) %>%
-    select(patient_id, matches("^vax\\d"))
-  
-  data_processed <- data_processed %>%
-    left_join(data_vax_wide, by = "patient_id") %>%
     # the following line is needed for applying the eligibility criteria: covid_vax_disease_1_date_matches_vax1_date
-    # it has already been checked that this is true in the process_potential stage, 
-    # but `covid_vax_disease_1_date` is added to avoid having to add extra logic statements for the case when stage="actual"
+    # it has already been checked that this is true in the previous stages
     mutate(covid_vax_disease_1_date = vax1_date)
   
 }
@@ -594,7 +644,7 @@ if (stage == "single") {
     )
   # also save as csv.gz for reading into study_definition
   write_csv(
-    data_eligible %>% distinct(patient_id),  
+    data_eligible %>% distinct(patient_id, vax1_date, vax2_date, vax1_type, vax2_type),  
     here("output", "single", "eligible", "data_singleeligible.csv.gz")
     )
   

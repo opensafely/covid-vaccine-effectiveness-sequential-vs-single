@@ -167,7 +167,7 @@ actions:
       --param brand=pfizer --param matching_round=2 --param index_date=2020-12-22
     needs:
     - design
-    - process_controlpotential_pfizer_1
+    - process_single
     - process_controlactual_pfizer_1
     outputs:
       highly_sensitive:
@@ -235,7 +235,7 @@ actions:
       --param brand=pfizer --param matching_round=3 --param index_date=2021-01-05
     needs:
     - design
-    - process_controlpotential_pfizer_1
+    - process_single
     - process_controlactual_pfizer_2
     outputs:
       highly_sensitive:
@@ -303,7 +303,7 @@ actions:
       --param brand=pfizer --param matching_round=4 --param index_date=2021-01-19
     needs:
     - design
-    - process_controlpotential_pfizer_1
+    - process_single
     - process_controlactual_pfizer_3
     outputs:
       highly_sensitive:
@@ -555,7 +555,7 @@ actions:
       --param brand=az --param matching_round=2 --param index_date=2021-01-18
     needs:
     - design
-    - process_controlpotential_az_1
+    - process_single
     - process_controlactual_az_1
     outputs:
       highly_sensitive:
@@ -623,7 +623,7 @@ actions:
       --param brand=az --param matching_round=3 --param index_date=2021-02-01
     needs:
     - design
-    - process_controlpotential_az_1
+    - process_single
     - process_controlactual_az_2
     outputs:
       highly_sensitive:
@@ -691,7 +691,7 @@ actions:
       --param brand=az --param matching_round=4 --param index_date=2021-02-15
     needs:
     - design
-    - process_controlpotential_az_1
+    - process_single
     - process_controlactual_az_3
     outputs:
       highly_sensitive:
