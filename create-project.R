@@ -77,6 +77,19 @@ action_1matchround <- function(brand, matching_round){
     )
   }
   
+  extract_controlpotential_needs <- "design"
+  if (matching_round > 1 | brand == "az") {
+    extract_controlpotential_needs <- c(
+      extract_controlpotential_needs, 
+      "process_single")
+  }
+  if (matching_round > 1) {
+    extract_controlpotential_needs <- c(
+      extract_controlpotential_needs, 
+      glue("process_controlactual_{brand}_{matching_round-1}")
+      )
+  }
+  
   splice(
     
     comment(
@@ -85,6 +98,9 @@ action_1matchround <- function(brand, matching_round){
       glue("Matching round {matching_round}:"),
       "# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #"
       ),
+    
+    
+    
     
     action(
       name = glue("extract_controlpotential_{brand}_{matching_round}"),
@@ -96,17 +112,7 @@ action_1matchround <- function(brand, matching_round){
         " --param matching_round={matching_round}",
         " --param index_date={control_extract_date}"
       ),
-      needs = c(
-        "design",
-        if(matching_round>1) {
-          c(
-            "process_single",
-            glue("process_controlactual_{brand}_{matching_round-1}")
-            )
-        } else {
-            NULL
-          }
-      ) %>% as.list,
+      needs = extract_controlpotential_needs %>% as.list,
       highly_sensitive = lst(
         cohort = glue("output/sequential/{brand}/matchround{matching_round}/extract/input_controlpotential.feather")
       )
@@ -410,7 +416,7 @@ model_single <- function(brand, subgroup, outcome) {
         html = glue("output/single/{brand}/{subgroup}/{outcome}/preflight/vaccine/*.html")
       )
     ),
-    
+
     action(
       name = glue("preflight_{brand}_{subgroup}_{outcome}_outcome"),
       run = "r:latest analysis/single/model/preflight.R",
@@ -811,18 +817,18 @@ actions_list <- splice(
     )
   ),
   
-  comment("Check vax data mismatch:"),
-  action(
-    name = "check_vax_data",
-    run = glue("r:latest analysis/checks/vax_data.R"),
-    needs = namelesslst(
-      "extract_treated",
-      "extract_controlpotential_pfizer_1"
-    ),
-    moderately_sensitive = lst(
-      vax_data = "output/checks/vax_data.txt"
-    )
-  ),
+  # comment("Check vax data mismatch:"),
+  # action(
+  #   name = "check_vax_data",
+  #   run = glue("r:latest analysis/checks/vax_data.R"),
+  #   needs = namelesslst(
+  #     "extract_treated",
+  #     "extract_controlpotential_pfizer_1"
+  #   ),
+  #   moderately_sensitive = lst(
+  #     vax_data = "output/checks/vax_data.txt"
+  #   )
+  # ),
   
   # 
   # comment("# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #", 

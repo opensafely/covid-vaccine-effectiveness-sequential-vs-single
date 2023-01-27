@@ -490,6 +490,7 @@ actions:
       --param brand=az --param matching_round=1 --param index_date=2021-01-04
     needs:
     - design
+    - process_single
     outputs:
       highly_sensitive:
         cohort: output/sequential/az/matchround1/extract/input_controlpotential.feather
@@ -1393,17 +1394,6 @@ actions:
       moderately_sensitive:
         csv: output/report/brand12counts/*.csv
         plots: output/report/brand12counts/*.png
-
-  ## Check vax data mismatch: 
-
-  check_vax_data:
-    run: r:latest analysis/checks/vax_data.R
-    needs:
-    - extract_treated
-    - extract_controlpotential_pfizer_1
-    outputs:
-      moderately_sensitive:
-        vax_data: output/checks/vax_data.txt
 
   ## #### End #### 
 

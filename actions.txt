@@ -38,5 +38,4 @@ preflight_az_all_death_vaccine preflight_az_all_death_outcome ipw_az_all_death m
 single_combine
 flowchart
 brand12counts
-check_vax_data
 
