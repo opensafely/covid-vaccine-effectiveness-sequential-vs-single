@@ -55,6 +55,7 @@ combine_files <- function(filename) {
 }
 
 combine_files("km_estimates_rounded")
+combine_files("km_estimates_unrounded")
 combine_files("contrasts_km_cuts_rounded")
 combine_files("contrasts_cox_cuts")
 
