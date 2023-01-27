@@ -77,23 +77,20 @@ tab_vax1_wide <- tab_vax1 %>%
     CI = if_else(is.na(HR), "", CI),
     HR_ECI = paste0(HR, " ", CI)
   ) %>%
-  select(
-    -HR, -CI
-    # subgroup_level, brand_descr, var_label, label, HR_ECI
-  ) %>%
+  select(-HR, -CI) %>%
   pivot_wider(
     id_cols = c(subgroup_level, var_label, label),
     names_from = brand_descr,
     values_from = HR_ECI,
     names_glue = "{brand_descr}"
   )
-
-# write_csv(here(outdir, "tab_vax1_wide.csv"))
+# check it looks right:
+tab_vax1_wide %>% select(-subgroup_level) %>% print(n = nrow(.))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # outcome model coefficients (single and sequential)
 
-# import sequential
+# import sequential (file to release)
 estimates_sequential <- read_csv(here("output", "sequential", "combine", "contrasts_cox_cuts.csv")) %>%
   transmute(
     approach = "Sequential trial",
@@ -101,12 +98,12 @@ estimates_sequential <- read_csv(here("output", "sequential", "combine", "contra
     estimate = coxhazr,
     lci = coxhr.ll,
     uci = coxhr.ul,
-    period_start,
+    period_start = period_start + 1,
     period_end,
-    fup_period
+    fup_period = paste0(period_start,"-",period_end)
   )
 
-# import single
+# import single (file to release)
 estimates_single <- read_csv(here("output", "single", "combine", "estimates_timesincevax.csv")) %>%
   transmute(
     approach = "Single trial",
@@ -114,9 +111,9 @@ estimates_single <- read_csv(here("output", "single", "combine", "estimates_time
     estimate = or,
     lci = or.ll,
     uci = or.ul,
-    period_start = as.numeric(str_extract_all(term, "^\\d+")) - 1,
+    period_start = as.numeric(str_extract_all(term, "^\\d+")),
     period_end = as.numeric(str_extract_all(term, "\\d+$")),
-    fup_period = str_c(period_start, period_end, sep = "-")
+    fup_period = term
   ) 
 
 # create table (supplementary table xxx)
@@ -125,7 +122,7 @@ bind_rows(
   estimates_single
 ) %>%
   add_descr() %>%
-  mutate(across(fup_period, factor, levels = paste0(c(0,postbaselinecuts[-length(postbaselinecuts)]), "-", postbaselinecuts))) %>%
+  mutate(across(fup_period, factor, levels = paste0(c(0,postbaselinecuts[-length(postbaselinecuts)])+1, "-", postbaselinecuts))) %>%
   mutate(
     estimate = scales::label_number(accuracy = .01, trim=TRUE)(estimate),
     ci = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(lci), "-", scales::label_number(accuracy = .01, trim=TRUE)(uci), ")")
@@ -139,7 +136,7 @@ bind_rows(
     values_from = value
   ) %>% 
   arrange(outcome_descr, brand_descr, fup_period) %>%
-  print(n=Inf)
+  print(n=nrow(.))
 
 # figure xxx
 
@@ -149,7 +146,7 @@ plot_data <- bind_rows(
 ) %>%
   add_descr() %>%
   rowwise() %>%
-  mutate(mid_point = (period_start + period_end)/2) 
+  mutate(mid_point = (period_start + period_end - 1)/2) 
 
 
 position_dodge_val <- 1
@@ -255,7 +252,12 @@ plot_data %>%
     
   ) 
 
-# ggsave()
+ggsave(
+  filename = "ve.png",
+  path = outdir, 
+  width = 20, height = 16, units = "cm"
+)
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # sequential matching coverage (sequential only)
@@ -350,11 +352,16 @@ plot_coverage_cumuln <-
     legend.position = "bottom"
   )
 
-# ggsave()
+ggsave(
+  filename = "coverage_cumuln.png",
+  path = outdir,
+  width = 16, height = 16, units = "cm"
+)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # sequential KM cumulative incidence (sequential only)
 
+# file to release
 km_estimates_rounded <- read_csv(here("output", "sequential", "combine", "km_estimates_rounded.csv"))
 
 # supplementary figure xxx
@@ -455,18 +462,92 @@ km_estimates_rounded %>%
     legend.position="bottom"
   )
 
-# ggsave()
+ggsave(
+  filename = "km_cumulinc.png",
+  path = outdir,
+  width = 20, height = 16, units = "cm"
+)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # event counts (single and sequential; text only)
 
-# TODO
+# sequential
+events_sequential_summary <- 
+  read_csv("output/sequential/combine/km_estimates_unrounded.csv") %>% 
+  group_by(brand, outcome, treated) %>%
+  summarise(
+    person_years = round(sum(n.risk)/365.25, 2),
+    events = sum(n.event),
+    .groups = "keep"
+    ) %>%
+  ungroup(outcome) %>%
+  mutate(across(person_years, max)) %>%
+  ungroup() %>%
+  pivot_wider(
+    names_from = outcome,
+    values_from = events
+  )
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# counts of vaccination following a positive test (single only; text only)
+events_sequential_summary <- events_sequential_summary %>%
+  mutate(across(treated, as.character)) %>%
+  bind_rows(
+    events_sequential_summary %>%
+      mutate(treated = "total") %>%
+      group_by(brand, treated) %>%
+      summarise(across(everything(), sum), .groups = "keep")
+  ) %>%
+  arrange(brand, treated) %>%
+  select(brand, treated, person_years, postest, covidadmitted, death)
 
-# TODO
+write_csv(
+  events_sequential_summary,
+  here(outdir, "events_sequential_summary.csv")
+)
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Of xxx person-years of follow-up xxx (xxx%) were after vaccination.
 
+# single
+events_single <- 
+ read_rds(here("output", "single", "stset", "data_events.rds")) %>%
+  as_tibble() %>%
+  filter(tstart < maxfup) %>%
+  group_by(patient_id, vaxany1_status) %>%
+  mutate(tstart = min(tstart)) %>%
+  summarise(across(
+    c(tstart, tstop, tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
+    ~as.integer(max(.x))
+  )) %>%
+  mutate(across(
+    tstop, 
+    ~if_else(.x > maxfup, as.integer(maxfup), .x)
+    )) %>%
+  mutate(across(
+    c(tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
+    ~if_else(.x > maxfup, NA_integer_, .x)
+    )) %>%
+  ungroup() 
+
+
+events_single_summary <- events_single %>%
+  group_by(vaxany1_status) %>%
+  summarise(
+    person_years = round(sum(tstop - tstart)/365.25,2),
+    # use > here rather than >=, as we assume vaccination occurs at the start of the day and postest at the end
+    vax_after_postest = sum(tte_vaxany1 > tte_postest, na.rm=TRUE),
+    postest = sum(!is.na(tte_postest)),
+    covidadmitted = sum(!is.na(tte_covidadmitted)),
+    death = sum(!is.na(tte_death))
+  )
+
+events_single_summary <- events_single_summary %>%
+  mutate(across(vaxany1_status, as.character)) %>%
+  bind_rows(
+    events_single_summary %>%
+      mutate(vaxany1_status = "any") %>%
+      group_by(vaxany1_status) %>%
+      summarise(across(everything(), sum))
+  )
+
+write_csv(
+  events_single_summary,
+  here(outdir, "events_single_summary.csv")
+)
