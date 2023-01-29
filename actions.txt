@@ -37,5 +37,5 @@ preflight_az_all_covidadmitted_vaccine preflight_az_all_covidadmitted_outcome ip
 preflight_az_all_death_vaccine preflight_az_all_death_outcome ipw_az_all_death msm_az_all_death postprocess_az_all_death
 single_combine
 flowchart
-brand12counts
+brand12counts output_for_release
 

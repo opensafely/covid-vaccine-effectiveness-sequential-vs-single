@@ -1395,5 +1395,21 @@ actions:
         csv: output/report/brand12counts/*.csv
         plots: output/report/brand12counts/*.png
 
+  output_for_release:
+    run: r:latest analysis/report/output_for_release.R
+    needs:
+    - table1_sequential_pfizer
+    - table1_sequential_az
+    - table1_single_any
+    - single_combine
+    - combine_kmcox
+    - coverage_pfizer
+    - coverage_az
+    - process_stset
+    outputs:
+      moderately_sensitive:
+        csv: output/report/release/*.csv
+        plots: output/report/release/*.png
+
   ## #### End #### 
 

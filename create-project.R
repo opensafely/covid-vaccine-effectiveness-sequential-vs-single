@@ -817,6 +817,25 @@ actions_list <- splice(
     )
   ),
   
+  action(
+    name = "output_for_release",
+    run = glue("r:latest analysis/report/output_for_release.R"),
+    needs = namelesslst(
+      "table1_sequential_pfizer",
+      "table1_sequential_az",
+      "table1_single_any",
+      "single_combine",
+      "combine_kmcox",
+      "coverage_pfizer",
+      "coverage_az",
+      "process_stset"
+    ),
+    moderately_sensitive = lst(
+      csv = "output/report/release/*.csv",
+      plots = "output/report/release/*.png"
+    )
+  ),
+  
   # comment("Check vax data mismatch:"),
   # action(
   #   name = "check_vax_data",

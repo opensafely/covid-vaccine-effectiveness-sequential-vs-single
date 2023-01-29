@@ -1,10 +1,10 @@
-# table of summary stats and coefficients from vaccination model
+# tables, figures and text for manuscript/supplement
 
 library(tidyverse)
 library(here)
 library(glue)
 
-outdir <- here("output", "release") 
+outdir <- here("output", "report", "release") 
 fs::dir_create(outdir)
 
 # import custom user functions and metadata
@@ -22,31 +22,32 @@ table1 <- bind_rows(
     mutate(across(by, factor, levels = c(0,1), labels = c("unvaccinated", "az"))) %>%
     add_column(brand = "az", .before = 1),
   read_csv(here("output", "report", "table1", "table1_single_any_rounded.csv"))
-) %>%
-  filter(variable != "age_factor") %>%
-  rowwise() %>%
-  mutate(
-    across(
-      c(p, p_miss, p_nonmiss),
-      ~if_else(.x < 10,
-               format(round(100*.x, 1), nsmall=1),
-               format(round(100*.x, 0), nsmall=0)
-      )
-    )
-  ) %>%
-  mutate(across(stat_display, glue)) %>%
-  select(brand, by, variable, variable_levels, stat_display) %>%
-  pivot_wider(
-    names_from = c("brand", "by"),
-    values_from = stat_display
-  ) %>%
-  rename(
-    pfizer = pfizer_pfizer,
-    az = az_az,
-    single = NA_single
-  )
+) 
+# %>%
+  # filter(variable != "age_factor") %>%
+  # mutate(
+  #   across(
+  #     c(p, p_miss, p_nonmiss),
+  #     ~if_else(.x < 10,
+  #              format(round(100*.x, 1), nsmall=1, trim=TRUE),
+  #              format(round(100*.x, 0), nsmall=0, trim=TRUE)
+  #     )
+  #   )
+  # ) %>%
+  # rowwise() %>%
+  # mutate(across(stat_display, glue)) %>%
+  # select(brand, by, variable, variable_levels, stat_display) %>%
+  # pivot_wider(
+  #   names_from = c("brand", "by"),
+  #   values_from = stat_display
+  # ) %>%
+  # rename(
+  #   pfizer = pfizer_pfizer,
+  #   az = az_az,
+  #   single = NA_single
+  # )
 
-# file to release (table for manuscript)
+# file to release (Supplementary Table 1)
 write_csv(
   table1,
   file.path(outdir, "table1_rounded.csv")
@@ -58,7 +59,7 @@ write_csv(
 # file to release
 tab_vax1 <- read_csv(here("output", "single", "combine", "tab_vax1.csv"))
 
-# post release processing  (table for manuscript)
+# post release processing  (Table 1)
 tab_vax1_wide <- tab_vax1 %>%
   filter(
     subgroup=="all", 
@@ -116,7 +117,7 @@ estimates_single <- read_csv(here("output", "single", "combine", "estimates_time
     fup_period = term
   ) 
 
-# create table (supplementary table xxx)
+# create table (Supplementary Table 2)
 bind_rows(
   estimates_sequential,
   estimates_single
@@ -138,7 +139,7 @@ bind_rows(
   arrange(outcome_descr, brand_descr, fup_period) %>%
   print(n=nrow(.))
 
-# figure xxx
+# Figure 2
 
 plot_data <- bind_rows(
   estimates_sequential,
@@ -275,7 +276,7 @@ write_csv(
   file.path(outdir, "coverage_rounded.csv")
 )
 
-# figure (supplementary figure xxx)
+# figure (Supplementary Figure 3)
 
 colour_palette <- c(
   "BNT162b2, matched" = "#e7298a", # dark pink / dark grey
@@ -294,7 +295,12 @@ colour_palette <- c(
 
 plot_coverage_cumuln <-
   coverage %>%
-  mutate(brand_descr = factor(brand, levels = brand_lookup$brand, labels = brand_lookup$brand_descr)) %>%
+  mutate(
+    brand_descr = factor(
+      brand, 
+      levels = brand_lookup$brand, 
+      labels = brand_lookup$brand_descr
+      )) %>%
   mutate(
     colour_var = factor(
       paste0(brand_descr, ", ", status),
@@ -322,13 +328,13 @@ plot_coverage_cumuln <-
   #   rows = vars(brand_descr)
   # ) +
   scale_x_date(
-    breaks = unique(lubridate::ceiling_date(coverage$vax1_date, "1 month")),
+    # breaks = unique(lubridate::ceiling_date(coverage$vax1_date, "1 month")),
     # limits = c(xmin-1, NA),
     labels = scales::label_date("%b %Y"),
-    expand = expansion(add=7),
+    expand = expansion(add=7)
   ) +
   scale_y_continuous(
-    labels = ~scales::label_number(accuracy = 1, big.mark=",")(.x),
+    # labels = ~scales::label_number(accuracy = 1, big.mark=",")(.x),
     expand = expansion(c(0, NA))
   ) +
   scale_fill_manual(values = colour_palette) +
@@ -362,114 +368,117 @@ ggsave(
 # sequential KM cumulative incidence (sequential only)
 
 # file to release
-km_estimates_rounded <- read_csv(here("output", "sequential", "combine", "km_estimates_rounded.csv"))
+# km_estimates_rounded <- read_csv(here("output", "sequential", "combine", "km_estimates_rounded.csv"))
 
-# supplementary figure xxx
+# Supplementary Figure 4
 
-colour_palette <- c(
-  "Unvaccinated" = "#616161", # light grey
-  "BNT162b2" = "#e7298a", # dark pink / dark grey
-  "ChAdOx1" = "#7570b3" # dark purple / dark grey
-)
-
-linetype_palette <- c(
-  "Unvaccinated" = "dashed",
-  "BNT162b2" = "solid",
-  "ChAdOx1" = "solid" 
-)
-
-km_estimates_rounded %>%
-  add_descr() %>%
-  mutate(
-    treated_descr = factor(
-      treated,
-      levels = c(0,1),
-      labels = c("Unvaccinated", "Vaccinated")
-    ),
-    colour_var = factor(
-      if_else(treated_descr %in% "Unvaccinated", as.character(treated_descr), as.character(brand_descr)),
-      levels = names(colour_palette)
-    )
-  ) %>%
-  mutate(
-    across(
-      outcome_descr, 
-      factor, 
-      levels = outcome_descr_long,
-      labels = outcome_descr_wrap
-    )
-  ) %>%
-  group_by(brand_descr, outcome_descr, treated_descr) %>%
-  group_modify(
-    ~add_row(
-      .x,
-      time=0,
-      lagtime=0,
-      leadtime=1,
-      #interval=1,
-      surv=1,
-      surv.ll=1,
-      surv.ul=1,
-      risk=0,
-      risk.ll=0,
-      risk.ul=0,
-      .before=0
-    )
-  ) %>%
-  ungroup() %>%
-  ggplot(aes(
-    group = colour_var, 
-    colour = colour_var, 
-    fill = colour_var, 
-    linetype = colour_var
-  )) +
-  geom_step(
-    aes(x=time, y=risk), 
-    direction="vh"
-  ) +
-  geom_rect(
-    aes(xmin=lagtime, xmax=time, ymin=risk.ll, ymax=risk.ul), 
-    alpha=0.1, colour="transparent"
-  ) +
-  facet_grid(
-    rows = vars(outcome_descr),
-    cols = vars(brand_descr),
-    switch = "y",
-    scales = "free_y"
-  ) +
-  scale_color_manual(name = NULL, values = colour_palette) +
-  scale_fill_manual(name = NULL, values = colour_palette) +
-  scale_linetype_manual(name = NULL, values = linetype_palette) +
-  scale_x_continuous(breaks = c(postbaselinecuts)) +
-  scale_y_continuous(expand = expansion(mult=c(0,0.01))) +
-  # coord_cartesian(xlim=c(0, NA)) +
-  labs(
-    x = "Days since first dose",
-    y = NULL,#"Cumulative incidence",
-  ) +
-  theme_minimal() +
-  theme(
-    axis.title.x = element_text(size=10, margin = margin(t = 10)),
-    # axis.title.y = element_text(size=10, margin = margin(r = 10)),
-    panel.grid.minor.x = element_blank(),
-    panel.grid.minor.y = element_blank(),
-    strip.background = element_blank(),
-    strip.placement = "outside",
-    strip.text.y.left = element_text(angle = 90),
-    # strip.text = element_text(size=8),
-    axis.line.x = element_line(colour = "black"),
-    legend.box = "vertical",
-    legend.position="bottom"
-  )
-
-ggsave(
-  filename = "km_cumulinc.png",
-  path = outdir,
-  width = 20, height = 16, units = "cm"
-)
+# colour_palette <- c(
+#   "Unvaccinated" = "#616161", # light grey
+#   "BNT162b2" = "#e7298a", # dark pink / dark grey
+#   "ChAdOx1" = "#7570b3" # dark purple / dark grey
+# )
+# 
+# linetype_palette <- c(
+#   "Unvaccinated" = "dashed",
+#   "BNT162b2" = "solid",
+#   "ChAdOx1" = "solid" 
+# )
+# 
+# km_estimates_rounded %>%
+#   add_descr() %>%
+#   mutate(
+#     treated_descr = factor(
+#       treated,
+#       levels = c(0,1),
+#       labels = c("Unvaccinated", "Vaccinated")
+#     ),
+#     colour_var = factor(
+#       if_else(treated_descr %in% "Unvaccinated", as.character(treated_descr), as.character(brand_descr)),
+#       levels = names(colour_palette)
+#     )
+#   ) %>%
+#   mutate(
+#     across(
+#       outcome_descr, 
+#       factor, 
+#       levels = outcome_descr_long,
+#       labels = outcome_descr_wrap
+#     )
+#   ) %>%
+#   group_by(brand_descr, outcome_descr, treated_descr) %>%
+#   group_modify(
+#     ~add_row(
+#       .x,
+#       time=0,
+#       lagtime=0,
+#       leadtime=1,
+#       #interval=1,
+#       surv=1,
+#       surv.ll=1,
+#       surv.ul=1,
+#       risk=0,
+#       risk.ll=0,
+#       risk.ul=0,
+#       .before=0
+#     )
+#   ) %>%
+#   ungroup() %>%
+#   ggplot(aes(
+#     group = colour_var, 
+#     colour = colour_var, 
+#     fill = colour_var, 
+#     linetype = colour_var
+#   )) +
+#   geom_step(
+#     aes(x=time, y=risk), 
+#     direction="vh"
+#   ) +
+#   geom_rect(
+#     aes(xmin=lagtime, xmax=time, ymin=risk.ll, ymax=risk.ul), 
+#     alpha=0.1, colour="transparent"
+#   ) +
+#   facet_grid(
+#     rows = vars(outcome_descr),
+#     cols = vars(brand_descr),
+#     switch = "y",
+#     scales = "free_y"
+#   ) +
+#   scale_color_manual(name = NULL, values = colour_palette) +
+#   scale_fill_manual(name = NULL, values = colour_palette) +
+#   scale_linetype_manual(name = NULL, values = linetype_palette) +
+#   scale_x_continuous(breaks = c(postbaselinecuts)) +
+#   scale_y_continuous(expand = expansion(mult=c(0,0.01))) +
+#   # coord_cartesian(xlim=c(0, NA)) +
+#   labs(
+#     x = "Days since first dose",
+#     y = NULL#"Cumulative incidence",
+#   ) +
+#   theme_minimal() +
+#   theme(
+#     axis.title.x = element_text(size=10, margin = margin(t = 10)),
+#     # axis.title.y = element_text(size=10, margin = margin(r = 10)),
+#     panel.grid.minor.x = element_blank(),
+#     panel.grid.minor.y = element_blank(),
+#     strip.background = element_blank(),
+#     strip.placement = "outside",
+#     strip.text.y.left = element_text(angle = 90),
+#     # strip.text = element_text(size=8),
+#     axis.line.x = element_line(colour = "black"),
+#     legend.box = "vertical",
+#     legend.position="bottom"
+#   )
+# 
+# ggsave(
+#   filename = "km_cumulinc.png",
+#   path = outdir,
+#   width = 20, height = 16, units = "cm"
+# )
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # event counts (single and sequential; text only)
+
+# For text, e.g.
+# "In the BNT162b2 trials, there were xxx positive tests during xxx person-years follow-up (xxx in the unvaccinated group), xxx (xxx) COVID-19 hospitalisations, and xxx (xxx) deaths."
 
 # sequential
 events_sequential_summary <- 
@@ -497,15 +506,17 @@ events_sequential_summary <- events_sequential_summary %>%
       summarise(across(everything(), sum), .groups = "keep")
   ) %>%
   arrange(brand, treated) %>%
-  select(brand, treated, person_years, postest, covidadmitted, death)
+  select(brand, treated, person_years, postest, covidadmitted, death) %>%
+  mutate(across(-c(brand, treated), roundmid_any, to=threshold))
 
 write_csv(
   events_sequential_summary,
-  here(outdir, "events_sequential_summary.csv")
+  file.path(outdir, "events_sequential_summary_rounded.csv")
 )
 
 
 # single
+# e.g. "Vaccination after a positive test was rare, occurring in xxx and xxx people who received BNT162b2 and ChAdOx1 respectively and in only xxx and xxx people respectively within 28 days after a positive test). "
 events_single <- 
  read_rds(here("output", "single", "stset", "data_events.rds")) %>%
   as_tibble() %>%
@@ -528,15 +539,18 @@ events_single <-
 
 
 events_single_summary <- events_single %>%
+  mutate(vax_postest_gap = tte_vaxany1 - tte_postest) %>%
   group_by(vaxany1_status) %>%
   summarise(
     person_years = round(sum(tstop - tstart)/365.25,2),
     # use > here rather than >=, as we assume vaccination occurs at the start of the day and postest at the end
-    vax_after_postest = sum(tte_vaxany1 > tte_postest, na.rm=TRUE),
+    vax_after_postest = sum(vax_postest_gap>0, na.rm=TRUE),
+    vax_after_postest_28 = sum(vax_postest_gap>0 & vax_postest_gap <= 28, na.rm=TRUE),
     postest = sum(!is.na(tte_postest)),
     covidadmitted = sum(!is.na(tte_covidadmitted)),
     death = sum(!is.na(tte_death))
-  )
+  ) %>%
+  ungroup()
 
 events_single_summary <- events_single_summary %>%
   mutate(across(vaxany1_status, as.character)) %>%
@@ -545,9 +559,10 @@ events_single_summary <- events_single_summary %>%
       mutate(vaxany1_status = "any") %>%
       group_by(vaxany1_status) %>%
       summarise(across(everything(), sum))
-  )
+  ) %>%
+  mutate(across(-vaxany1_status, roundmid_any, to=threshold))
 
 write_csv(
   events_single_summary,
-  here(outdir, "events_single_summary.csv")
+  file.path(outdir, "events_single_summary_rounded.csv")
 )
