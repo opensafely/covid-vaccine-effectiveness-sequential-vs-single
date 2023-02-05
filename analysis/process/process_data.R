@@ -247,31 +247,39 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
 # process the dataset ----
 if (stage == "final") {
   
+  # import those who were eligible for single trial
+  data_singleeligible <- readr::read_rds(here("output", "single", "eligible", "data_singleeligible.rds")) %>%
+    select(patient_id)
+  
+  # restrict data_extract to those in data_singleeligible
+  data_extract <- data_extract %>%
+    inner_join(data_singleeligible, by = "patient_id") 
+  
   # summarise extracted data
   my_skim(data_extract, path = ghere("output", "sequential", brand, "extract", "input_control{stage}_skim.txt"))
   
   # import match status
   data_matchstatus <- read_rds(ghere("output", "sequential", brand, "matchround{n_matching_rounds}", "actual", "data_matchstatus_allrounds.rds"))
   
-  # import those who were eligible for single trial
-  data_singleeligible <- readr::read_rds(here("output", "single", "eligible", "data_singleeligible.rds")) %>%
-    select(patient_id)
-  
   # only keep patient_ids where both ids in the pair are in data_singleeligible
-  data_eligible <- data_matchstatus %>%
+  data_matchstatus <- data_matchstatus %>%
     pivot_wider(
       names_from = treated,
       values_from = patient_id
     ) %>%
     inner_join(data_singleeligible, by = c("0" = "patient_id")) %>%
     inner_join(data_singleeligible, by = c("1" = "patient_id")) %>%
-    select(`0`, `1`) %>%
-    pivot_longer(cols = everything()) %>%
-    select(patient_id = value) %>%
-    distinct(patient_id)
+    pivot_longer(
+      cols = c(`0`, `1`),
+      names_to = "treated",
+      values_to = "patient_id",
+      names_transform = as.integer,
+      values_transform = as.integer
+      ) 
     
-  # import data for treated group
-  data_treatedeligible <- read_rds(ghere("output", "sequential", brand, "treated", "data_treatedeligible.rds"))
+  # import data for treated group and only keep those in data_singleeligible
+  data_treatedeligible <- read_rds(ghere("output", "sequential", brand, "treated", "data_treatedeligible.rds")) %>%
+    inner_join(data_singleeligible, by = "patient_id") 
   
   # select those who were successfully matched
   data_treated <- 
@@ -309,13 +317,7 @@ if (stage == "final") {
   all((data_matchstatus %>% filter(treated==0L) %>% pull(patient_id)) %in% data_control$patient_id)
   
   # merge treated and control groups
-  data_matched <-
-    bind_rows(
-      data_treated,
-      data_control 
-    ) %>%
-    # restrict to those eligible for data_singleeligible
-    inner_join(data_eligible, by = "patient_id")
+  data_matched <- bind_rows(data_treated, data_control)
   
   write_rds(
     data_matched, 
@@ -334,18 +336,16 @@ if (stage == "final") {
     )
   
   # matching status of all treated, eligible people
-  data_treatedeligible_matchstatus <- 
+  data_treatedeligible_matchstatus <- data_treatedeligible %>% 
+    select(patient_id, vax1_date) %>%
     left_join(
-      data_treatedeligible %>% select(patient_id, vax1_date),
       data_matchstatus %>% filter(treated==1L),
       by="patient_id"
     ) %>%
     mutate(
       matched = if_else(is.na(match_id), 0L, 1L),
       treated = if_else(is.na(match_id), 1L, treated),
-    ) %>%
-    # restrict to those eligible for data_singleeligible
-    inner_join(data_eligible, by = "patient_id")
+    ) 
   
   # check trial dates and vaccination dates match
   print(
