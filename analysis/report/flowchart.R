@@ -35,8 +35,6 @@ flow_categories <- tribble(
   "D", "unvaccinated and unmatched then vaccinated and matched",
   "E", "unvaccinated and matched then vaccinated and unmatched",
   "F", "unvaccinated and matched then vaccinated and matched",
-  # anyone else who was vaccinated with the brand
-  "J", "vaccinated and remaining",
   # those who remain unvaccinated at the end of the recruitment period
   "G", "unvaccinated and unmatched",
   "H", "unvaccinated and matched",
@@ -47,8 +45,8 @@ flow_categories <- tribble(
 # define boxes for sequential trial flow
 flow_boxes <- tribble(
   ~box_crit, ~box_descr,
-  "ABCDEFJ", "Vaccinated with {brand} during recruitment period",
-  "ACJ", "Vaccinated with {brand} during recruitment period, unmatched as treated, unmatched as control",
+  "ABCDEF", "Vaccinated with {brand} during recruitment period",
+  "AC", "Vaccinated with {brand} during recruitment period, unmatched as treated, unmatched as control",
   "BDF", "Vaccinated with {brand} during recruitment period, matched as treated",
   "E", "Vaccinated with {brand} during recruitment period, matched as treated, matched as control",
   "F", "Vaccinated with {brand} during recruitment period, matched as treated, matched as control",
@@ -105,12 +103,10 @@ flowchart_matching_function <- function(brand) {
         vax1_type == brand & vax1_date <= study_dates$global$studyend_date & !control & treated ~ "D",
         vax1_type == brand & vax1_date <= study_dates$global$studyend_date & control & !treated ~ "E",
         vax1_type == brand & vax1_date <= study_dates$global$studyend_date & control & treated ~ "F",
-        # anyone else who was vaccinated with `brand` during recruitment period
-        vax1_type == brand & vax1_date <= study_dates$global$studyend_date ~ "J",
         # those who remain unvaccinated at the end of the recruitment period
         (is.na(vax1_date) | vax1_date > study_dates$global$studyend_date) & !control & !treated ~ "G",
         (is.na(vax1_date) | vax1_date > study_dates$global$studyend_date) & control & !treated ~ "H",
-        # those who are vaccinated with the other brand during the recruitment period
+        # those who are vaccinated with the other brand
         vax1_date <= study_dates$global$studyend_date & control & !treated ~ "I",
         TRUE ~ NA_character_
       )
