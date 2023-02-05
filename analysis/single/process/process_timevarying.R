@@ -79,7 +79,9 @@ if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("", "expectations")){
   
   data_extract <- read_feather(here("output", "single", "extract", "input_timevarying.feather")) %>%
     # because date types are not returned consistently by cohort extractor
-    mutate(across(ends_with("_date"),  as.Date))
+    mutate(across(ends_with("_date"),  as.Date)) %>%
+    # only keep patients in data_eligible
+    right_join(data_eligible %>% select(patient_id), by = "patient_id")
   
 }
 
