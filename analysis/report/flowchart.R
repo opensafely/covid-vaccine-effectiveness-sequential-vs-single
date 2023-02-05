@@ -112,16 +112,6 @@ flowchart_matching_function <- function(brand) {
       )
     )
   
-  cat("Check `vax1_date` and `vax_type` match in single and sequential data:\n")
-  data_match_flow %>%
-    filter(vax1_date != vax1_date_sequential) %>%
-    select(vax1_date, vax1_date_sequential, vax1_type, vax1_type_sequential) %>% 
-    print()
-  data_match_flow %>%
-    filter(vax1_type != vax1_type_sequential) %>%
-    select(vax1_date, vax1_date_sequential, vax1_type, vax1_type_sequential) %>%
-    print()
-  
   # check NAs (capture output as too wide to print in log)
   capture.output(
     data_match_flow %>%
