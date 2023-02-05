@@ -252,10 +252,23 @@ if (stage == "final") {
   
   # import match status
   data_matchstatus <- read_rds(ghere("output", "sequential", brand, "matchround{n_matching_rounds}", "actual", "data_matchstatus_allrounds.rds"))
-
+  
   # import those who were eligible for single trial
   data_singleeligible <- readr::read_rds(here("output", "single", "eligible", "data_singleeligible.rds")) %>%
     select(patient_id)
+  
+  # only keep patient_ids where both ids in the pair are in data_singleeligible
+  data_eligible <- data_matchstatus %>%
+    pivot_wider(
+      names_from = treated,
+      values_from = patient_id
+    ) %>%
+    inner_join(data_singleeligible, by = c("0" = "patient_id")) %>%
+    inner_join(data_singleeligible, by = c("1" = "patient_id")) %>%
+    select(`0`, `1`) %>%
+    pivot_longer(cols = everything()) %>%
+    select(patient_id = value) %>%
+    distinct(patient_id)
     
   # import data for treated group
   data_treatedeligible <- read_rds(ghere("output", "sequential", brand, "treated", "data_treatedeligible.rds"))
@@ -302,7 +315,7 @@ if (stage == "final") {
       data_control 
     ) %>%
     # restrict to those eligible for data_singleeligible
-    inner_join(data_singleeligible, by = "patient_id")
+    inner_join(data_eligible, by = "patient_id")
   
   write_rds(
     data_matched, 
@@ -332,7 +345,7 @@ if (stage == "final") {
       treated = if_else(is.na(match_id), 1L, treated),
     ) %>%
     # restrict to those eligible for data_singleeligible
-    inner_join(data_singleeligible, by = "patient_id")
+    inner_join(data_eligible, by = "patient_id")
   
   # check trial dates and vaccination dates match
   print(
