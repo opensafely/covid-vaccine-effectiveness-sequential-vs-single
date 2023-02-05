@@ -792,7 +792,7 @@ actions_list <- splice(
     name = "flowchart",
     run = glue("r:latest analysis/report/flowchart.R"),
     needs = namelesslst(
-      "process_treated",
+      # "process_treated",
       "process_controlfinal_pfizer",
       "process_controlfinal_az",
       "process_single"

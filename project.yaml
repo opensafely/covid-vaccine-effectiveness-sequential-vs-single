@@ -1376,7 +1376,6 @@ actions:
   flowchart:
     run: r:latest analysis/report/flowchart.R
     needs:
-    - process_treated
     - process_controlfinal_pfizer
     - process_controlfinal_az
     - process_single
