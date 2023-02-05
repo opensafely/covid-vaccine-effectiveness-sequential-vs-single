@@ -238,7 +238,7 @@ flowchart_final <- bind_rows(
     flow_boxes_brand, 
     flow_boxes_unvax 
   ) %>%
-    # mutate(across(n, ~roundmid_any(n, to = threshold))) %>%
+    mutate(across(n, ~roundmid_any(n, to = threshold))) %>%
     rename(criteria = box_descr, crit = box_crit) 
 ) %>%
   rowwise() %>%
@@ -267,7 +267,9 @@ print(GH)
 cat("ABCDEF_pfizer + ABCDEF_az + GH\n")
 print(ABCDEF_pfizer + ABCDEF_az + GH)
 
-cat("ceiling_any:\n")
-c7 == ceiling_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
-cat("roundmid_any:\n")
-c7 == roundmid_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
+c7 == ABCDEF_pfizer + ABCDEF_az + GH
+
+# cat("ceiling_any:\n")
+# c7 == ceiling_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
+# cat("roundmid_any:\n")
+# c7 == roundmid_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
