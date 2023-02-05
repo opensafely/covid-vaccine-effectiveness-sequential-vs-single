@@ -164,6 +164,8 @@ flowchart_matching_function <- function(brand) {
     mutate(across(n, ~if_else(is.na(.x), 0L, .x))) %>%
     mutate(brand = brand)
   
+  flowchart_matching %>% select(-brand) %>% print(n=Inf)
+  
   # store patient_ids for those in category G, as there will be some overlap between pfizer and az
   GH_ids <- data_match_flow %>% filter(crit %in% c("G", "H")) %>% select(patient_id, crit)
   
@@ -264,24 +266,24 @@ write_csv(
   file.path(outdir, "flowchart_final_rounded.csv")
 )
 
-cat("Check that c7 = ABCDEF_pfizer + ABCDEF_az + GH\n")
+cat("Check that c7 = ABCDEFJ_pfizer + ABCDEFJ_az + GH\n")
 cat("c7:\n")
 c7 <- flowchart_singleeligible_rounded %>% filter(crit=="c7") %>% pull(n) 
 print(c7)
-cat("ABCDEF_pfizer:\n")
-ABCDEF_pfizer <- flow_boxes_brand %>% filter(box_crit == "ABCDEF", brand=="pfizer") %>% pull(n)
-print(ABCDEF_pfizer)
-cat("ABCDEF_az:\n")
-ABCDEF_az <- flow_boxes_brand %>% filter(box_crit == "ABCDEF", brand=="az") %>% pull(n)
-print(ABCDEF_az)
+cat("ABCDEFJ_pfizer:\n")
+ABCDEFJ_pfizer <- flow_boxes_brand %>% filter(box_crit == "ABCDEFJ", brand=="pfizer") %>% pull(n)
+print(ABCDEFJ_pfizer)
+cat("ABCDEFJ_az:\n")
+ABCDEFJ_az <- flow_boxes_brand %>% filter(box_crit == "ABCDEFJ", brand=="az") %>% pull(n)
+print(ABCDEFJ_az)
 cat("GH:\n")
 GH <- flow_boxes_unvax %>% filter(box_crit == "GH") %>% pull(n)
 print(GH)
 
-cat("ABCDEF_pfizer + ABCDEF_az + GH\n")
-print(ABCDEF_pfizer + ABCDEF_az + GH)
+cat("ABCDEFJ_pfizer + ABCDEFJ_az + GH\n")
+print(ABCDEFJ_pfizer + ABCDEFJ_az + GH)
 
 cat("ceiling_any:\n")
-c7 == ceiling_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
+c7 == ceiling_any(ABCDEFJ_pfizer + ABCDEFJ_az + GH, to=threshold)
 cat("roundmid_any:\n")
-c7 == roundmid_any(ABCDEF_pfizer + ABCDEF_az + GH, to=threshold)
+c7 == roundmid_any(ABCDEFJ_pfizer + ABCDEFJ_az + GH, to=threshold)
