@@ -44,6 +44,16 @@ data_singleeligible %>%
   group_by(group) %>% 
   count() 
 
+data_singleeligible %>%
+  group_by(group, vax1_type) %>%
+  summarise(
+    missing = sum(is.na(vax1_date)),
+    min = min(vax1_date, na.rm=TRUE),
+    max = max(vax1_date, na.rm=TRUE),
+    .groups = "keep"
+  ) %>% 
+  print(n=Inf)
+
 # define all flow categories for sequential trial cohorts
 flow_categories <- tribble(
   ~crit, ~criteria,
