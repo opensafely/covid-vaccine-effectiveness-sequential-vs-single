@@ -22,7 +22,27 @@ fs::dir_create(outdir)
 
 # import flowchart for single trial cohort
 data_singleeligible <- readr::read_rds(here("output", "single", "eligible", "data_singleeligible.rds")) %>%
-  select(patient_id, vax1_date, vax1_type)
+  select(patient_id, vax1_date, vax1_type) %>%
+  mutate(
+    group = case_when(
+      vax1_type == "pfizer" & 
+        vax1_date >= study_dates[["pfizer"]]$start_date & 
+        vax1_date <= study_dates$global$studyend_date 
+      ~ "pfizer",
+      vax1_type == "az" & 
+        vax1_date >= study_dates[["az"]]$start_date & 
+        vax1_date <= study_dates$global$studyend_date
+      ~ "az",
+      is.na(vax1_date) | 
+        vax1_date > study_dates$global$studyend_date 
+      ~ "unvax",
+      TRUE ~ NA_character_
+    )
+  )
+
+data_singleeligible %>%
+  group_by(group) %>% 
+  count() 
 
 # define all flow categories for sequential trial cohorts
 flow_categories <- tribble(
