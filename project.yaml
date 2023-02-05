@@ -404,6 +404,7 @@ actions:
     - process_controlactual_pfizer_4
     - extract_controlfinal_pfizer
     - process_treated
+    - process_single
     - dummydata_controlfinal_pfizer
     outputs:
       highly_sensitive:
@@ -793,6 +794,7 @@ actions:
     - process_controlactual_az_4
     - extract_controlfinal_az
     - process_treated
+    - process_single
     - dummydata_controlfinal_az
     outputs:
       highly_sensitive:

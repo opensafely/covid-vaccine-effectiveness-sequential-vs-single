@@ -250,11 +250,17 @@ if (stage == "final") {
   # summarise extracted data
   my_skim(data_extract, path = ghere("output", "sequential", brand, "extract", "input_control{stage}_skim.txt"))
   
+  # import match status
   data_matchstatus <- read_rds(ghere("output", "sequential", brand, "matchround{n_matching_rounds}", "actual", "data_matchstatus_allrounds.rds"))
-  
-  # import data for treated group and select those who were successfully matched
+
+  # import those who were eligible for single trial
+  data_singleeligible <- readr::read_rds(here("output", "single", "eligible", "data_singleeligible.rds")) %>%
+    select(patient_id)
+    
+  # import data for treated group
   data_treatedeligible <- read_rds(ghere("output", "sequential", brand, "treated", "data_treatedeligible.rds"))
   
+  # select those who were successfully matched
   data_treated <- 
     left_join(
       data_matchstatus %>% filter(treated==1L),
@@ -294,7 +300,10 @@ if (stage == "final") {
     bind_rows(
       data_treated,
       data_control 
-    ) 
+    ) %>%
+    # restrict to those eligible for data_singleeligible
+    inner_join(data_singleeligible, by = "patient_id")
+  
   write_rds(
     data_matched, 
     here("output", "sequential", brand, "match", "data_matched.rds"), 
@@ -321,7 +330,10 @@ if (stage == "final") {
     mutate(
       matched = if_else(is.na(match_id), 0L, 1L),
       treated = if_else(is.na(match_id), 1L, treated),
-    )
+    ) %>%
+    # restrict to those eligible for data_singleeligible
+    inner_join(data_singleeligible, by = "patient_id")
+  
   # check trial dates and vaccination dates match
   print(
     glue(

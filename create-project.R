@@ -253,7 +253,8 @@ action_extract_and_match <- function(brand, n_matching_rounds) {
           ~glue("process_controlactual_{brand}_",.x)
         ),
         glue("extract_controlfinal_{brand}"),
-        glue("process_treated"),
+        "process_treated",
+        "process_single",
         glue("dummydata_controlfinal_{brand}")
       ),
       highly_sensitive = lst(
