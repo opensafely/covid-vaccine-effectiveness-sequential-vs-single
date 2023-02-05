@@ -528,12 +528,14 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
     
     # function so that when stage=single, include people who were vaccinated *on or after* index_date,
     # but when stage%in%c(potential,actual), include people who were vaccinated *after* index_date
-    vax1_notbeforeindexdate_fun <- function(stage, vax1_date, index_date) {
+    vax1_notbeforeindexdate_fun <- function(stage, vax1_date, vax1_type, index_date) {
       
       if (stage == "single") {
         # on or after index_date
         out <- case_when(
-          is.na(vax1_date) | (vax1_date >= index_date) ~ TRUE,
+          is.na(vax1_date)  ~ TRUE,
+          vax1_type == "pfizer" & vax1_date >= study_dates[["pfizer"]]$start_date ~ TRUE,
+          vax1_type == "az" & vax1_date >= study_dates[["az"]]$start_date ~ TRUE,
           TRUE ~ FALSE
         )
       } 
@@ -552,7 +554,7 @@ if (stage %in% c("single", "treated", "potential", "actual")) {
     selection_stage <- rlang::quos(
       
       # Define vax1_notbeforeindexdate using vax1_notbeforeindexdate_fun function defined above.
-      vax1_notbeforeindexdate = vax1_notbeforeindexdate_fun(stage, vax1_date, index_date),
+      vax1_notbeforeindexdate = vax1_notbeforeindexdate_fun(stage, vax1_date, vax1_type, index_date),
       # Define criteria c0 and c1 when stage=treated
       c0 = TRUE,
       c1 = c0 & vax1_notbeforeindexdate & vax1_notbeforeageeligible & covid_vax_disease_1_date_matches_vax1_date,
