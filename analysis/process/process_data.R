@@ -272,10 +272,9 @@ if (stage == "final") {
     pivot_longer(
       cols = c(`0`, `1`),
       names_to = "treated",
-      values_to = "patient_id",
-      names_transform = as.integer,
-      values_transform = as.integer
-      ) 
+      values_to = "patient_id"
+      ) %>%
+    mutate(across(c(treated, patient_id), as.integer))
     
   # import data for treated group and only keep those in data_singleeligible
   data_treatedeligible <- read_rds(ghere("output", "sequential", brand, "treated", "data_treatedeligible.rds")) %>%
