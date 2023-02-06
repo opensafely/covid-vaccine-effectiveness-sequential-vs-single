@@ -263,6 +263,7 @@ ggsave(
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # sequential matching coverage (sequential only)
 
+# coverage already rounded
 coverage <- bind_rows(
   read_csv(here("output", "report", "coverage", "coverage_pfizer.csv")) %>%
     mutate(brand="pfizer"),
@@ -511,6 +512,7 @@ events_sequential_summary <- events_sequential_summary %>%
   select(brand, treated, person_years, postest, covidadmitted, death) %>%
   mutate(across(-c(brand, treated), roundmid_any, to=threshold))
 
+# file for release
 write_csv(
   events_sequential_summary,
   file.path(outdir, "events_sequential_summary_rounded.csv")
@@ -564,6 +566,7 @@ events_single_summary <- events_single_summary %>%
   ) %>%
   mutate(across(-vaxany1_status, roundmid_any, to=threshold))
 
+# file for release
 write_csv(
   events_single_summary,
   file.path(outdir, "events_single_summary_rounded.csv")
