@@ -22,30 +22,30 @@ table1 <- bind_rows(
     mutate(across(by, factor, levels = c(0,1), labels = c("unvaccinated", "az"))) %>%
     add_column(brand = "az", .before = 1),
   read_csv(here("output", "report", "table1", "table1_single_any_rounded.csv"))
-) 
-# %>%
-  # filter(variable != "age_factor") %>%
-  # mutate(
-  #   across(
-  #     c(p, p_miss, p_nonmiss),
-  #     ~if_else(.x < 10,
-  #              format(round(100*.x, 1), nsmall=1, trim=TRUE),
-  #              format(round(100*.x, 0), nsmall=0, trim=TRUE)
-  #     )
-  #   )
-  # ) %>%
-  # rowwise() %>%
-  # mutate(across(stat_display, glue)) %>%
-  # select(brand, by, variable, variable_levels, stat_display) %>%
-  # pivot_wider(
-  #   names_from = c("brand", "by"),
-  #   values_from = stat_display
-  # ) %>%
-  # rename(
-  #   pfizer = pfizer_pfizer,
-  #   az = az_az,
-  #   single = NA_single
-  # )
+) %>%
+  filter(variable != "age_factor") %>%
+  mutate(
+    across(
+      c(p, p_miss, p_nonmiss),
+      ~if_else(.x < 10,
+               format(round(100*.x, 1), nsmall=1, trim=TRUE),
+               format(round(100*.x, 0), nsmall=0, trim=TRUE)
+      )
+    )
+  ) %>%
+  rowwise() %>%
+  mutate(stat_display = glue(stat_display)) %>%
+  # mutate(across(stat_display, glue)) %>% # doesn't work in opensafely
+  select(brand, by, variable, variable_levels, stat_display) %>%
+  pivot_wider(
+    names_from = c("brand", "by"),
+    values_from = stat_display
+  ) %>%
+  rename(
+    pfizer = pfizer_pfizer,
+    az = az_az,
+    single = NA_single
+  )
 
 # file to release (Supplementary Table 1)
 write_csv(
@@ -368,111 +368,113 @@ ggsave(
 # sequential KM cumulative incidence (sequential only)
 
 # file to release
-# km_estimates_rounded <- read_csv(here("output", "sequential", "combine", "km_estimates_rounded.csv"))
+km_estimates_rounded <- read_csv(here("output", "sequential", "combine", "km_estimates_rounded.csv"))
 
 # Supplementary Figure 4
 
-# colour_palette <- c(
-#   "Unvaccinated" = "#616161", # light grey
-#   "BNT162b2" = "#e7298a", # dark pink / dark grey
-#   "ChAdOx1" = "#7570b3" # dark purple / dark grey
-# )
-# 
-# linetype_palette <- c(
-#   "Unvaccinated" = "dashed",
-#   "BNT162b2" = "solid",
-#   "ChAdOx1" = "solid" 
-# )
-# 
-# km_estimates_rounded %>%
-#   add_descr() %>%
-#   mutate(
-#     treated_descr = factor(
-#       treated,
-#       levels = c(0,1),
-#       labels = c("Unvaccinated", "Vaccinated")
-#     ),
-#     colour_var = factor(
-#       if_else(treated_descr %in% "Unvaccinated", as.character(treated_descr), as.character(brand_descr)),
-#       levels = names(colour_palette)
-#     )
-#   ) %>%
-#   mutate(
-#     across(
-#       outcome_descr, 
-#       factor, 
-#       levels = outcome_descr_long,
-#       labels = outcome_descr_wrap
-#     )
-#   ) %>%
-#   group_by(brand_descr, outcome_descr, treated_descr) %>%
-#   group_modify(
-#     ~add_row(
-#       .x,
-#       time=0,
-#       lagtime=0,
-#       leadtime=1,
-#       #interval=1,
-#       surv=1,
-#       surv.ll=1,
-#       surv.ul=1,
-#       risk=0,
-#       risk.ll=0,
-#       risk.ul=0,
-#       .before=0
-#     )
-#   ) %>%
-#   ungroup() %>%
-#   ggplot(aes(
-#     group = colour_var, 
-#     colour = colour_var, 
-#     fill = colour_var, 
-#     linetype = colour_var
-#   )) +
-#   geom_step(
-#     aes(x=time, y=risk), 
-#     direction="vh"
-#   ) +
-#   geom_rect(
-#     aes(xmin=lagtime, xmax=time, ymin=risk.ll, ymax=risk.ul), 
-#     alpha=0.1, colour="transparent"
-#   ) +
-#   facet_grid(
-#     rows = vars(outcome_descr),
-#     cols = vars(brand_descr),
-#     switch = "y",
-#     scales = "free_y"
-#   ) +
-#   scale_color_manual(name = NULL, values = colour_palette) +
-#   scale_fill_manual(name = NULL, values = colour_palette) +
-#   scale_linetype_manual(name = NULL, values = linetype_palette) +
-#   scale_x_continuous(breaks = c(postbaselinecuts)) +
-#   scale_y_continuous(expand = expansion(mult=c(0,0.01))) +
-#   # coord_cartesian(xlim=c(0, NA)) +
-#   labs(
-#     x = "Days since first dose",
-#     y = NULL#"Cumulative incidence",
-#   ) +
-#   theme_minimal() +
-#   theme(
-#     axis.title.x = element_text(size=10, margin = margin(t = 10)),
-#     # axis.title.y = element_text(size=10, margin = margin(r = 10)),
-#     panel.grid.minor.x = element_blank(),
-#     panel.grid.minor.y = element_blank(),
-#     strip.background = element_blank(),
-#     strip.placement = "outside",
-#     strip.text.y.left = element_text(angle = 90),
-#     # strip.text = element_text(size=8),
-#     axis.line.x = element_line(colour = "black"),
-#     legend.box = "vertical",
-#     legend.position="bottom"
-#   )
-# 
-# ggsave(
-#   filename = "km_cumulinc.png",
-#   path = outdir,
-#   width = 20, height = 16, units = "cm"
-# )
+colour_palette <- c(
+  "Unvaccinated" = "#616161", # light grey
+  "BNT162b2" = "#e7298a", # dark pink / dark grey
+  "ChAdOx1" = "#7570b3" # dark purple / dark grey
+)
+
+linetype_palette <- c(
+  "Unvaccinated" = "dashed",
+  "BNT162b2" = "solid",
+  "ChAdOx1" = "solid"
+)
+
+km_estimates_rounded %>%
+  add_descr() %>%
+  mutate(
+    treated_descr = factor(
+      treated,
+      levels = c(0,1),
+      labels = c("Unvaccinated", "Vaccinated")
+    )
+  ) %>%
+  mutate(
+    across(
+      outcome_descr,
+      factor,
+      levels = outcome_descr_long,
+      labels = outcome_descr_wrap
+    )
+  ) %>%
+  group_by(brand_descr, outcome_descr, treated_descr) %>%
+  group_modify(
+    ~add_row(
+      .x,
+      time=0,
+      lagtime=0,
+      leadtime=1,
+      #interval=1,
+      surv=1,
+      surv.ll=1,
+      surv.ul=1,
+      risk=0,
+      risk.ll=0,
+      risk.ul=0,
+      .before=0
+    )
+  ) %>%
+  ungroup() %>%
+  mutate(
+    colour_var = factor(
+      if_else(treated_descr %in% "Unvaccinated", as.character(treated_descr), as.character(brand_descr)),
+      levels = names(colour_palette)
+    )
+  ) %>%
+  ggplot(aes(
+    group = colour_var,
+    colour = colour_var,
+    fill = colour_var,
+    linetype = colour_var
+  )) +
+  geom_step(
+    aes(x=time, y=risk),
+    direction="vh"
+  ) +
+  geom_rect(
+    aes(xmin=lagtime, xmax=time, ymin=risk.ll, ymax=risk.ul),
+    alpha=0.1, colour="transparent"
+  ) +
+  facet_grid(
+    rows = vars(outcome_descr),
+    cols = vars(brand_descr),
+    switch = "y",
+    scales = "free_y"
+  ) +
+  scale_color_manual(name = NULL, values = colour_palette) +
+  scale_fill_manual(name = NULL, values = colour_palette) +
+  scale_linetype_manual(name = NULL, values = linetype_palette) +
+  scale_x_continuous(breaks = c(postbaselinecuts)) +
+  scale_y_continuous(expand = expansion(mult=c(0,0.01))) +
+  # coord_cartesian(xlim=c(0, NA)) +
+  labs(
+    x = "Days since first dose",
+    y = NULL#"Cumulative incidence",
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_text(size=10, margin = margin(t = 10)),
+    # axis.title.y = element_text(size=10, margin = margin(r = 10)),
+    panel.grid.minor.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    strip.background = element_blank(),
+    strip.placement = "outside",
+    strip.text.y.left = element_text(angle = 90),
+    # strip.text = element_text(size=8),
+    axis.line.x = element_line(colour = "black"),
+    legend.box = "vertical",
+    legend.position="bottom"
+  )
+
+ggsave(
+  filename = "km_cumulinc.png",
+  path = outdir,
+  width = 20, height = 16, units = "cm"
+)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # event counts (single and sequential; text only)
