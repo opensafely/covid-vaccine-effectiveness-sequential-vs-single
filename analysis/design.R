@@ -142,44 +142,43 @@ recoder <-
 model_subgroups <- "all"
 
 ##
-var_lookup <- list(
-  N  ~ "Total N",
-  treated ~ "Status",
+var_lookup <- c(
+  N  = "Total N",
+  treated = "Status",
   
-  age ~ "Age",
+  age = "Age",
   
-  jcvi_ageband ~ "JCVI ageband",
-  sex ~ "Sex",
-  ethnicity_combined ~ "Ethnicity",
-  imd_Q5 ~ "Deprivation",
-  region ~ "Region",
+  jcvi_ageband = "JCVI ageband",
+  sex = "Sex",
+  ethnicity_combined = "Ethnicity",
+  imd_Q5 = "Deprivation",
+  region = "Region",
   
-  cev_cv ~ "Clinically vulnerable",
+  cev_cv = "Clinically vulnerable",
   
-  sev_obesity ~ "Body Mass Index > 40 kg/m^2",
-  chronic_heart_disease ~ "Chronic heart disease",
-  chronic_kidney_disease ~ "Chronic kidney disease",
-  diabetes ~ "Diabetes",
-  chronic_liver_disease ~ "Chronic liver disease",
-  chronic_resp_disease ~ "Chronic respiratory disease",
-  chronic_neuro_disease ~ "Chronic neurological disease",
+  sev_obesity = "Body Mass Index > 40 kg/m^2",
+  chronic_heart_disease = "Chronic heart disease",
+  chronic_kidney_disease = "Chronic kidney disease",
+  diabetes = "Diabetes",
+  chronic_liver_disease = "Chronic liver disease",
+  chronic_resp_disease = "Chronic respiratory disease",
+  chronic_neuro_disease = "Chronic neurological disease",
   
-  multimorb ~ "Morbidity count",
+  multimorb = "Morbidity count",
   
-  immunosuppressed ~ "Immunosuppressed",
-  learndis ~ "Learning disabilities",
-  sev_mental ~ "Serious mental illness",
-  flu_vaccine ~ "Influenza vaccination in previous 5 years",
+  immunosuppressed = "Immunosuppressed",
+  learndis = "Learning disabilities",
+  sev_mental = "Serious mental illness",
+  flu_vaccine = "Influenza vaccination in previous 5 years",
   
-  prior_covid_infection ~ "Prior SARS-CoV-2 infection",
-  timesince_covid_cat ~ "Time since prior SARS-CoV-2 infection",
+  prior_covid_infection = "Prior SARS-CoV-2 infection",
+  timesince_covid_cat = "Time since prior SARS-CoV-2 infection",
   
   # timevarying
-  timesince_hospinfectiousdischarge_pw ~ "Time since discharge from infectious hosp admission",
-  timesince_hospnoninfectiousdischarge_pw ~ "Time since discharge from non-infectious hosp admission"
+  timesince_hospinfectiousdischarge_pw = "Time since discharge from infectious hosp admission",
+  timesince_hospnoninfectiousdischarge_pw = "Time since discharge from non-infectious hosp admission"
   
-) %>%
-  set_names(., map_chr(., all.vars))
+) 
 
 ## follow-up time ----
 
