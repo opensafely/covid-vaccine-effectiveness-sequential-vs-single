@@ -4,60 +4,116 @@ library(tidyverse)
 library(here)
 library(glue)
 
-outdir <- here("output", "report", "release") 
-fs::dir_create(outdir)
-
 # import custom user functions and metadata
 source(here("analysis", "design.R"))
 source(here("analysis", "functions", "utility.R"))
 
+if(Sys.getenv("OPENSAFELY_BACKEND") %in% ""){
+  
+  release <- "release20230206"
+  indir <- here(release) 
+  outdir <- here(release, "final") 
+  fs::dir_create(outdir)
+  
+} else{
+  
+  outdir <- here("output", "report", "release") 
+  fs::dir_create(outdir)
+  
+}
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # cohort characteristics (single and sequential)
-
-table1 <- bind_rows(
-  read_csv(here("output", "report", "table1", "table1_sequential_pfizer_rounded.csv")) %>%
-    mutate(across(by, factor, levels = c(0,1), labels = c("unvaccinated", "pfizer"))) %>%
-    add_column(brand="pfizer", .before=1),
-  read_csv(here("output", "report", "table1", "table1_sequential_az_rounded.csv")) %>% 
-    mutate(across(by, factor, levels = c(0,1), labels = c("unvaccinated", "az"))) %>%
-    add_column(brand = "az", .before = 1),
-  read_csv(here("output", "report", "table1", "table1_single_any_rounded.csv"))
-) %>%
-  filter(variable != "age_factor") %>%
-  mutate(
-    across(
-      c(p, p_miss, p_nonmiss),
-      ~if_else(.x < 10,
-               format(round(100*.x, 1), nsmall=1, trim=TRUE),
-               format(round(100*.x, 0), nsmall=0, trim=TRUE)
+if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
+  
+  table1 <- bind_rows(
+    read_csv(here("output", "report", "table1", "table1_sequential_pfizer_rounded.csv")) %>%
+      mutate(across(by, factor, levels = c(0,1), labels = c("unvaccinated", "pfizer"))) %>%
+      add_column(brand="pfizer", .before=1),
+    read_csv(here("output", "report", "table1", "table1_sequential_az_rounded.csv")) %>% 
+      mutate(across(by, factor, levels = c(0,1), labels = c("unvaccinated", "az"))) %>%
+      add_column(brand = "az", .before = 1),
+    read_csv(here("output", "report", "table1", "table1_single_any_rounded.csv"))
+  ) %>%
+    filter(variable != "age_factor") %>%
+    mutate(
+      across(
+        c(p, p_miss, p_nonmiss),
+        ~if_else(.x < 10,
+                 format(round(100*.x, 1), nsmall=1, trim=TRUE),
+                 format(round(100*.x, 0), nsmall=0, trim=TRUE)
+        )
       )
+    ) %>%
+    rowwise() %>%
+    mutate(stat_display = glue(stat_display)) %>%
+    # mutate(across(stat_display, glue)) %>% # doesn't work in opensafely
+    select(brand, by, variable, variable_levels, stat_display) %>%
+    pivot_wider(
+      names_from = c("brand", "by"),
+      values_from = stat_display
+    ) %>%
+    rename(
+      pfizer = pfizer_pfizer,
+      az = az_az,
+      single = NA_single
     )
-  ) %>%
-  rowwise() %>%
-  mutate(stat_display = glue(stat_display)) %>%
-  # mutate(across(stat_display, glue)) %>% # doesn't work in opensafely
-  select(brand, by, variable, variable_levels, stat_display) %>%
-  pivot_wider(
-    names_from = c("brand", "by"),
-    values_from = stat_display
-  ) %>%
-  rename(
-    pfizer = pfizer_pfizer,
-    az = az_az,
-    single = NA_single
+  
+  # file to release (Supplementary Table 1)
+  write_csv(
+    table1,
+    file.path(outdir, "table1_rounded.csv")
   )
-
-# file to release (Supplementary Table 1)
-write_csv(
-  table1,
-  file.path(outdir, "table1_rounded.csv")
-)
+  
+} else {
+  
+  library(flextable)
+  
+  table1 <- read_csv(file.path(indir, "table1_rounded.csv"))
+  
+  table1_flex <- table1 %>%
+    mutate(
+      across(
+        variable, 
+        factor, 
+        levels = names(var_lookup),
+        labels = unname(var_lookup)
+        )
+      ) %>%
+    select(
+      Characteristic = variable,
+      Level = variable_levels,
+      Single = single,
+      `BNT162b2 Vaccinated` = pfizer,
+      `BNT162b2 Unvaccinated` = pfizer_unvaccinated,
+      `ChAdOx1 Vaccinated` = az,
+      `ChAdOx1 Unvaccinated` = az_unvaccinated
+    ) %>%
+    flextable() %>%
+    merge_v(j=~Characteristic) 
+  
+  # word output
+  doc <- officer::read_docx() 
+  doc <- flextable::body_add_flextable(doc, value = table1_flex, split = FALSE)  
+  doc <- print(doc, target = file.path(outdir, "table1.docx"))
+  
+  
+}
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # vax1 model coefficients (single only)
 
-# file to release
-tab_vax1 <- read_csv(here("output", "single", "combine", "tab_vax1.csv"))
+if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
+  
+  # file to release
+  tab_vax1 <- read_csv(here("output", "single", "combine", "tab_vax1.csv"))
+  
+} else {
+  
+  # released file
+  tab_vax1 <- read_csv(file.path(indir, "tab_vax1.csv"))
+  
+}
 
 # post release processing  (Table 1)
 tab_vax1_wide <- tab_vax1 %>%
@@ -88,11 +144,70 @@ tab_vax1_wide <- tab_vax1 %>%
 # check it looks right:
 tab_vax1_wide %>% select(-subgroup_level) %>% print(n = nrow(.))
 
+if(Sys.getenv("OPENSAFELY_BACKEND") %in% "") {
+  
+  tab_vax1_flex <- tab_vax1_wide %>%
+    mutate(across(var_label, ~if_else(.x =="age, degree = 2", "age", .x))) %>%
+    mutate(across(label, ~if_else(.x %in% names(var_lookup), NA_character_, .x))) %>%
+    left_join(
+      table1 %>%
+        select(variable, variable_levels, single), 
+      by = c("var_label" = "variable", "label" = "variable_levels")
+    ) %>%
+    mutate(
+      across(
+        single,
+        ~if_else(
+          var_label == "age", 
+          table1 %>% filter(variable=="age") %>% pull(single),
+          .x
+          )
+        )
+      ) %>%
+    mutate(
+      across(
+        var_label, 
+        factor, 
+        levels = names(var_lookup),
+        labels = unname(var_lookup)
+      )
+    ) %>%
+    select(
+      Characteristic = var_label,
+      Level = label,
+      Single = single,
+      BNT162b2,
+      ChAdOx1
+    ) %>%
+    flextable() %>%
+    merge_v(j=c("Characteristic", "Single")) 
+  
+ # word output
+  doc <- officer::read_docx() 
+  doc <- flextable::body_add_flextable(doc, value = tab_vax1_flex, split = FALSE)  
+  doc <- print(doc, target = file.path(outdir, "tab_vax1.docx"))  
+   
+}
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # outcome model coefficients (single and sequential)
 
+if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
+  
+  # files to release
+  estimates_sequential <- read_csv(here("output", "sequential", "combine", "contrasts_cox_cuts.csv"))
+  estimates_single <- read_csv(here("output", "single", "combine", "estimates_timesincevax.csv"))
+  
+} else {
+  
+  # released files
+  estimates_sequential <- read_csv(file.path(indir, "contrasts_cox_cuts.csv"))
+  estimates_single <- read_csv(file.path(indir, "estimates_timesincevax.csv"))
+  
+}
+
 # import sequential (file to release)
-estimates_sequential <- read_csv(here("output", "sequential", "combine", "contrasts_cox_cuts.csv")) %>%
+estimates_sequential <- estimates_sequential %>%
   transmute(
     approach = "Sequential trial",
     brand, subgroup, subgroup_level, outcome, 
@@ -105,7 +220,7 @@ estimates_sequential <- read_csv(here("output", "sequential", "combine", "contra
   )
 
 # import single (file to release)
-estimates_single <- read_csv(here("output", "single", "combine", "estimates_timesincevax.csv")) %>%
+estimates_single <- estimates_single %>%
   transmute(
     approach = "Single trial",
     brand, subgroup, subgroup_level, outcome, 
@@ -118,7 +233,7 @@ estimates_single <- read_csv(here("output", "single", "combine", "estimates_time
   ) 
 
 # create table (Supplementary Table 2)
-bind_rows(
+stab2 <- bind_rows(
   estimates_sequential,
   estimates_single
 ) %>%
@@ -126,7 +241,7 @@ bind_rows(
   mutate(across(fup_period, factor, levels = paste0(c(0,postbaselinecuts[-length(postbaselinecuts)])+1, "-", postbaselinecuts))) %>%
   mutate(
     estimate = scales::label_number(accuracy = .01, trim=TRUE)(estimate),
-    ci = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(lci), "-", scales::label_number(accuracy = .01, trim=TRUE)(uci), ")")
+    ci = paste0("(", scales::label_number(accuracy = .01, trim=TRUE)(lci), ", ", scales::label_number(accuracy = .01, trim=TRUE)(uci), ")")
   ) %>%
   transmute(
     brand_descr, outcome_descr, approach, fup_period,
@@ -136,8 +251,21 @@ bind_rows(
     names_from = approach,
     values_from = value
   ) %>% 
-  arrange(outcome_descr, brand_descr, fup_period) %>%
-  print(n=nrow(.))
+  arrange(outcome_descr, brand_descr, fup_period) 
+
+stab2 %>% print(n=nrow(.))
+
+if(Sys.getenv("OPENSAFELY_BACKEND") %in% "") {
+  
+  stab2_flex <- stab2 %>%
+    flextable()
+  
+  # word output
+  doc <- officer::read_docx() 
+  doc <- flextable::body_add_flextable(doc, value = stab2_flex, split = FALSE)  
+  doc <- print(doc, target = file.path(outdir, "stab2.docx"))  
+  
+}
 
 # Figure 2
 
@@ -230,7 +358,8 @@ plot_data %>%
     axis.text = element_text(size=10),
     
     axis.title.x = element_text(size=10, margin = margin(t = 10)),
-    axis.title.y = element_text(size=10, margin = margin(r = 10)),
+    axis.title.y.left = element_text(size=10, margin = margin(r = 10)),
+    axis.title.y.right = element_text(size=10, margin = margin(l = 10)),
     axis.text.x = element_text(size=10),
     axis.text.y = element_text(size=10),
     
@@ -256,26 +385,37 @@ plot_data %>%
 ggsave(
   filename = "ve.png",
   path = outdir, 
-  width = 20, height = 16, units = "cm"
+  width = 26, height = 16, units = "cm"
 )
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # sequential matching coverage (sequential only)
 
-# coverage already rounded
-coverage <- bind_rows(
-  read_csv(here("output", "report", "coverage", "coverage_pfizer.csv")) %>%
-    mutate(brand="pfizer"),
-  read_csv(here("output", "report", "coverage", "coverage_az.csv")) %>%
-    mutate(brand = "az")
-) 
+if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
+  
+  # coverage already rounded
+  coverage <- bind_rows(
+    read_csv(here("output", "report", "coverage", "coverage_pfizer.csv")) %>%
+      mutate(brand="pfizer"),
+    read_csv(here("output", "report", "coverage", "coverage_az.csv")) %>%
+      mutate(brand = "az")
+  ) 
+  
+  # to release
+  write_csv(
+    coverage,
+    file.path(outdir, "coverage_rounded.csv")
+  )
+  
+  
+} else {
+  
+  # released files
+  coverage <- read_csv(file.path(indir, "coverage_rounded.csv"))
+  
+}
 
-# to release
-write_csv(
-  coverage,
-  file.path(outdir, "coverage_rounded.csv")
-)
 
 # figure (Supplementary Figure 3)
 
@@ -294,8 +434,7 @@ colour_palette <- c(
 #   y_labels <- waiver()
 # }
 
-plot_coverage_cumuln <-
-  coverage %>%
+coverage %>%
   mutate(
     brand_descr = factor(
       brand, 
@@ -310,33 +449,29 @@ plot_coverage_cumuln <-
   ) %>%
   droplevels() %>%
   ggplot() +
-  geom_col(
+  geom_area(
     aes(
       x = vax1_date,
       y = cumuln,
       group = colour_var,
       fill = colour_var,
-      colour = NULL
+      colour = NULL,
     ),
     position = position_stack(reverse=TRUE),
-    width = 1
   ) +
   facet_wrap(
     facets = vars(brand_descr),
     nrow = 2
   ) +
-  # facet_grid(
-  #   rows = vars(brand_descr)
-  # ) +
   scale_x_date(
     # breaks = unique(lubridate::ceiling_date(coverage$vax1_date, "1 month")),
     # limits = c(xmin-1, NA),
     labels = scales::label_date("%b %Y"),
-    expand = expansion(add=7)
+    expand = expansion(c(0,0))
   ) +
   scale_y_continuous(
-    # labels = ~scales::label_number(accuracy = 1, big.mark=",")(.x),
-    expand = expansion(c(0, NA))
+    labels = ~scales::label_number(accuracy = 1, big.mark=",")(.x),
+    expand = expansion(c(0, 0.05))
   ) +
   scale_fill_manual(values = colour_palette) +
   labs(
@@ -347,7 +482,7 @@ plot_coverage_cumuln <-
     alpha = NULL
   ) +
   guides(fill=guide_legend(nrow=2,byrow=TRUE)) +
-  theme_minimal() +
+  theme_bw() +
   theme(
     axis.title.x = element_text(size=10, margin = margin(t = 10)),
     axis.title.y = element_text(size=10, margin = margin(r = 10)),
@@ -355,6 +490,8 @@ plot_coverage_cumuln <-
     axis.text.x.top=element_text(hjust=0),
     # strip.text.y.right = element_text(angle = 90),
     strip.text = element_text(hjust=0),
+    strip.background = element_blank(),
+    panel.border = element_blank(),
     axis.ticks.x=element_line(),
     legend.position = "bottom"
   )
@@ -368,8 +505,17 @@ ggsave(
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # sequential KM cumulative incidence (sequential only)
 
-# file to release
-km_estimates_rounded <- read_csv(here("output", "sequential", "combine", "km_estimates_rounded.csv"))
+if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
+  
+  # file to release
+  km_estimates_rounded <- read_csv(here("output", "sequential", "combine", "km_estimates_rounded.csv"))
+  
+} else {
+  
+  # released files
+  km_estimates_rounded <- read_csv(file.path(indir, "km_estimates_rounded.csv"))
+  
+}
 
 # Supplementary Figure 4
 
@@ -447,25 +593,25 @@ km_estimates_rounded %>%
     scales = "free_y"
   ) +
   scale_color_manual(name = NULL, values = colour_palette) +
-  scale_fill_manual(name = NULL, values = colour_palette) +
+  scale_fill_manual(name = NULL, values = colour_palette, guide = "none") +
   scale_linetype_manual(name = NULL, values = linetype_palette) +
   scale_x_continuous(breaks = c(postbaselinecuts)) +
   scale_y_continuous(expand = expansion(mult=c(0,0.01))) +
-  # coord_cartesian(xlim=c(0, NA)) +
+  guides(color=guide_legend(override.aes=list(fill=NA))) +
   labs(
     x = "Days since first dose",
-    y = NULL#"Cumulative incidence",
+    y = NULL
   ) +
-  theme_minimal() +
+  theme_bw() +
   theme(
     axis.title.x = element_text(size=10, margin = margin(t = 10)),
-    # axis.title.y = element_text(size=10, margin = margin(r = 10)),
     panel.grid.minor.x = element_blank(),
     panel.grid.minor.y = element_blank(),
     strip.background = element_blank(),
     strip.placement = "outside",
     strip.text.y.left = element_text(angle = 90),
     # strip.text = element_text(size=8),
+    panel.border = element_blank(),
     axis.line.x = element_line(colour = "black"),
     legend.box = "vertical",
     legend.position="bottom"
@@ -483,91 +629,172 @@ ggsave(
 # For text, e.g.
 # "In the BNT162b2 trials, there were xxx positive tests during xxx person-years follow-up (xxx in the unvaccinated group), xxx (xxx) COVID-19 hospitalisations, and xxx (xxx) deaths."
 
-# sequential
-events_sequential_summary <- 
-  read_csv("output/sequential/combine/km_estimates_unrounded.csv") %>% 
-  group_by(brand, outcome, treated) %>%
-  summarise(
-    person_years = round(sum(n.risk)/365.25, 2),
-    events = sum(n.event),
-    .groups = "keep"
+if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
+  
+  # sequential
+  events_sequential_summary <- 
+    read_csv("output/sequential/combine/km_estimates_unrounded.csv") %>% 
+    group_by(brand, outcome, treated) %>%
+    summarise(
+      person_years = round(sum(n.risk)/365.25, 2),
+      events = sum(n.event),
+      .groups = "keep"
     ) %>%
-  ungroup(outcome) %>%
-  mutate(across(person_years, max)) %>%
-  ungroup() %>%
-  pivot_wider(
-    names_from = outcome,
-    values_from = events
+    ungroup(outcome) %>%
+    mutate(across(person_years, max)) %>%
+    ungroup() %>%
+    pivot_wider(
+      names_from = outcome,
+      values_from = events
+    )
+  
+  events_sequential_summary <- events_sequential_summary %>%
+    mutate(across(treated, as.character)) %>%
+    bind_rows(
+      events_sequential_summary %>%
+        mutate(treated = "total") %>%
+        group_by(brand, treated) %>%
+        summarise(across(everything(), sum), .groups = "keep")
+    ) %>%
+    arrange(brand, treated) %>%
+    select(brand, treated, person_years, postest, covidadmitted, death) %>%
+    mutate(across(-c(brand, treated), roundmid_any, to=threshold))
+  
+  # file for release
+  write_csv(
+    events_sequential_summary,
+    file.path(outdir, "events_sequential_summary_rounded.csv")
   )
+  
+} else {
+  
+  # released files
+  events_sequential_summary <- read_csv(file.path(indir, "events_sequential_summary_rounded.csv"))
+  
+}
 
-events_sequential_summary <- events_sequential_summary %>%
-  mutate(across(treated, as.character)) %>%
-  bind_rows(
-    events_sequential_summary %>%
-      mutate(treated = "total") %>%
-      group_by(brand, treated) %>%
-      summarise(across(everything(), sum), .groups = "keep")
-  ) %>%
-  arrange(brand, treated) %>%
-  select(brand, treated, person_years, postest, covidadmitted, death) %>%
-  mutate(across(-c(brand, treated), roundmid_any, to=threshold))
-
-# file for release
-write_csv(
-  events_sequential_summary,
-  file.path(outdir, "events_sequential_summary_rounded.csv")
-)
+events_sequential_summary %>%
+  mutate(across(where(is.double), scales::comma, accuracy=1)) %>%
+  print()
 
 
-# single
-# e.g. "Vaccination after a positive test was rare, occurring in xxx and xxx people who received BNT162b2 and ChAdOx1 respectively and in only xxx and xxx people respectively within 28 days after a positive test). "
-events_single <- 
- read_rds(here("output", "single", "stset", "data_events.rds")) %>%
-  as_tibble() %>%
-  filter(tstart < maxfup) %>%
-  group_by(patient_id, vaxany1_status) %>%
-  mutate(tstart = min(tstart)) %>%
-  summarise(across(
-    c(tstart, tstop, tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
-    ~as.integer(max(.x))
-  )) %>%
-  mutate(across(
-    tstop, 
-    ~if_else(.x > maxfup, as.integer(maxfup), .x)
+
+
+
+if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
+  
+  # single
+  # e.g. "Vaccination after a positive test was rare, occurring in xxx and xxx people who received BNT162b2 and ChAdOx1 respectively and in only xxx and xxx people respectively within 28 days after a positive test). "
+  
+  events_single <- 
+    read_rds(here("output", "single", "stset", "data_events.rds")) %>%
+    as_tibble() %>%
+    filter(tstart < maxfup) %>%
+    group_by(patient_id, vaxany1_status) %>%
+    mutate(tstart = min(tstart)) %>%
+    summarise(across(
+      c(tstart, tstop, tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
+      ~as.integer(max(.x))
     )) %>%
-  mutate(across(
-    c(tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
-    ~if_else(.x > maxfup, NA_integer_, .x)
+    mutate(across(
+      tstop, 
+      ~if_else(.x > maxfup, as.integer(maxfup), .x)
     )) %>%
-  ungroup() 
+    mutate(across(
+      c(tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
+      ~if_else(.x > tstop, NA_integer_, .x)
+    )) %>%
+    ungroup() 
+  
+  
+  events_single_summary <- events_single %>%
+    mutate(vax_postest_gap = tte_vaxany1 - tte_postest) %>%
+    group_by(vaxany1_status) %>%
+    summarise(
+      person_years = round(sum(tstop - tstart)/365.25,2),
+      # use > here rather than >=, as we assume vaccination occurs at the start of the day and postest at the end
+      vax_after_postest = sum(vax_postest_gap>0, na.rm=TRUE),
+      vax_after_postest_28 = sum(vax_postest_gap>0 & vax_postest_gap <= 28, na.rm=TRUE),
+      postest = sum(!is.na(tte_postest)),
+      covidadmitted = sum(!is.na(tte_covidadmitted)),
+      death = sum(!is.na(tte_death))
+    ) %>%
+    ungroup()
+  
+  events_single_summary <- events_single_summary %>%
+    mutate(across(vaxany1_status, as.character)) %>%
+    bind_rows(
+      events_single_summary %>%
+        mutate(vaxany1_status = "any") %>%
+        group_by(vaxany1_status) %>%
+        summarise(across(everything(), sum))
+    ) %>%
+    mutate(across(-vaxany1_status, roundmid_any, to=threshold))
+  
+  # file for release
+  write_csv(
+    events_single_summary,
+    file.path(outdir, "events_single_summary_rounded.csv")
+  )
+  
+} else {
+  
+  # released files
+  events_single_summary <- read_csv(file.path(indir, "events_single_summary_rounded.csv"))
+  
+}
+
+events_single_summary %>%
+  mutate(across(where(is.double), scales::comma, accuracy=1)) %>%
+  print()
 
 
-events_single_summary <- events_single %>%
-  mutate(vax_postest_gap = tte_vaxany1 - tte_postest) %>%
-  group_by(vaxany1_status) %>%
-  summarise(
-    person_years = round(sum(tstop - tstart)/365.25,2),
-    # use > here rather than >=, as we assume vaccination occurs at the start of the day and postest at the end
-    vax_after_postest = sum(vax_postest_gap>0, na.rm=TRUE),
-    vax_after_postest_28 = sum(vax_postest_gap>0 & vax_postest_gap <= 28, na.rm=TRUE),
-    postest = sum(!is.na(tte_postest)),
-    covidadmitted = sum(!is.na(tte_covidadmitted)),
-    death = sum(!is.na(tte_death))
-  ) %>%
-  ungroup()
 
-events_single_summary <- events_single_summary %>%
-  mutate(across(vaxany1_status, as.character)) %>%
-  bind_rows(
-    events_single_summary %>%
-      mutate(vaxany1_status = "any") %>%
-      group_by(vaxany1_status) %>%
-      summarise(across(everything(), sum))
-  ) %>%
-  mutate(across(-vaxany1_status, roundmid_any, to=threshold))
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# flowhcart (supplementary figure 2)
 
-# file for release
-write_csv(
-  events_single_summary,
-  file.path(outdir, "events_single_summary_rounded.csv")
-)
+if(Sys.getenv("OPENSAFELY_BACKEND") %in% "") {
+ 
+  flowchart_final_rounded <- read_csv(file.path(indir, "flowchart_final_rounded.csv"))
+  
+  flowchart_final_rounded %>% 
+    mutate(across(starts_with("n"), scales::comma, accuary=1)) %>%
+    mutate(across(starts_with("pct"), ~round(100*.x, 1))) %>%
+    transmute(
+      criteria,
+      crit,
+      n = if_else(!is.na(n_exclude), paste0(n, " (", pct_all, "%)"), n),
+      n_exclude = if_else(!is.na(n_exclude), paste0(n_exclude, " (", pct_exclude, "%)"), n_exclude)
+    ) %>%
+    print(n=Inf)
+  
+  total_single <- flowchart_final_rounded %>% filter(crit == "c7") %>% pull(n)
+  total_pfizer <- flowchart_final_rounded %>% filter(criteria == "Vaccinated with pfizer during recruitment period") %>% pull(n)
+  total_az <- flowchart_final_rounded %>% filter(criteria == "Vaccinated with az during recruitment period") %>% pull(n)
+  matched_pfizer <- flowchart_final_rounded %>% filter(criteria == "Vaccinated with pfizer during recruitment period, matched as treated") %>% pull(n)
+  matched_az <- flowchart_final_rounded %>% filter(criteria == "Vaccinated with az during recruitment period, matched as treated") %>% pull(n)
+  
+  
+  paste0("A total of ", 
+         scales::comma(total_pfizer+total_az, accuracy = 1),
+         " (", round(100*(total_pfizer+total_az)/total_single, 0), "%) people were vaccinated by the end of follow-up: ",
+         scales::comma(total_pfizer, accuracy = 1), " (", round(100*(total_pfizer)/total_single, 0), "%) and ",
+         scales::comma(total_az, accuracy = 1), " (", round(100*(total_az)/total_single, 0), "%) with BNT162b2 and ChAdOx1 respectively."
+  )
+  
+  
+  paste0(
+    "Matches were identified for ",
+    scales::comma(matched_pfizer+matched_az, accuracy = 1), " (", round(100*(matched_pfizer+matched_az)/(total_pfizer+total_az), 0), "%)",
+    " of ",
+    scales::comma(total_pfizer+total_az, accuracy = 1),
+    " eligible vaccinations: ",
+    scales::comma(matched_pfizer, accuracy = 1), " (", round(100*matched_pfizer/total_pfizer, 0), "%) of ",
+    scales::comma(total_pfizer, accuracy = 1),
+    " for BNT162b2, and ",
+    scales::comma(matched_az, accuracy = 1), " (", round(100*matched_az/total_az, 0), "%) of ",
+    scales::comma(total_az, accuracy = 1),
+    " for ChAdOx1."
+  )
+  
+}
