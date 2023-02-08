@@ -694,7 +694,7 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
     group_by(patient_id, vaxany1_status) %>%
     mutate(tstart = min(tstart)) %>%
     summarise(across(
-      c(tstart, tstop, tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
+      c(tstart, tstop, tte_postest, tte_covidadmitted, tte_death, tte_vaxany1, tte_vaxpfizer1, tte_vaxaz1),
       ~as.integer(max(.x))
     )) %>%
     mutate(across(
@@ -702,20 +702,32 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
       ~if_else(.x > maxfup, as.integer(maxfup), .x)
     )) %>%
     mutate(across(
-      c(tte_postest, tte_covidadmitted, tte_death, tte_vaxany1),
-      ~if_else(.x > tstop, NA_integer_, .x)
+      c(tte_postest, tte_covidadmitted, tte_death, tte_vaxany1, tte_vaxpfizer1, tte_vaxaz1),
+      ~if_else(
+        .x <= tstart | tstop < .x,
+        NA_integer_,
+        .x
+        )
     )) %>%
     ungroup() 
   
   
   events_single_summary <- events_single %>%
-    mutate(vax_postest_gap = tte_vaxany1 - tte_postest) %>%
+    mutate(
+      vaxany1_postest_gap = tte_vaxany1 - tte_postest,
+      vaxpfizer1_postest_gap = tte_vaxpfizer1 - tte_postest,
+      vaxaz1_postest_gap = tte_vaxaz1 - tte_postest
+      ) %>%
     group_by(vaxany1_status) %>%
     summarise(
       person_years = round(sum(tstop - tstart)/365.25,2),
       # use > here rather than >=, as we assume vaccination occurs at the start of the day and postest at the end
-      vax_after_postest = sum(vax_postest_gap>0, na.rm=TRUE),
-      vax_after_postest_28 = sum(vax_postest_gap>0 & vax_postest_gap <= 28, na.rm=TRUE),
+      vaxany1_after_postest = sum(vaxany1_postest_gap>0, na.rm=TRUE),
+      vaxany1_after_postest_28 = sum(vaxany1_postest_gap>0 & vaxany1_postest_gap <= 28, na.rm=TRUE),
+      vaxpfizer1_after_postest = sum(vaxpfizer1_postest_gap>0, na.rm=TRUE),
+      vaxpfizer1_after_postest_28 = sum(vaxpfizer1_postest_gap>0 & vaxpfizer1_postest_gap <= 28, na.rm=TRUE),
+      vaxaz1_after_postest = sum(vaxaz1_postest_gap>0, na.rm=TRUE),
+      vaxaz1_after_postest_28 = sum(vaxaz1_postest_gap>0 & vaxaz1_postest_gap <= 28, na.rm=TRUE),
       postest = sum(!is.na(tte_postest)),
       covidadmitted = sum(!is.na(tte_covidadmitted)),
       death = sum(!is.na(tte_death))
