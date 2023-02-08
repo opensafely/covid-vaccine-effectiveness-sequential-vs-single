@@ -428,11 +428,11 @@ colour_palette <- c(
 
 # this is necessary because there is an older version of a package in opensafely 
 # and I think it requires breaks to be unique
-# if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("")) {
-#   y_labels <- ~scales::label_number(accuracy = 1, big.mark=",")(.x)
-# } else {
-#   y_labels <- waiver()
-# }
+if(Sys.getenv("OPENSAFELY_BACKEND") %in% c("")) {
+  y_labels <- ~scales::label_number(accuracy = 1, big.mark=",")(.x)
+} else {
+  y_labels <- waiver()
+}
 
 coverage %>%
   mutate(
@@ -470,7 +470,7 @@ coverage %>%
     expand = expansion(c(0,0))
   ) +
   scale_y_continuous(
-    labels = ~scales::label_number(accuracy = 1, big.mark=",")(.x),
+    labels = y_labels,
     expand = expansion(c(0, 0.05))
   ) +
   scale_fill_manual(values = colour_palette) +
@@ -607,6 +607,7 @@ km_estimates_rounded %>%
     axis.title.x = element_text(size=10, margin = margin(t = 10)),
     panel.grid.minor.x = element_blank(),
     panel.grid.minor.y = element_blank(),
+    panel.spacing = unit(1, "lines"),
     strip.background = element_blank(),
     strip.placement = "outside",
     strip.text.y.left = element_text(angle = 90),
