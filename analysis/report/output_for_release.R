@@ -636,7 +636,10 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
   events_sequential_summary <- 
     read_csv("output/sequential/combine/km_estimates_unrounded.csv") %>% 
     group_by(brand, outcome, treated) %>%
+    arrange(time, .by_group = TRUE) %>%
     summarise(
+      # number of people at risk when time=1
+      patient_count = first(n.risk),
       person_years = round(sum(n.risk)/365.25, 2),
       events = sum(n.event),
       .groups = "keep"
@@ -658,8 +661,8 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
         summarise(across(everything(), sum), .groups = "keep")
     ) %>%
     arrange(brand, treated) %>%
-    select(brand, treated, person_years, postest, covidadmitted, death) %>%
-    mutate(across(-c(brand, treated), roundmid_any, to=threshold))
+    select(brand, treated, patient_count, person_years, postest, covidadmitted, death) %>%
+    mutate(across(-c(brand, treated, person_years), roundmid_any, to=threshold))
   
   # file for release
   write_csv(
@@ -724,6 +727,7 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
       ) %>%
     group_by(vaxany1_status) %>%
     summarise(
+      patient_count = n(),
       person_years = round(sum(tstop - tstart)/365.25,2),
       # first vaccine dose any time after a positive test
       # use >0 here rather than >=0, as we assume vaccination occurs at the start of the day and postest at the end
@@ -750,9 +754,13 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
       events_single_summary %>%
         mutate(vaxany1_status = "any") %>%
         group_by(vaxany1_status) %>%
-        summarise(across(everything(), sum))
+        summarise(across(everything(), sum)) %>%
+        ungroup() %>%
+        # the same patient can be counted as unvaccinated and vaccinated,
+        # so replace the sum here with the number of disitnct patients
+        mutate(patient_count = n_distinct(events_single$patient_id))
     ) %>%
-    mutate(across(-vaxany1_status, roundmid_any, to=threshold))
+    mutate(across(-c(vaxany1_status, person_years), roundmid_any, to=threshold))
   
   # file for release
   write_csv(
