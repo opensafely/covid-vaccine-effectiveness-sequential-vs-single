@@ -690,17 +690,21 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
   events_single <- 
     read_rds(here("output", "single", "stset", "data_events.rds")) %>%
     as_tibble() %>%
+    # remove intervals that start after maxfup
     filter(tstart < maxfup) %>%
     group_by(patient_id, vaxany1_status) %>%
+    # calculate `min(tstart)` so that we can use `max` across all columns in `summarise()` below
     mutate(tstart = min(tstart)) %>%
     summarise(across(
       c(tstart, tstop, tte_postest, tte_covidadmitted, tte_death, tte_vaxany1, tte_vaxpfizer1, tte_vaxaz1),
       ~as.integer(max(.x))
     )) %>%
+    # censor tstop at maxfup
     mutate(across(
       tstop, 
       ~if_else(.x > maxfup, as.integer(maxfup), .x)
     )) %>%
+    # only keep tte_* such that tstart < tte_* <= tstop
     mutate(across(
       c(tte_postest, tte_covidadmitted, tte_death, tte_vaxany1, tte_vaxpfizer1, tte_vaxaz1),
       ~if_else(
@@ -721,13 +725,18 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
     group_by(vaxany1_status) %>%
     summarise(
       person_years = round(sum(tstop - tstart)/365.25,2),
-      # use > here rather than >=, as we assume vaccination occurs at the start of the day and postest at the end
+      # first vaccine dose any time after a positive test
+      # use >0 here rather than >=0, as we assume vaccination occurs at the start of the day and postest at the end
       vaxany1_after_postest = sum(vaxany1_postest_gap>0, na.rm=TRUE),
+      # first vaccine dose within 28 days after a positive test
       vaxany1_after_postest_28 = sum(vaxany1_postest_gap>0 & vaxany1_postest_gap <= 28, na.rm=TRUE),
+      # same restricted to pfizer
       vaxpfizer1_after_postest = sum(vaxpfizer1_postest_gap>0, na.rm=TRUE),
       vaxpfizer1_after_postest_28 = sum(vaxpfizer1_postest_gap>0 & vaxpfizer1_postest_gap <= 28, na.rm=TRUE),
+      # same restricted to az
       vaxaz1_after_postest = sum(vaxaz1_postest_gap>0, na.rm=TRUE),
       vaxaz1_after_postest_28 = sum(vaxaz1_postest_gap>0 & vaxaz1_postest_gap <= 28, na.rm=TRUE),
+      # number of outcomes
       postest = sum(!is.na(tte_postest)),
       covidadmitted = sum(!is.na(tte_covidadmitted)),
       death = sum(!is.na(tte_death))
@@ -736,6 +745,7 @@ if(!(Sys.getenv("OPENSAFELY_BACKEND") %in% "")) {
   
   events_single_summary <- events_single_summary %>%
     mutate(across(vaxany1_status, as.character)) %>%
+    # add row for any vaxany1_status
     bind_rows(
       events_single_summary %>%
         mutate(vaxany1_status = "any") %>%
