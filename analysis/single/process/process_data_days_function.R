@@ -40,8 +40,8 @@ process_data_days_function <- function(
       # if brand-specific, follow up ends at (day after) occurrence of competing vaccination, 
       # ie where vax{competingbrand}_status not >0
       vaxany1_status == .[[glue("vax{brand}1_status")]], 
-      # censor at second dose
-      vaxany2_status == 0, 
+      # # censor at second dose
+      # vaxany2_status == 0, 
       # select follow-up time where vax brand is being administered
       .[[glue("vax{brand}_atrisk")]] == 1, 
     ) %>%
