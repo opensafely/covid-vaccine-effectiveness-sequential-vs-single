@@ -274,6 +274,7 @@ plot_data <- bind_rows(
   estimates_single
 ) %>%
   add_descr() %>%
+  mutate(across(approach, as.factor)) %>%
   rowwise() %>%
   mutate(mid_point = (period_start + period_end - 1)/2) 
 
@@ -288,8 +289,8 @@ primary_vax_y2 <- list(
   breaks = c(0, 0.5, 0.8, 0.9, 0.95)
 )
 
-shape_palette <- c(17,16)
-names(shape_palette) <- brand_lookup$brand_descr[1:2]
+shape_palette <- c(16,17)
+names(shape_palette) <- levels(plot_data$approach)
 
 outcome_descr_long <- levels(plot_data$outcome_descr)
 outcome_descr_wrap <- str_replace(outcome_descr_long, "\\s", "\\\n")
@@ -343,11 +344,11 @@ plot_data %>%
     x = "Days since first dose"
   ) +
   scale_color_brewer(palette = "Dark2") +
-  scale_shape(guide = "none") +
+  scale_shape_manual(guide = "none", values = shape_palette) +
   guides(
     color = guide_legend(
       title = NULL,
-      override.aes = list(shape = shape_palette[1:2])
+      override.aes = list(shape = shape_palette)
     )) +
   theme_bw() +
   theme(
