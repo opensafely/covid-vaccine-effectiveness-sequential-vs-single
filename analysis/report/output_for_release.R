@@ -289,7 +289,7 @@ primary_vax_y2 <- list(
   breaks = c(0, 0.5, 0.8, 0.9, 0.95)
 )
 
-shape_palette <- c(17,16)
+shape_palette <- c(16,17)
 names(shape_palette) <- levels(plot_data$approach)
 
 outcome_descr_long <- levels(plot_data$outcome_descr)
